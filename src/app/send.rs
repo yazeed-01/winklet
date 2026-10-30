@@ -84,7 +84,7 @@ impl App {
                             if std::env::var_os("WINKLET_DEMO_TAB").is_some() {
                                 eprintln!("share url: {}", server.url); // demo runs: lets a script test the link
                             }
-                            a.ui().global::<Bridge>().set_send_qr(qr_image(&server.url));
+                            a.ui().global::<Bridge>().set_send_qr(qr_image(&shown_url(&server.url)));
                             a.send.server = Some(server);
                             a.send_tick_start(s);
                         }
@@ -177,10 +177,20 @@ impl App {
         b.set_send_sharing(self.send.server.is_some());
         b.set_send_preparing(self.send.preparing);
         b.set_send_status(s(self.send.status.clone()));
-        b.set_send_url(s(self.send.server.as_ref().map(|s| s.url.clone()).unwrap_or_default()));
-        b.set_send_ip(s(share::lan_ip().unwrap_or_default()));
+        b.set_send_url(s(self.send.server.as_ref().map(|s| shown_url(&s.url)).unwrap_or_default()));
+        b.set_send_ip(s(if mock() { "192.168.x.x".into() } else { share::lan_ip().unwrap_or_default() }));
         self.refresh_send_left();
     }
+}
+
+/// WINKLET_DEMO_SHARE_MOCK (screenshots): show an obviously fake address and link
+/// instead of the real ones, so no real link ends up in a picture.
+fn mock() -> bool {
+    std::env::var_os("WINKLET_DEMO_SHARE_MOCK").is_some()
+}
+
+fn shown_url(url: &str) -> String {
+    if mock() { "http://192.168.x.x:49152/demo-link".into() } else { url.to_string() }
 }
 
 /// QR code as a crisp black-on-white image (2-module quiet zone, 8 px per module).
