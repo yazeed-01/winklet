@@ -26,6 +26,8 @@ pub fn wire(b: &Bridge, app: &Shared) {
             if inside {
                 a.collapse_timer.stop();
                 if !a.ui().global::<Bridge>().get_expanded() {
+                    a.shrink_timer.stop();
+                    a.resize(true);
                     let weak = Rc::downgrade(&shared);
                     a.hover_timer.start(TimerMode::SingleShot, Duration::from_millis(140), move || {
                         if let Some(s) = weak.upgrade() {
@@ -38,6 +40,11 @@ pub fn wire(b: &Bridge, app: &Shared) {
                 }
             } else {
                 a.hover_timer.stop();
+                if !a.ui().global::<Bridge>().get_expanded() && a.drag_from.is_none() {
+                    // passed over without opening: back to the pill size
+                    a.resize(false);
+                    return;
+                }
                 schedule_collapse(&shared, &mut a, 380);
             }
         });

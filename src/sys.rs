@@ -285,6 +285,15 @@ pub fn single_instance() -> bool {
     }
 }
 
+/// Runs the island above normal priority so its open / close animations stay smooth
+/// while other programs keep the CPU busy (it is idle almost all the time, so this costs nothing).
+pub fn boost_priority() {
+    use windows::Win32::System::Threading::{ABOVE_NORMAL_PRIORITY_CLASS, SetPriorityClass};
+    unsafe {
+        let _ = SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
+    }
+}
+
 /// Hands unused pages back to Windows while the island is just sitting there.
 pub fn trim_memory() {
     unsafe {

@@ -39,6 +39,7 @@ fn main() {
     if !sys::single_instance() {
         return;
     }
+    sys::boost_priority();
     // STA: required for file dialogs and OLE drag & drop (winit registers the drop target).
     unsafe {
         let _ = windows::Win32::System::Com::CoInitializeEx(None, windows::Win32::System::Com::COINIT_APARTMENTTHREADED);

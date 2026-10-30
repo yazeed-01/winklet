@@ -62,9 +62,10 @@ impl App {
             self.refresh_tab(b.get_tab());
         }
 
-        // Give memory back after the island has been quiet for a while.
+        // Give memory back after the island has been quiet for a long while
+        // (sooner would make the next open page it back in and stutter on a busy PC).
         if let Some(t) = self.collapsed_at {
-            if !self.trimmed && t.elapsed() > Duration::from_secs(20) && !b.get_peeking() {
+            if !self.trimmed && t.elapsed() > Duration::from_secs(300) && !b.get_peeking() && !self.hovering {
                 sys::trim_memory();
                 self.trimmed = true;
             }
