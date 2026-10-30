@@ -101,11 +101,11 @@ impl App {
         b.set_hist_best(s(if best.0 > 0 { format!("{} · {}", best.1.format("%-d %b"), dur(best.0)) } else { "–".into() }));
         let first = self.data.health.keys().next().copied();
         b.set_hist_note(s(if pc_mode {
-            "From Windows power events".to_string()
+            "From Windows logs".to_string()
         } else {
             match first {
-                Some(f) => format!("Tracked by Winklet since {}", f.format("%-d %b")),
-                None => "Tracked by Winklet from today".to_string(),
+                Some(f) => format!("Since {}", f.format("%-d %b")),
+                None => "Since today".to_string(),
             }
         }));
     }

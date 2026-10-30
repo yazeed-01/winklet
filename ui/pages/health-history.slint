@@ -47,7 +47,7 @@ export component HistoryView inherits Rectangle {
                 value: Bridge.history-mode;
                 picked(i) => { Bridge.history-mode = i; Bridge.history-mode-changed(i); }
             }
-            Label { text: Bridge.hist-note; font-size: 10px; color: Theme.text-faint; horizontal-stretch: 1; }
+            Label { text: Bridge.hist-note; font-size: 10px; color: Theme.text-faint; horizontal-stretch: 1; overflow: elide; }
         }
         Rectangle {
             height: 14px + 7 * 17px;

@@ -11,10 +11,11 @@ export component DashView inherits Rectangle {
     property <bool> sweep: Bridge.dash-sweep;
     animate tint { duration: 500ms; }
 
-    // mode badge
+    // mode badge (stops short of the view switch on the right)
     HorizontalLayout {
         x: 0;
         y: 0;
+        width: parent.width - 284px;
         height: 24px;
         spacing: 6px;
         Rectangle {
@@ -36,11 +37,13 @@ export component DashView inherits Rectangle {
             vertical-alignment: center;
         }
         Text {
-            text: Bridge.has-perf-mode ? "· Fn+Q" : "· press Fn+Q to sync";
+            text: Bridge.has-perf-mode ? "· Fn+Q" : "· Fn+Q to sync";
             font-family: Theme.font;
             font-size: 10px;
             color: Theme.text-faint;
             vertical-alignment: center;
+            horizontal-stretch: 1;
+            overflow: elide;
         }
     }
 
