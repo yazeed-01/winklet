@@ -36,7 +36,8 @@ thread_local! {
 }
 
 fn main() {
-    if !sys::single_instance() {
+    // demo runs (WINKLET_DEMO_TAB, used for screenshots) may run next to the real one
+    if !sys::single_instance() && std::env::var_os("WINKLET_DEMO_TAB").is_none() {
         return;
     }
     sys::boost_priority();
@@ -261,6 +262,26 @@ fn init_window(app: Shared) {
                 b.set_health_view(v);
                 b.set_dev_view(v);
                 b.set_game_view(v);
+            }
+            // WINKLET_DEMO_DRINK=name opens the "New drink" editor (after the Water page exists)
+            if let Ok(name) = std::env::var("WINKLET_DEMO_DRINK") {
+                slint::Timer::single_shot(std::time::Duration::from_millis(1500), move || {
+                    app::with_app(|s| {
+                        let mut a = s.borrow_mut();
+                        a.drink_edit("");
+                        let ui = a.ui();
+                        let b = ui.global::<Bridge>();
+                        b.set_drink_edit_name(name.as_str().into());
+                        b.set_drink_edit_color(6);
+                        b.set_drink_edit_ml(300);
+                    })
+                });
+            }
+            // WINKLET_DEMO_SIZES=drink-id opens the cup-size sheet for that drink
+            if let Ok(id) = std::env::var("WINKLET_DEMO_SIZES") {
+                slint::Timer::single_shot(std::time::Duration::from_millis(1500), move || {
+                    app::with_app(|s| s.borrow_mut().drink_pick(&id))
+                });
             }
             if std::env::var_os("WINKLET_DEMO_HISTORY").is_some() {
                 a.ui().global::<Bridge>().set_health_view(3);

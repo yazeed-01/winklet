@@ -4,6 +4,7 @@
 mod car;
 mod dev;
 mod drag;
+mod drinks;
 mod eyes;
 mod focus;
 mod game;
@@ -364,6 +365,7 @@ impl App {
         self.play.run = None;
         crate::fps::set_target(0);
         self.data = crate::store::Data::default();
+        self.data.drinks = crate::store::default_drinks();
         // launch-at-startup lives in the registry: keep showing what it really is
         self.data.settings.autostart = sys::autostart_enabled();
         self.screen.log = Default::default();

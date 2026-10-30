@@ -1,15 +1,156 @@
-// Water tracker: bottle, quick-add buttons and the week chart.
+// Water tab: a bottle that fills in layers of what you drank, drink tiles (water, tea,
+// coffee, lattes… and your own), the daily goal and the week.
 
 import { Theme, Icon } from "../theme.slint";
-import { Bridge } from "../bridge.slint";
-import { Label, Button, Stepper } from "../widgets.slint";
+import { Bridge, DrinkItem } from "../bridge.slint";
+import { Label, Button, Stepper, IconButton, Glyph, Field, Tip } from "../widgets.slint";
+
+// A cup or bottle drawn in a 40 × 56 box. `level` = where the drink's surface sits (viewbox y).
+struct CupKind {
+    name: string,
+    ml: int,
+    body: string,     // outline, also filled with the drink below `level`
+    extra: string,    // handle, straw or cap (stroke only)
+    level: float,
+}
+
+component Cup inherits Rectangle {
+    in property <CupKind> kind;
+    in property <color> tint;
+    in property <bool> usual;
+    callback picked();
+    width: 52px;
+    height: 92px;
+    border-radius: 12px;
+    background: usual ? tint.with-alpha(0.16) : ta.has-hover ? Theme.surface-hover : Theme.surface;
+    border-width: usual ? 1.5px : 0;
+    border-color: tint.with-alpha(0.7);
+    animate background { duration: 140ms; }
+    // drawing (lifts a little on hover)
+    Rectangle {
+        x: (parent.width - 40px) / 2;
+        y: ta.has-hover ? 4px : 7px;
+        width: 40px;
+        height: 56px;
+        animate y { duration: 160ms; easing: Theme.spring-ease; }
+        // the drink inside: the body shape cut off above `level`
+        Rectangle {
+            y: root.kind.level * 1px;
+            height: parent.height - self.y;
+            clip: true;
+            Path {
+                y: -parent.y;
+                width: 40px;
+                height: 56px;
+                viewbox-width: 40;
+                viewbox-height: 56;
+                commands: root.kind.body;
+                fill: @linear-gradient(180deg, root.tint.brighter(0.25) 0%, root.tint 100%);
+            }
+        }
+        Path {
+            width: 40px;
+            height: 56px;
+            viewbox-width: 40;
+            viewbox-height: 56;
+            commands: root.kind.body;
+            stroke: #ffffffb0;
+            stroke-width: 1.4px;
+        }
+        if root.kind.extra != "": Path {
+            width: 40px;
+            height: 56px;
+            viewbox-width: 40;
+            viewbox-height: 56;
+            commands: root.kind.extra;
+            stroke: #ffffffb0;
+            stroke-width: 1.4px;
+            stroke-line-cap: round;
+        }
+    }
+    VerticalLayout {
+        y: 64px;
+        height: 26px;
+        spacing: 0;
+        Label { text: root.kind.ml >= 1000 ? (root.kind.ml / 1000) + " L" : root.kind.ml + " ml"; font-size: 10.5px; font-weight: 700; horizontal-alignment: center; }
+        Label { text: root.kind.name; font-size: 8.5px; color: Theme.text-faint; horizontal-alignment: center; }
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.picked(); } }
+}
+
+// Click to log it (pick a size); right-click to change it.
+component DrinkTile inherits Rectangle {
+    in property <DrinkItem> item;
+    property <bool> had: item.today > 0;
+    border-radius: 9px;
+    background: had ? item.color.with-alpha(ta.has-hover ? 0.32 : 0.2) : ta.has-hover ? Theme.surface-hover : Theme.surface;
+    border-width: had ? 1px : 0;
+    border-color: item.color.with-alpha(0.45);
+    animate background { duration: 140ms; }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { Tip.shown = false; Bridge.drink-pick(root.item.id); }
+        pointer-event(e) => {
+            if e.button == PointerEventButton.right && e.kind == PointerEventKind.up && !Bridge.dragging {
+                Tip.shown = false;
+                Bridge.drink-edit(root.item.id);
+            }
+        }
+        changed has-hover => {
+            if self.has-hover {
+                Tip.text = root.item.name + (root.had ? " · today " + root.item.today + " ml" : "") + "  ·  click to pick a size, right-click to edit";
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if Tip.text != "" && root.item.name != "" {
+                Tip.shown = false;
+            }
+        }
+    }
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 6px;
+        spacing: 6px;
+        Rectangle {
+            width: 9px;
+            height: 9px;
+            y: (parent.height - self.height) / 2;
+            border-radius: 4.5px;
+            background: root.item.color;
+            drop-shadow-blur: root.had ? 6px : 0;
+            drop-shadow-color: root.item.color;
+        }
+        Label { text: root.item.name; font-size: 11px; font-weight: root.had ? 700 : 500; horizontal-stretch: 1; }
+    }
+}
 
 export component WaterPage inherits Rectangle {
     property <float> pct: min(1.0, Bridge.water-ml / max(1, Bridge.water-goal));
+    property <int> cols: 4;
+    // everyday cups and bottles, smallest first
+    property <[CupKind]> cups: [
+        { name: "Shot", ml: 40, level: 41,
+          body: "M13 37 H27 V47 Q27 52 22 52 H18 Q13 52 13 47 Z", extra: "M27 40 Q32 40 32 44 Q32 48 27 48" },
+        { name: "Tea glass", ml: 150, level: 33,
+          body: "M13 28 H27 L25 52 H15 Z", extra: "" },
+        { name: "Cup", ml: 250, level: 28,
+          body: "M10 23 H27 V47 Q27 52 22 52 H15 Q10 52 10 47 Z", extra: "M27 29 Q34 29 34 36 Q34 43 27 43" },
+        { name: "Big mug", ml: 350, level: 20,
+          body: "M9 14 H28 V47 Q28 52 23 52 H14 Q9 52 9 47 Z", extra: "M28 21 Q36 21 36 30 Q36 39 28 39" },
+        { name: "Tall glass", ml: 400, level: 15,
+          body: "M11 10 H29 L27 52 H13 Z", extra: "M25 3 L22 22" },
+        { name: "Bottle", ml: 500, level: 22,
+          body: "M17 9 H23 V14 Q30 17 30 23 V50 Q30 52 28 52 H12 Q10 52 10 50 V23 Q10 17 17 14 Z", extra: "M16 5 H24 V9 H16 Z" },
+        { name: "Big bottle", ml: 1000, level: 15,
+          body: "M17 7 H23 V11 Q33 14 33 21 V50 Q33 52 31 52 H9 Q7 52 7 50 V21 Q7 14 17 11 Z", extra: "M16 2 H24 V7 H16 Z" },
+    ];
+    init => { Bridge.drink-edit-open = false; Bridge.drink-pick-open = false; }
     HorizontalLayout {
-        spacing: 18px;
-        padding-left: 8px;
-        // Bottle
+        spacing: 16px;
+        padding-left: 4px;
+        // Bottle: one layer per drink, waves in the colour of the last one
         Rectangle {
             width: 96px;
             bottle := Rectangle {
@@ -18,7 +159,7 @@ export component WaterPage inherits Rectangle {
                 y: (parent.height - self.height) / 2;
                 border-radius: 26px;
                 border-width: 1.5px;
-                border-color: #38bdf855;
+                border-color: Bridge.water-top.with-alpha(0.35);
                 background: #38bdf80d;
                 clip: true;
                 // time in ms, drives the waves and bubbles while the page is open
@@ -26,8 +167,16 @@ export component WaterPage inherits Rectangle {
                 water := Rectangle {
                     y: parent.height - self.height;
                     height: parent.height * root.pct;
-                    background: @linear-gradient(180deg, #7dd3fc 0%, #3b82f6 100%);
+                    background: Bridge.water-top;
                     animate height { duration: 900ms; easing: Theme.spring-ease; }
+                    for p in Bridge.water-mix: Rectangle {
+                        y: parent.height * (1 - p.end);
+                        height: parent.height * (p.end - p.start);
+                        background: p.color;
+                        animate y, height { duration: 700ms; easing: Theme.smooth; }
+                    }
+                    // depth: lighter at the top, darker at the bottom
+                    Rectangle { background: @linear-gradient(180deg, #ffffff26 0%, #ffffff00 45%, #00000040 100%); }
                     // rising bubbles
                     for i in 4: Rectangle {
                         property <float> cycle: 2600 + i * 700;
@@ -50,7 +199,7 @@ export component WaterPage inherits Rectangle {
                         background: #ffffff33;
                     }
                 }
-                // two waves sliding over the water surface
+                // two waves sliding over the surface
                 for w in 2: Path {
                     property <float> period: w == 0 ? 3200 : 2100;
                     width: 168px;
@@ -64,7 +213,7 @@ export component WaterPage inherits Rectangle {
                     viewbox-y: 0;
                     viewbox-width: 168;
                     viewbox-height: 10;
-                    fill: w == 0 ? #7dd3fc : #7dd3fc66;
+                    fill: w == 0 ? Bridge.water-top.brighter(0.15) : Bridge.water-top.with-alpha(0.4);
                     commands: w == 0
                         ? "M0 5 Q21 0 42 5 T84 5 T126 5 T168 5 V10 H0 Z"
                         : "M0 5 Q21 10 42 5 T84 5 T126 5 T168 5 V10 H0 Z";
@@ -82,44 +231,70 @@ export component WaterPage inherits Rectangle {
                 }
             }
         }
-        VerticalLayout {
-            spacing: 10px;
-            alignment: start;
+        right := VerticalLayout {
+            spacing: 8px;
             HorizontalLayout {
+                height: 34px;
                 spacing: 6px;
                 Text {
                     text: Bridge.water-ml;
                     font-family: Theme.font-display;
-                    font-size: 34px;
+                    font-size: 30px;
                     font-weight: 600;
                     color: Theme.text;
+                    vertical-alignment: center;
                 }
                 Label {
-                    text: "/ " + Bridge.water-goal + " ml";
+                    text: "/ " + Bridge.water-goal + " ml today";
                     color: Theme.text-dim;
                     vertical-alignment: bottom;
-                    font-size: 13px;
+                    font-size: 12px;
                     horizontal-stretch: 1;
+                }
+                IconButton { y: (parent.height - self.height) / 2; icon: Icon.undo; size: 28px; icon-size: 12px; fill: Theme.surface; tip: "Undo last drink"; clicked => { Bridge.water-undo(); } }
+            }
+            // drink tiles + "New drink"
+            tiles := Rectangle {
+                height: 4 * 26px + 3 * 6px;
+                property <length> tw: (self.width - (root.cols - 1) * 6px) / root.cols;
+                Flickable {
+                    content-height: (ceil((Bridge.drinks.length + 1) / root.cols)) * 32px - 6px;
+                    for d[i] in Bridge.drinks: DrinkTile {
+                        item: d;
+                        x: mod(i, root.cols) * (tiles.tw + 6px);
+                        y: floor(i / root.cols) * 32px;
+                        width: tiles.tw;
+                        height: 26px;
+                    }
+                    Rectangle {
+                        property <int> i: Bridge.drinks.length;
+                        x: mod(self.i, root.cols) * (tiles.tw + 6px);
+                        y: floor(self.i / root.cols) * 32px;
+                        width: tiles.tw;
+                        height: 26px;
+                        border-radius: 9px;
+                        border-width: 1px;
+                        border-color: nta.has-hover ? Theme.accent : Theme.stroke;
+                        background: nta.has-hover ? #8b7bff1a : transparent;
+                        animate background, border-color { duration: 140ms; }
+                        HorizontalLayout {
+                            alignment: center;
+                            spacing: 5px;
+                            Glyph { text: Icon.add; font-size: 9px; color: Theme.accent; }
+                            Label { text: "New drink"; font-size: 11px; color: Theme.accent; font-weight: 600; }
+                        }
+                        nta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.drink-edit(""); } }
+                    }
                 }
             }
             HorizontalLayout {
-                spacing: 8px;
-                Button { primary: true; tint: Theme.blue; icon: Icon.add; text: Bridge.cup-ml + " ml"; clicked => { Bridge.water-add(Bridge.cup-ml); } }
-                Button { text: "+500"; clicked => { Bridge.water-add(500); } }
-                Button { text: "+100"; clicked => { Bridge.water-add(100); } }
-                Button { icon: Icon.undo; tip: "Undo last drink"; clicked => { Bridge.water-undo(); } }
-            }
-            HorizontalLayout {
+                height: 26px;
                 Label { text: "Daily goal"; color: Theme.text-dim; font-size: 12px; }
                 Stepper { value: Bridge.water-goal + " ml"; step(d) => { Bridge.water-goal-adjust(d); } }
             }
-            HorizontalLayout {
-                Label { text: "Cup size"; color: Theme.text-dim; font-size: 12px; }
-                Stepper { value: Bridge.cup-ml + " ml"; step(d) => { Bridge.cup-adjust(d); } }
-            }
             // Week chart
             HorizontalLayout {
-                height: 56px;
+                height: 44px;
                 spacing: 10px;
                 for b in Bridge.water-week: VerticalLayout {
                     spacing: 3px;
@@ -136,6 +311,168 @@ export component WaterPage inherits Rectangle {
                     }
                     Label { text: b.label; font-size: 9.5px; color: b.today ? Theme.text : Theme.text-faint; horizontal-alignment: center; }
                 }
+            }
+        }
+    }
+
+    // "how much?": pick a cup; the one you had last time is marked
+    if Bridge.drink-pick-open: TouchArea {
+        width: parent.width;
+        height: parent.height;
+        clicked => { Bridge.drink-pick-open = false; }
+    }
+    if Bridge.drink-pick-open: Rectangle {
+        x: 112px;
+        y: 26px;
+        width: parent.width - self.x;
+        height: sheet.preferred-height;
+        border-radius: 16px;
+        background: #1c1c22;
+        border-width: 1px;
+        border-color: Theme.stroke;
+        drop-shadow-blur: 20px;
+        drop-shadow-color: #000b;
+        TouchArea { }
+        sheet := VerticalLayout {
+            padding: 12px;
+            spacing: 10px;
+            HorizontalLayout {
+                spacing: 7px;
+                height: 20px;
+                Rectangle {
+                    width: 12px;
+                    height: 12px;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 6px;
+                    background: Bridge.drink-pick-color;
+                    drop-shadow-blur: 6px;
+                    drop-shadow-color: Bridge.drink-pick-color;
+                }
+                Label { text: Bridge.drink-pick-name + " · how much?"; font-size: 13px; font-weight: 700; font-family: Theme.font-display; horizontal-stretch: 1; }
+                IconButton {
+                    icon: Icon.edit;
+                    size: 22px;
+                    icon-size: 9px;
+                    tint: Theme.text-dim;
+                    tip: "Edit this drink";
+                    clicked => { Bridge.drink-pick-open = false; Bridge.drink-edit(Bridge.drink-pick-id); }
+                }
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                alignment: space-between;
+                for c in root.cups: Cup {
+                    kind: c;
+                    tint: Bridge.drink-pick-color;
+                    usual: c.ml == Bridge.drink-pick-ml;
+                    picked => { Bridge.drink-add-size(Bridge.drink-pick-id, c.ml); }
+                }
+            }
+            // any other amount
+            HorizontalLayout {
+                height: 28px;
+                spacing: 8px;
+                Label { text: "Other amount"; font-size: 11.5px; color: Theme.text-dim; horizontal-stretch: 1; }
+                Stepper {
+                    value: Bridge.drink-pick-custom + " ml";
+                    step(d) => {
+                        Bridge.drink-pick-custom = max(10, min(3000, Bridge.drink-pick-custom + d * (Bridge.drink-pick-custom + min(d, 0) < 100 ? 10 : 50)));
+                    }
+                }
+                Button {
+                    height: 28px;
+                    primary: true;
+                    tint: Bridge.drink-pick-color;
+                    icon: Icon.add;
+                    text: "Add";
+                    clicked => { Bridge.drink-add-size(Bridge.drink-pick-id, Bridge.drink-pick-custom); }
+                }
+            }
+        }
+    }
+
+    // drink editor: name, colour, cup size; a click anywhere else closes it
+    if Bridge.drink-edit-open: TouchArea {
+        width: parent.width;
+        height: parent.height;
+        clicked => { Bridge.drink-edit-open = false; }
+    }
+    if Bridge.drink-edit-open: card := Rectangle {
+        property <color> pick: Bridge.drink-edit-color >= 0 && Bridge.drink-edit-color < Bridge.drink-palette.length
+            ? Bridge.drink-palette[Bridge.drink-edit-color] : Theme.accent;
+        x: 116px;
+        y: 30px;
+        width: 300px;
+        height: form.preferred-height;
+        border-radius: 16px;
+        background: #1c1c22;
+        border-width: 1px;
+        border-color: Theme.stroke;
+        drop-shadow-blur: 20px;
+        drop-shadow-color: #000b;
+        TouchArea { }
+        form := VerticalLayout {
+            padding: 12px;
+            spacing: 9px;
+            HorizontalLayout {
+                spacing: 7px;
+                Rectangle {
+                    width: 12px;
+                    height: 12px;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 6px;
+                    background: card.pick;
+                }
+                Label {
+                    text: Bridge.drink-edit-id == "" ? "New drink" : "Edit drink";
+                    font-size: 13px;
+                    font-weight: 700;
+                    font-family: Theme.font-display;
+                    horizontal-stretch: 1;
+                }
+            }
+            Field {
+                height: 32px;
+                placeholder: "Name (e.g. Cortado, Mocha, Lemonade)";
+                text <=> Bridge.drink-edit-name;
+                accepted(t) => { Bridge.drink-edit-name = t; Bridge.drink-save(); }
+            }
+            HorizontalLayout {
+                height: 22px;
+                spacing: 5px;
+                for c[i] in Bridge.drink-palette: Rectangle {
+                    width: 18px;
+                    height: 18px;
+                    y: 2px;
+                    border-radius: 9px;
+                    background: c;
+                    border-width: Bridge.drink-edit-color == i ? 2px : 0;
+                    border-color: white;
+                    drop-shadow-blur: Bridge.drink-edit-color == i ? 8px : 0;
+                    drop-shadow-color: c;
+                    TouchArea { mouse-cursor: pointer; clicked => { Bridge.drink-edit-color = i; } }
+                }
+            }
+            HorizontalLayout {
+                height: 28px;
+                Label { text: "Cup size"; font-size: 12px; color: Theme.text-dim; }
+                Stepper {
+                    value: Bridge.drink-edit-ml + " ml";
+                    step(d) => {
+                        Bridge.drink-edit-ml = max(10, min(2000, Bridge.drink-edit-ml + d * (Bridge.drink-edit-ml + (d < 0 ? -1 : 0) < 100 ? 10 : 50)));
+                    }
+                }
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                if Bridge.drink-edit-id != "" && Bridge.drink-edit-id != "water": Button {
+                    icon: Icon.delete;
+                    tip: "Remove this drink (days you had it keep their totals)";
+                    clicked => { Bridge.drink-delete(); }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                Button { text: "Cancel"; clicked => { Bridge.drink-edit-open = false; } }
+                Button { primary: true; tint: Theme.green; icon: Icon.check; text: "Save"; clicked => { Bridge.drink-save(); } }
             }
         }
     }

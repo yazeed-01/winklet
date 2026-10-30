@@ -8,13 +8,13 @@ Built in **Rust + Slint**, with a native GPU renderer and no browser engine.
 
 ## Contents
 
-[The pill](#the-pill) · [Notifications](#notifications) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water](#water) · [Alarms](#alarms) · [Shelf](#shelf) · [Audio](#audio) · [Developer](#developer) · [Game mode](#game-mode) · [Settings](#settings) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
+[The pill](#the-pill) · [Notifications](#notifications) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water and drinks](#water-and-drinks) · [Alarms](#alarms) · [Shelf](#shelf) · [Audio](#audio) · [Developer](#developer) · [Game mode](#game-mode) · [Settings](#settings) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
 
 ## Features
 
 ### The pill
 
-The resting island: clock, the current focus timer, two glowing eyes, the current gear and the battery (or charging state). A muted mic shows a red icon. After 60 s with no input the eyes doze and the clock dims.
+The resting island: clock, the current focus timer, two glowing eyes and the battery (or charging state). The current gear sits next to the clock when the island is open. A muted mic shows a red icon. After 60 s with no input the eyes doze and the clock dims.
 
 <img src="docs/screenshots/pill.png" width="425" alt="Resting pill: clock, eyes, gear and battery">  <img src="docs/screenshots/pill-music.png" width="425" alt="Pill with the eyes wearing headphones">
 
@@ -22,7 +22,7 @@ The resting island: clock, the current focus timer, two glowing eyes, the curren
 * **Lively eyes.** Short random moments: they look around, wink, look happy or surprised, show hearts, sip a coffee (always first thing in the morning) or watch a tiny car drive past. They wear headphones and bob along to music and show zzz when you step away. Charging makes them happy, hitting your water goal shows hearts, toggling the mic surprises them. Turn this off with **Lively eyes** to keep blinking only.
 
   <img src="docs/screenshots/eyes.png" width="760" alt="Every eye mood: look left and right, wink, happy, surprised, love, music, coffee, watching a car, tired, away and game mode">
-* **Move it.** Right-drag the island anywhere. Near the top edge it snaps back into a notch, and it remembers where you left it.
+* **Move it.** Right-drag the island anywhere, or use **Settings → Move**: it follows the pointer until you click to drop it. It docks to any screen edge: a notch at the top, flat on the taskbar at the bottom, and standing upright (time, eyes, battery) on the left or right. **Top centre** puts it back, and **Top centre at start** (on by default) does that every launch.
 * **Car show.** When the island opens, a car drives in underneath, drifts a donut with tyre smoke and skid marks, then speeds off. Pick JDM, Muscle, German or F1 in Settings, or turn it off.
 
 <img src="docs/screenshots/car-show.png" width="560" alt="The car drifting under the open island">
@@ -84,7 +84,7 @@ Stand-up reminders wait for a pause in your typing, hold off during calls, fulls
 
 ### Screen time
 
-**Health → Apps** lists every app you used on a day (◀ ▶ goes back up to 60 days) with its icon and total time. Click an app to see each time you used it ("9:02 – 10:48 AM · 1h 46m") on a 24-hour timeline. Only the program is recorded, never window titles or what you type.
+**Health → Apps** lists every app you used on a day (◀ ▶ goes back up to 60 days, or click the day for a calendar; days you were active have a dot) with its icon and total time. Click an app to see each time you used it ("9:02 – 10:48 AM · 1h 46m") on a 24-hour timeline. Only the program is recorded, never window titles or what you type.
 
 <img src="docs/screenshots/apps.png" width="560" alt="Screen time per app">
 
@@ -94,11 +94,16 @@ Stand-up reminders wait for a pause in your typing, hold off during calls, fulls
 
 <img src="docs/screenshots/summary.png" width="560" alt="Day summary">
 
-### Water
+### Water and drinks
 
-An animated bottle, quick-add buttons (one cup, +500, +100), undo, daily goal, cup size and a 7-day chart. Reminders come every N minutes between 08:00 and 22:00.
+Not just water: tap **Water, Tea, Green tea, Coffee, Espresso, Iced latte, Spanish latte, Matcha latte, Juice, Milk, Sparkling** or **Hot chocolate**, then pick how much from cups drawn out for you: a shot (40 ml), tea glass (150), cup (250), big mug (350), tall glass (400), bottle (500) or big bottle (1 L), or any other amount. The size you had last time is marked, so it adapts to your own cups. Each drink has its own colour, and the bottle fills in layers of what you drank today, with moving waves in the colour of the last one and bubbles rising through it. Drinks you had today light up in their colour.
 
-<img src="docs/screenshots/water.png" width="560" alt="Water tracker">
+* **Your own drinks.** **New drink** asks for a name (Cortado, Mocha, Lemonade…), one of 12 colours and the usual cup size. Right-click any drink to rename it, recolour it, change its cup size or remove it.
+* Every drink counts towards the daily goal. **Undo** takes back the last one, and the 7-day chart shows how close each day got.
+* Reminders come every N minutes between 08:00 and 22:00, with a one-click **+cup** of water.
+
+<img src="docs/screenshots/water.png" width="440" alt="Water tab: a bottle filled in drink-coloured layers and the drink tiles"> <img src="docs/screenshots/water-sizes.png" width="440" alt="Picking how much: shot, tea glass, cup, big mug, tall glass, bottle or big bottle">
+<img src="docs/screenshots/water-new-drink.png" width="440" alt="Adding your own drink with a name, colour and cup size">
 
 ### Alarms
 
@@ -114,13 +119,13 @@ Drag files or folders onto the island, or use the **Files** and **Folders** butt
 
 ### Audio
 
-Volume for **each app** (one slider per app even when it has many audio sessions), mute per app, master volume, and **microphone on/off** with a live **test meter**.
+Volume for **each app** (one slider per app even when it has many audio sessions), mute per app, master volume, and **microphone on/off** with a live **test meter**. The mic shows its full name; click it to pick another microphone, which becomes the Windows default for apps and calls.
 
 <img src="docs/screenshots/audio.png" width="560" alt="Audio and microphone">
 
 ### Developer
 
-* **Tools:** live CPU and RAM, uptime and local IP. **4 Terminals** opens Windows Terminal as a 2×2 grid in your workspace folder. One-click buttons copy a UUID, a Unix timestamp, an ISO date or a strong password, and open Terminal, Task Manager, localhost:3000, your projects folder or the hosts file.
+* **Tools:** live CPU and RAM, uptime and local IP. **4 Terminals** opens Windows Terminal as a 2×2 grid in your workspace folder. One-click buttons copy a UUID, a Unix timestamp, an ISO date or a strong password, and open Terminal, Task Manager, localhost:3000, startup apps or the hosts file. **Projects** and **Downloads** rows show the folder they point to: click to open it (it asks where it is the first time if it can't find it), and the pencil changes it.
 * **Ports:** every listening TCP port with the app that owns it, well-known dev ports (8081 Metro, 19000 Expo, 3000, 5173 Vite, 4200, 5432 Postgres…) first. **Kill** needs two clicks within 3 s. Windows services are hidden behind **Show system**.
 * **Dash:** a racing instrument cluster: a CPU tachometer, a big GPU dial (load plus VRAM), download and upload dials, RAM as a temperature gauge, battery as a fuel gauge and today's screen time as the odometer. On Lenovo laptops it follows **Fn+Q** (Quiet blue, Auto gray, Performance red) without admin rights.
 * **Workspaces:** named sets of apps, files, folders and links that open together with one ▶ (for example *Coding*: VS Code, Terminal, the repo folder and localhost). Add apps that are open right now with one click, browse for programs or files, or paste a link or folder path.
@@ -135,10 +140,10 @@ Turn it on in the **Game** tab, in Settings or with **Ctrl+Alt+G**, or let it sw
 
 <img src="docs/screenshots/pill-game.png" width="555" alt="Game mode pill: time, FPS, CPU, GPU, RAM and battery">
 
-* **Stats pill.** The pill widens to time · FPS · CPU · GPU · RAM · battery, and the eyes hold a controller and tap its buttons while you play. It stays on screen over fullscreen games.
+* **Stats pill.** The pill widens to time · FPS · CPU · GPU · RAM · battery, and the eyes hold a controller and tap its buttons while you play. It stays on screen over the game in borderless fullscreen, and steps aside for exclusive fullscreen so the game keeps it.
 * **Game tab first.** While game mode is on, opening the island goes straight to the Game tab; turn it off and you're back where you were.
 * **Live view.** The game in front with its session and today's play time, a big FPS number with a graph, and rings for CPU, GPU, RAM, VRAM, battery and controller battery.
-* **Library.** Every game played with total hours, this week, sessions and last played, plus a ▶ launch button (Steam games launch through Steam).
+* **Library.** Every game with total hours, this week, sessions and last played, plus a ▶ launch button (Steam and Epic games launch through their launcher). **Scan** finds games installed with Steam, Epic and GOG before you've played them, **Add game** picks one by hand, and the search box filters the list.
 * **Finds games by itself:** by their folder (Steam, Epic, Xbox, Riot, GOG, EA, Ubisoft), from Windows' own game list, or because they run fullscreen. Steam games get their real names. **Not a game** fixes a wrong guess.
 * **Plays nice.** Water and stand-up reminders wait while you play, a break nudge comes after 2 hours, and the Windows power mode switches to Best performance (each optional). Controller play counts as being active.
 * **FPS** comes from RivaTuner (MSI Afterburner) when it's running, or from Windows' own present events, which need a one-time **Allow FPS** approval and a sign-out. Vulkan and OpenGL games may only show FPS through RivaTuner, and games in old exclusive fullscreen can't be drawn over.
@@ -147,7 +152,7 @@ Turn it on in the **Game** tab, in Settings or with **Ctrl+Alt+G**, or let it sw
 
 ### Settings
 
-Launch at startup, 12- or 24-hour clock, hide during fullscreen games, videos and presentations, game mode, water reminders and their interval, lively eyes, car show and car model, and Quit. The tray icon has Open and Quit too.
+Launch at startup, 12- or 24-hour clock, hide during fullscreen games, videos and presentations, game mode, water reminders and their interval, lively eyes, car show and car model, where the island sits (**Move**, **Top centre**, **Top centre at start**), **Your data** (open the folder it's saved in, or **Reset all** with a second click to confirm), and Quit. The tray icon has Open and Quit too.
 
 <img src="docs/screenshots/settings.png" width="560" alt="Settings">
 
@@ -177,7 +182,7 @@ powershell -ExecutionPolicy Bypass -File install.ps1   # install to %LOCALAPPDAT
 
 You can also turn on **Launch at startup** in Settings. It writes `HKCU\...\CurrentVersion\Run\Winklet`, the same mechanism other tray apps use, so no admin rights are needed.
 
-Your data stays on your PC in `%APPDATA%\Winklet`: `data.json` for tasks, settings, health and games, and `screen.json` for screen time. There are no accounts and no network calls.
+Your data stays on your PC in `%APPDATA%\Winklet`: `data.json` for tasks, settings, drinks, health and games, and `screen.json` for screen time. **Settings → Your data** opens that folder or wipes it. There are no accounts and no network calls.
 
 ## How it stays light
 

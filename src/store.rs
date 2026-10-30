@@ -188,6 +188,39 @@ pub struct Playlist {
     pub url: String,
 }
 
+/// A kind of drink on the Water tab.
+#[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct DrinkType {
+    pub id: String,
+    pub name: String,
+    /// "#rrggbb"
+    pub color: String,
+    /// usual cup size
+    pub ml: i32,
+}
+
+/// The drinks everyone starts with (they can be edited or removed, except water).
+pub fn default_drinks() -> Vec<DrinkType> {
+    [
+        ("water", "Water", "#38bdf8", 250),
+        ("tea", "Tea", "#d97706", 200),
+        ("green-tea", "Green tea", "#a3e635", 200),
+        ("coffee", "Coffee", "#b07a4f", 200),
+        ("espresso", "Espresso", "#8b5a3c", 40),
+        ("iced-latte", "Iced latte", "#e8c9a0", 350),
+        ("spanish-latte", "Spanish latte", "#f2b880", 300),
+        ("matcha", "Matcha latte", "#4ade80", 300),
+        ("juice", "Juice", "#fb923c", 250),
+        ("milk", "Milk", "#e5e7eb", 250),
+        ("sparkling", "Sparkling", "#67e8f9", 330),
+        ("hot-chocolate", "Hot chocolate", "#a0522d", 250),
+    ]
+    .into_iter()
+    .map(|(id, name, color, ml)| DrinkType { id: id.into(), name: name.into(), color: color.into(), ml })
+    .collect()
+}
+
 /// One game in the library. Play time counts while the game is in front.
 #[derive(Serialize, Deserialize, Clone, Default)]
 #[serde(default)]
@@ -213,8 +246,14 @@ pub struct Data {
     pub alarms: Vec<Alarm>,
     /// ml drunk per day
     pub water: BTreeMap<NaiveDate, i32>,
-    /// individual sips of today, so they can be undone
+    /// individual sips of today, so they can be undone (before drinks existed)
     pub water_log: Vec<i32>,
+    /// the drinks on the Water tab
+    pub drinks: Vec<DrinkType>,
+    /// ml per drink per day (the day's total stays in `water`)
+    pub drink_days: BTreeMap<NaiveDate, BTreeMap<String, i32>>,
+    /// today's drinks, newest last, so they can be undone
+    pub drink_undo: Vec<(NaiveDate, String, i32)>,
     pub focus_sessions: BTreeMap<NaiveDate, i32>,
     /// shortcuts to files/folders (the files themselves are never moved)
     pub shelf: Vec<ShelfItem>,
@@ -321,10 +360,14 @@ impl Data {
         }
         data.settings.version = SETTINGS_VERSION;
         data.settings.gear = data.settings.gear.clamp(0, 6);
+        if data.drinks.is_empty() {
+            data.drinks = default_drinks();
+        }
         // keep two months of wellbeing history
         if let Some(cutoff) = Local::now().date_naive().checked_sub_days(chrono::Days::new(60)) {
             data.health.retain(|d, _| *d >= cutoff);
             data.gear_time.retain(|d, _| *d >= cutoff);
+            data.drink_days.retain(|d, _| *d >= cutoff);
             data.tasks_done.retain(|d, _| *d >= cutoff);
             for g in data.games.values_mut() {
                 g.days.retain(|d, _| *d >= cutoff);

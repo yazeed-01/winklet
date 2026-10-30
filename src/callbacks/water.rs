@@ -1,31 +1,18 @@
-//! Water tracking.
+//! Water and other drinks.
 
 use crate::Bridge;
 use crate::app::Shared;
-use chrono::Local;
-use std::time::Instant;
 
 pub fn wire(b: &Bridge, app: &Shared) {
-    on!(b, app, on_water_add, |a, ml| {
-        *a.data.water.entry(Local::now().date_naive()).or_default() += ml;
-        a.data.water_log.push(ml);
-        a.last_drink = Instant::now();
-        a.data.save();
-        a.refresh_water();
-        let (now, goal) = (a.data.water_today(), a.data.settings.water_goal_ml);
-        if now >= goal && now - ml < goal {
-            a.toast("Daily goal reached!");
-            a.eye_event(10, 4.0);
-        }
-    });
-    on!(b, app, on_water_undo, |a| {
-        if let Some(ml) = a.data.water_log.pop() {
-            let e = a.data.water.entry(Local::now().date_naive()).or_default();
-            *e = (*e - ml).max(0);
-            a.data.save();
-            a.refresh_water();
-        }
-    });
+    // the water reminder's "+ cup" button
+    on!(b, app, on_water_add, |a, ml| { a.drink_add("water", Some(ml)); });
+    on!(b, app, on_drink_add, |a, id| { a.drink_add(&id, None); });
+    on!(b, app, on_drink_pick, |a, id| { a.drink_pick(&id); });
+    on!(b, app, on_drink_add_size, |a, id, ml| { a.drink_add_size(&id, ml); });
+    on!(b, app, on_water_undo, |a| { a.drink_undo(); });
+    on!(b, app, on_drink_edit, |a, id| { a.drink_edit(&id); });
+    on!(b, app, on_drink_save, |a| { a.drink_save(); });
+    on!(b, app, on_drink_delete, |a| { a.drink_delete(); });
     on!(b, app, on_water_goal_adjust, |a, d| {
         a.data.settings.water_goal_ml = (a.data.settings.water_goal_ml + d * 250).clamp(500, 6000);
         a.data.save();

@@ -53,6 +53,7 @@ impl App {
             })
             .collect();
         b.set_water_week(ModelRc::new(VecModel::from(week)));
+        self.refresh_drinks(today);
     }
 
     pub fn refresh_settings(&self) {

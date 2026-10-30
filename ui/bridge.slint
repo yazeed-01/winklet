@@ -41,6 +41,21 @@ export struct ShelfItem {
     missing: bool,
 }
 
+export struct DrinkItem {
+    id: string,
+    name: string,
+    color: color,
+    ml: int,           // usual cup
+    today: int,        // ml drunk today
+}
+
+// One layer of the bottle: [start, end) as a share of today's total.
+export struct MixPart {
+    color: color,
+    start: float,
+    end: float,
+}
+
 export struct MicItem {
     id: string,
     name: string,
@@ -466,6 +481,29 @@ export global Bridge {
     callback break-adjust(int);
 
     callback water-add(int);
+    in property <[DrinkItem]> drinks;
+    in property <[MixPart]> water-mix;
+    in property <color> water-top: #38bdf8;   // colour of the top layer (the waves)
+    in property <[color]> drink-palette;
+    // drink editor
+    in-out property <bool> drink-edit-open;
+    in-out property <string> drink-edit-id;   // "" = new drink
+    in-out property <string> drink-edit-name;
+    in-out property <int> drink-edit-color;   // index in drink-palette, -1 = keep
+    in-out property <int> drink-edit-ml;
+    callback drink-add(string);
+    // "how much?" sheet
+    in-out property <bool> drink-pick-open;
+    in property <string> drink-pick-id;
+    in property <string> drink-pick-name;
+    in property <color> drink-pick-color;
+    in property <int> drink-pick-ml;          // its usual size
+    in-out property <int> drink-pick-custom;  // the "other amount" stepper
+    callback drink-pick(string);
+    callback drink-add-size(string, int);
+    callback drink-edit(string);
+    callback drink-save();
+    callback drink-delete();
     callback water-undo();
     callback water-goal-adjust(int);
     callback cup-adjust(int);
