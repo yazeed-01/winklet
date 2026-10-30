@@ -544,7 +544,7 @@ component TabButton inherits Rectangle {
     in property <string> tip;
     in property <bool> lit;   // glows while its mode is on (Game)
     property <bool> active: Bridge.tab == index;
-    width: 30px;
+    width: 29px;
     height: 30px;
     border-radius: 10px;
     background: !active && ta.has-hover ? Theme.surface : transparent;
@@ -598,9 +598,9 @@ component HeaderButton inherits Rectangle {
     in property <string> tip;
     callback clicked();
     callback right-clicked();
-    width: 28px;
-    height: 28px;
-    y: 1px;
+    width: 26px;
+    height: 26px;
+    y: 2px;
     border-radius: 14px;
     background: ta.has-hover ? Theme.surface-hover : transparent;
     animate background { duration: 120ms; }
@@ -665,11 +665,11 @@ component Expanded inherits Rectangle {
     Rectangle {
         x: 14px;
         y: 34px;
-        width: 13 * 31px;
+        width: 13 * 30px;
         height: 30px;
         Rectangle {
-            x: TabOrder.pos(Bridge.tab) * 31px;
-            width: 30px;
+            x: TabOrder.pos(Bridge.tab) * 30px;
+            width: 29px;
             height: 30px;
             border-radius: 10px;
             background: #ffffff1f;
@@ -697,7 +697,7 @@ component Expanded inherits Rectangle {
         x: parent.width - self.width - 16px;
         y: 34px;
         height: 30px;
-        spacing: 6px;
+        spacing: 4px;
         if Bridge.toast != "": Label {
             text: Bridge.toast;
             color: Theme.green;
