@@ -360,6 +360,22 @@ pub fn trim_memory() {
     }
 }
 
+/// The user's Downloads folder, wherever Windows has it (it can be moved to another drive).
+pub fn downloads_dir() -> String {
+    use windows::Win32::System::Com::CoTaskMemFree;
+    use windows::Win32::UI::Shell::{FOLDERID_Downloads, KF_FLAG_DEFAULT, SHGetKnownFolderPath};
+    unsafe {
+        if let Ok(p) = SHGetKnownFolderPath(&FOLDERID_Downloads, KF_FLAG_DEFAULT, None) {
+            let s = p.to_string().unwrap_or_default();
+            CoTaskMemFree(Some(p.0 as *const _));
+            if !s.is_empty() {
+                return s;
+            }
+        }
+    }
+    format!("{}\\Downloads", std::env::var("USERPROFILE").unwrap_or_default())
+}
+
 /// Native "Open" dialog. `folders` switches it into folder-picking mode. Multi-select.
 pub fn pick_paths(owner: HWND, folders: bool) -> Vec<std::path::PathBuf> {
     pick_paths_titled(owner, folders, if folders { "Add folders to the shelf" } else { "Add files to the shelf" })

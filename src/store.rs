@@ -58,6 +58,9 @@ pub struct Settings {
     pub island_pos: Option<(i32, i32)>,
     /// every launch puts the island back at the top centre
     pub island_home_on_start: bool,
+    /// Dev tools folders; empty = found automatically
+    pub projects_dir: String,
+    pub downloads_dir: String,
     // ---- wellbeing ----
     pub stand_reminders: bool,
     pub stand_interval_min: i32,
@@ -115,6 +118,8 @@ impl Default for Settings {
             eyes_lively: true,
             island_pos: None,
             island_home_on_start: true,
+            projects_dir: String::new(),
+            downloads_dir: String::new(),
             stand_reminders: true,
             stand_interval_min: 50,
             eye_rest: false,

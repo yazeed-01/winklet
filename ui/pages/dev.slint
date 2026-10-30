@@ -2,7 +2,7 @@
 
 import { Theme, Icon } from "../theme.slint";
 import { Bridge } from "../bridge.slint";
-import { Glyph, Label, Card, Tip, Segmented } from "../widgets.slint";
+import { Glyph, Label, Card, Tip, Segmented, IconButton } from "../widgets.slint";
 import { PortsView } from "dev-ports.slint";
 import { DashView } from "dev-dash.slint";
 import { WorkspacesView } from "dev-workspaces.slint";
@@ -38,8 +38,8 @@ component Tool inherits Rectangle {
     /// optional: what right-click does, and the hover hint
     in property <string> right-action;
     in property <string> tip;
-    height: 48px;
-    border-radius: 13px;
+    height: 40px;
+    border-radius: 12px;
     background: ta.has-hover ? Theme.surface-hover : Theme.surface;
     animate background { duration: 120ms; }
     VerticalLayout {
@@ -68,6 +68,47 @@ component Tool inherits Rectangle {
             } else if !self.has-hover && Tip.text == root.tip {
                 Tip.shown = false;
             }
+        }
+    }
+}
+
+// A folder shortcut that shows where it points: click opens it (or asks where it is),
+// the pencil changes it.
+component FolderRow inherits Rectangle {
+    in property <string> icon;
+    in property <string> name;
+    in property <string> path;
+    in property <string> kind;
+    height: 32px;
+    border-radius: 10px;
+    background: ta.has-hover ? Theme.surface-hover : Theme.surface;
+    animate background { duration: 120ms; }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { Tip.shown = false; Bridge.dev-action(root.kind); }
+    }
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 4px;
+        spacing: 8px;
+        Glyph { text: root.icon; font-size: 12px; color: Theme.accent; }
+        Label { text: root.name; font-size: 11px; font-weight: 700; width: 62px; vertical-alignment: center; }
+        Label {
+            text: root.path == "" ? "Not set · click to choose it" : root.path;
+            font-size: 10px;
+            color: root.path == "" ? Theme.orange : Theme.text-faint;
+            horizontal-stretch: 1;
+            overflow: elide;
+            vertical-alignment: center;
+        }
+        IconButton {
+            y: (parent.height - self.height) / 2;
+            icon: Icon.edit;
+            size: 24px;
+            icon-size: 10px;
+            tint: Theme.text-dim;
+            tip: "Change where " + root.name + " points";
+            clicked => { Bridge.dev-action(root.kind + "-change"); }
         }
     }
 }
@@ -104,8 +145,8 @@ export component DevPage inherits Rectangle {
             }
         }
         VerticalLayout {
-            spacing: 8px;
-            Rectangle { height: 24px; }
+            spacing: 6px;
+            Rectangle { height: 26px; }
             GridLayout {
                 spacing: 8px;
                 Row {
@@ -122,7 +163,7 @@ export component DevPage inherits Rectangle {
                 Row {
                     Tool { icon: Icon.globe; text: "localhost"; action: "localhost"; tip: "Open http://localhost:3000"; }
                     Tool { icon: Icon.code; text: "Hosts file"; action: "hosts"; }
-                    Tool { icon: Icon.folder; text: "Projects"; action: "projects"; }
+                    Tool { icon: Icon.rocket; text: "Startup apps"; action: "startup"; tip: "Choose what starts with Windows"; }
                 }
                 Row {
                     Tool { icon: Icon.settings; text: "Env vars"; action: "envvars"; tip: "Edit environment variables"; }
@@ -130,6 +171,8 @@ export component DevPage inherits Rectangle {
                     Tool { icon: Icon.snip; text: "Snip area"; action: "snip"; }
                 }
             }
+            FolderRow { icon: Icon.folder; name: "Projects"; path: Bridge.projects-dir; kind: "projects"; }
+            FolderRow { icon: Icon.download; name: "Downloads"; path: Bridge.downloads-dir; kind: "downloads"; }
         }
     }
 }

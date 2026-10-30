@@ -113,5 +113,7 @@ impl App {
         b.set_ram_text(s(format!("{used:.1} / {total:.0} GB")));
         b.set_uptime(s(sys::uptime()));
         b.set_ip_text(s(sys::local_ip()));
+        b.set_projects_dir(s(super::folder_for(self, "projects")));
+        b.set_downloads_dir(s(super::folder_for(self, "downloads")));
     }
 }

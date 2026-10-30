@@ -1,6 +1,6 @@
 //! Developer tools, screenshots and the port killer.
 
-use crate::app::{Shared, defer, pick_workspace, take_screenshot, with_app};
+use crate::app::{Shared, defer, open_folder, pick_folder, pick_workspace, take_screenshot, with_app};
 use crate::{Bridge, ports, sys};
 use slint::Timer;
 use std::time::Duration;
@@ -26,11 +26,13 @@ pub fn wire(b: &Bridge, app: &Shared) {
             "localhost" => {
                 sys::open("http://localhost:3000", "");
             }
-            "projects" => {
-                let home = std::env::var("USERPROFILE").unwrap_or_default();
-                let repos = format!("{home}\\source\\repos");
-                let dir = if std::path::Path::new(&repos).exists() { repos } else { home };
-                sys::open(&dir, "");
+            // folder pickers are modal: open them after the click, unborrowed
+            "projects" => defer(|s| open_folder(s, "projects")),
+            "downloads" => defer(|s| open_folder(s, "downloads")),
+            "projects-change" => defer(|s| pick_folder(s, "projects", false)),
+            "downloads-change" => defer(|s| pick_folder(s, "downloads", false)),
+            "startup" => {
+                sys::open("ms-settings:startupapps", "");
             }
             "wt4" => {
                 // 2x2 grid of Windows Terminal panes, all starting in the workspace folder

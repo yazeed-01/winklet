@@ -26,7 +26,7 @@ pub use car::{CAR_PUFFS, CAR_SKIDS};
 pub use focus::Focus;
 pub use game::{Play, TAB_GAME, games_pick};
 pub use screen::ScreenTrack;
-pub use tools::{pick_workspace, take_screenshot};
+pub use tools::{folder_for, open_folder, pick_folder, pick_workspace, take_screenshot};
 pub use wellbeing::Wellbeing;
 pub use workspaces::ws_browse;
 

@@ -48,6 +48,65 @@ pub fn take_screenshot(shared: &Shared) {
     });
 }
 
+/// Folder for a Dev tools row ("projects" / "downloads"): the one picked, else a good guess.
+/// Empty when there is nothing sensible to guess.
+pub fn folder_for(app: &super::App, kind: &str) -> String {
+    let st = &app.data.settings;
+    let set = if kind == "projects" { &st.projects_dir } else { &st.downloads_dir };
+    if !set.is_empty() && std::path::Path::new(set).is_dir() {
+        return set.clone();
+    }
+    if kind == "downloads" {
+        return sys::downloads_dir();
+    }
+    let home = std::env::var("USERPROFILE").unwrap_or_default();
+    ["source\\repos", "Projects", "Documents\\GitHub", "Documents\\Projects", "repos", "dev", "code", "src"]
+        .iter()
+        .map(|d| format!("{home}\\{d}"))
+        .find(|d| std::path::Path::new(d).is_dir())
+        .unwrap_or_default()
+}
+
+/// Opens a Dev tools folder, asking where it is first when it isn't known.
+pub fn open_folder(s: &Shared, kind: &'static str) {
+    let dir = folder_for(&s.borrow(), kind);
+    if dir.is_empty() {
+        pick_folder(s, kind, true);
+    } else {
+        sys::open(&dir, "");
+    }
+}
+
+/// Asks where the projects / Downloads folder is. The dialog is modal, so the app
+/// must not stay borrowed while it is open.
+pub fn pick_folder(s: &Shared, kind: &'static str, open_after: bool) {
+    let hwnd = {
+        let mut a = s.borrow_mut();
+        a.hovering = true;
+        a.collapse_timer.stop();
+        a.hwnd
+    };
+    let title = if kind == "projects" { "Where is your projects folder?" } else { "Where is your Downloads folder?" };
+    let picked = sys::pick_paths_titled(hwnd, true, title).into_iter().next();
+    let mut a = s.borrow_mut();
+    if let Some(dir) = picked {
+        let dir = dir.to_string_lossy().to_string();
+        if kind == "projects" {
+            a.data.settings.projects_dir = dir.clone();
+        } else {
+            a.data.settings.downloads_dir = dir.clone();
+        }
+        a.data.save();
+        a.refresh_dev();
+        a.toast(if kind == "projects" { "Projects folder saved" } else { "Downloads folder saved" });
+        if open_after {
+            sys::open(&dir, "");
+        }
+    }
+    a.hovering = false;
+    schedule_collapse(s, &mut a, 3000);
+}
+
 /// Folder picker for the "4 Terminals" workspace. The dialog is modal, so the app
 /// must not stay borrowed while it is open.
 pub fn pick_workspace(s: &Shared) {
