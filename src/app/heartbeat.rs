@@ -107,16 +107,20 @@ impl App {
             self.plugged = Some(plugged);
         }
 
-        // game mode stays on screen over fullscreen games
-        if self.data.settings.hide_fullscreen && !self.data.settings.game_mode {
-            let busy = sys::fullscreen_busy();
-            if busy != self.hidden {
-                self.hidden = busy;
-                sys::set_visible(self.hwnd, !busy);
+        // Fullscreen: game mode stays over the game it is tracking (borderless only;
+        // on top of exclusive fullscreen it would knock the game out of it).
+        // Anything else fullscreen follows "Hide in fullscreen".
+        let fs = sys::fullscreen_state();
+        let st = &self.data.settings;
+        let over_game = st.game_mode && self.game_in_front();
+        let hide = (fs == sys::FS_EXCLUSIVE && (st.hide_fullscreen || st.game_mode))
+            || (fs == sys::FS_WINDOW && st.hide_fullscreen && !over_game);
+        if hide != self.hidden {
+            self.hidden = hide;
+            sys::set_visible(self.hwnd, !hide);
+            if hide {
+                self.play.topped = false;
             }
-        } else if self.hidden {
-            self.hidden = false;
-            sys::set_visible(self.hwnd, true);
         }
 
         // water reminder

@@ -137,11 +137,18 @@ pub fn set_visible(hwnd: HWND, visible: bool) {
     }
 }
 
-/// True while a fullscreen game, video or presentation owns the screen.
-pub fn fullscreen_busy() -> bool {
+pub const FS_NONE: i32 = 0;
+/// a fullscreen window (borderless game, video, browser) or a presentation
+pub const FS_WINDOW: i32 = 1;
+/// exclusive fullscreen (Direct3D): any window on top would knock it out of fullscreen
+pub const FS_EXCLUSIVE: i32 = 2;
+
+/// What owns the screen right now.
+pub fn fullscreen_state() -> i32 {
     match unsafe { SHQueryUserNotificationState() } {
-        Ok(s) => s == QUNS_BUSY || s == QUNS_RUNNING_D3D_FULL_SCREEN || s == QUNS_PRESENTATION_MODE,
-        Err(_) => false,
+        Ok(s) if s == QUNS_RUNNING_D3D_FULL_SCREEN => FS_EXCLUSIVE,
+        Ok(s) if s == QUNS_BUSY || s == QUNS_PRESENTATION_MODE => FS_WINDOW,
+        _ => FS_NONE,
     }
 }
 

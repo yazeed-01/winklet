@@ -49,6 +49,8 @@ pub struct Play {
     pub unsaved_s: u32,
     /// installed games were looked for this run (done once when the library opens)
     pub scanned: bool,
+    /// put back on top once since the game came to the front (doing it every tick fights the game)
+    pub topped: bool,
     pub scanning: bool,
     /// library search text
     pub query: String,
@@ -244,10 +246,6 @@ impl App {
             if self.data.settings.game_power {
                 self.play.power_set = sys::set_power_mode(sys::PowerMode::Performance);
             }
-            if self.hidden {
-                self.hidden = false;
-                sys::set_visible(self.hwnd, true);
-            }
             if !expanded && !peeking {
                 self.resize(false); // grow before the pill widens
             }
@@ -328,9 +326,14 @@ impl App {
         let (ram, used, total) = sys::memory();
         let (gpu, vram) = gpu::usage();
         self.sample_fps();
-        // fullscreen games may push themselves above us; step back on top
-        if front.is_some_and(|f| f.fullscreen) && !self.hidden {
+        // a fullscreen game may push itself above us: step back on top once when it comes
+        // to the front, not every tick (that steals the game's fullscreen)
+        let game_full = front.is_some_and(|f| f.fullscreen) && self.game_in_front();
+        if !game_full {
+            self.play.topped = false;
+        } else if !self.hidden && !self.play.topped && sys::fullscreen_state() != sys::FS_EXCLUSIVE {
             sys::keep_on_top(self.hwnd);
+            self.play.topped = true;
         }
         let ui = self.ui();
         let b = ui.global::<Bridge>();
