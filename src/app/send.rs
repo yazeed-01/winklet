@@ -16,6 +16,8 @@ pub struct Send {
     pub items: Vec<PathBuf>,
     pub server: Option<Arc<Server>>,
     pub preparing: bool,
+    /// bumps on every basket change; the share always ends up with the newest one
+    pub version: u64,
     pub status: String,
     pub timer: Timer,
 }
@@ -53,10 +55,11 @@ impl App {
 
     /// The open share follows the basket (folders are zipped off the UI thread).
     fn send_sync(&mut self) {
+        self.send.version += 1;
         let Some(server) = self.send.server.clone() else { return };
-        let items = self.send.items.clone();
+        let (items, version) = (self.send.items.clone(), self.send.version);
         std::thread::spawn(move || {
-            let _ = server.set_files(&items);
+            let _ = server.set_files(&items, version);
         });
     }
 
@@ -69,6 +72,7 @@ impl App {
         self.send.status = if self.send.items.iter().any(|p| p.is_dir()) { "Zipping folders…".into() } else { "Starting…".into() };
         self.refresh_send();
         let items = self.send.items.clone();
+        let started_with = self.send.version;
         let inbox = PathBuf::from(super::folder_for(self, "downloads"));
         std::thread::spawn(move || {
             let res = share::start(&items, inbox, |ev| {
@@ -86,6 +90,11 @@ impl App {
                             }
                             a.ui().global::<Bridge>().set_send_qr(qr_image(&shown_url(&server.url)));
                             a.send.server = Some(server);
+                            // the basket changed while it was starting: offer the newest one
+                            if a.send.version != started_with {
+                                a.send.version -= 1;
+                                a.send_sync();
+                            }
                             a.send_tick_start(s);
                         }
                         Err(e) => a.send.status = e,

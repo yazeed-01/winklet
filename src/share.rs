@@ -40,7 +40,8 @@ pub struct Server {
     stop: AtomicBool,
     pub downloads: AtomicU32,
     pub uploads: AtomicU32,
-    files: Mutex<Vec<Offer>>,
+    /// (basket version, what's offered): a slower, older update never replaces a newer one
+    files: Mutex<(u64, Vec<Offer>)>,
     /// folder -> its zip, so re-sharing doesn't zip again
     zips: Mutex<HashMap<PathBuf, Offer>>,
     bad: Mutex<HashMap<String, u32>>,
@@ -58,9 +59,14 @@ impl Server {
     }
 
     /// Replaces what's offered (zipping folders off the calling thread is up to the caller).
-    pub fn set_files(&self, paths: &[PathBuf]) -> Result<(), String> {
+    /// Replaces what's offered with basket version `version` (zipping folders can be slow,
+    /// so updates may finish out of order: only a newer version is applied).
+    pub fn set_files(&self, paths: &[PathBuf], version: u64) -> Result<(), String> {
         let files = self.prepare(paths)?;
-        *self.files.lock().unwrap() = files;
+        let mut cur = self.files.lock().unwrap();
+        if version >= cur.0 {
+            *cur = (version, files);
+        }
         Ok(())
     }
 
@@ -137,13 +143,13 @@ pub fn start(paths: &[PathBuf], inbox: PathBuf, notify: impl Fn(Event) + Send + 
         stop: AtomicBool::new(false),
         downloads: AtomicU32::new(0),
         uploads: AtomicU32::new(0),
-        files: Mutex::new(Vec::new()),
+        files: Mutex::new((0, Vec::new())),
         zips: Mutex::new(HashMap::new()),
         bad: Mutex::new(HashMap::new()),
         seen: Mutex::new(Vec::new()),
         inbox,
     });
-    server.set_files(paths)?;
+    server.set_files(paths, 0)?;
     let notify = Arc::new(notify);
     let s = server.clone();
     std::thread::Builder::new()
@@ -270,6 +276,19 @@ fn is_format_char(c: char) -> bool {
     matches!(c as u32, 0x00AD | 0x061C | 0x180E | 0x200B..=0x200F | 0x202A..=0x202E | 0x2060..=0x206F | 0xFEFF | 0xFFF9..=0xFFFB)
 }
 
+/// File types Windows acts on just by showing the folder they're in (shortcuts, shell
+/// command files, library / search connectors, folder settings), which can make it reach
+/// out to another computer. Received ones get ".download" added so they stay inert.
+fn defang(name: String) -> String {
+    let lower = name.to_ascii_lowercase();
+    const RISKY: &[&str] = &[".lnk", ".url", ".scf", ".library-ms", ".searchconnector-ms", ".website", ".appref-ms", ".theme", ".themepack"];
+    if RISKY.iter().any(|e| lower.ends_with(e)) || lower == "desktop.ini" {
+        format!("{name}.download")
+    } else {
+        name
+    }
+}
+
 pub fn sanitize(name: &str) -> String {
     let n: String = name
         .chars()
@@ -333,7 +352,7 @@ fn handle(req: tiny_http::Request, tok: &str, s: &Server, notify: &(dyn Fn(Event
     }
     // what's offered right now (the page polls it, so files added later show up)
     if path == format!("{base}/list") {
-        let files = s.files.lock().unwrap().clone();
+        let files = s.files.lock().unwrap().1.clone();
         let items: Vec<String> = files
             .iter()
             .enumerate()
@@ -344,7 +363,7 @@ fn handle(req: tiny_http::Request, tok: &str, s: &Server, notify: &(dyn Fn(Event
         return;
     }
     if let Some(idx) = path.strip_prefix(&format!("{base}/f/")).and_then(|i| i.parse::<usize>().ok()) {
-        let offer = s.files.lock().unwrap().get(idx).cloned();
+        let offer = s.files.lock().unwrap().1.get(idx).cloned();
         if let Some(f) = offer {
             if let Ok(file) = std::fs::File::open(&f.path) {
                 let disp = format!(
@@ -372,7 +391,7 @@ fn handle(req: tiny_http::Request, tok: &str, s: &Server, notify: &(dyn Fn(Event
             return;
         }
         // a brand-new file only: never opens (or later deletes) one that already exists
-        let Some((target, file)) = create_new(&s.inbox, &sanitize(&name)) else {
+        let Some((target, file)) = create_new(&s.inbox, &defang(sanitize(&name))) else {
             let _ = req.respond(tiny_http::Response::from_string("error").with_status_code(500));
             return;
         };
@@ -456,6 +475,14 @@ mod tests {
         assert_eq!(sanitize("CON.txt"), "_CON.txt");
         assert_eq!(sanitize("photo\u{202E}gpj.exe"), "photogpj.exe");
         assert_eq!(sanitize("   "), "file");
+    }
+
+    #[test]
+    fn risky_types_are_made_inert() {
+        assert_eq!(defang("evil.lnk".into()), "evil.lnk.download");
+        assert_eq!(defang("x.searchConnector-ms".into()), "x.searchConnector-ms.download");
+        assert_eq!(defang("desktop.ini".into()), "desktop.ini.download");
+        assert_eq!(defang("photo.jpg".into()), "photo.jpg");
     }
 
     #[test]
