@@ -12,7 +12,7 @@ export component WaterPage inherits Rectangle {
         // Bottle
         Rectangle {
             width: 96px;
-            Rectangle {
+            bottle := Rectangle {
                 width: 84px;
                 height: 196px;
                 y: (parent.height - self.height) / 2;
@@ -21,11 +21,25 @@ export component WaterPage inherits Rectangle {
                 border-color: #38bdf855;
                 background: #38bdf80d;
                 clip: true;
-                Rectangle {
+                // time in ms, drives the waves and bubbles while the page is open
+                property <float> t: animation-tick() / 1ms;
+                water := Rectangle {
                     y: parent.height - self.height;
                     height: parent.height * root.pct;
                     background: @linear-gradient(180deg, #7dd3fc 0%, #3b82f6 100%);
                     animate height { duration: 900ms; easing: Theme.spring-ease; }
+                    // rising bubbles
+                    for i in 4: Rectangle {
+                        property <float> cycle: 2600 + i * 700;
+                        property <float> k: mod(bottle.t + i * 900, self.cycle) / self.cycle;
+                        width: (3 + mod(i * 2, 3)) * 1px;
+                        height: self.width;
+                        border-radius: self.width / 2;
+                        x: (22 + i * 14) * 1px + sin(self.k * 720deg) * 3px;
+                        y: parent.height - 4px - self.k * max(0px, parent.height - 8px);
+                        background: #ffffff;
+                        opacity: parent.height > 20px ? 0.45 * (1 - self.k) : 0;
+                    }
                     Rectangle {
                         // shine
                         x: 10px;
@@ -35,6 +49,25 @@ export component WaterPage inherits Rectangle {
                         border-radius: 4px;
                         background: #ffffff33;
                     }
+                }
+                // two waves sliding over the water surface
+                for w in 2: Path {
+                    property <float> period: w == 0 ? 3200 : 2100;
+                    width: 168px;
+                    height: 10px;
+                    x: w == 0
+                        ? -mod(bottle.t, self.period) / self.period * 84px
+                        : -84px + mod(bottle.t, self.period) / self.period * 84px;
+                    y: water.y - self.height + 2px;
+                    visible: root.pct > 0.005 && root.pct < 0.995;
+                    viewbox-x: 0;
+                    viewbox-y: 0;
+                    viewbox-width: 168;
+                    viewbox-height: 10;
+                    fill: w == 0 ? #7dd3fc : #7dd3fc66;
+                    commands: w == 0
+                        ? "M0 5 Q21 0 42 5 T84 5 T126 5 T168 5 V10 H0 Z"
+                        : "M0 5 Q21 10 42 5 T84 5 T126 5 T168 5 V10 H0 Z";
                 }
                 VerticalLayout {
                     alignment: center;
