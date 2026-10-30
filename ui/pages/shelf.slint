@@ -2,7 +2,8 @@
 
 import { Theme, Icon } from "../theme.slint";
 import { Bridge, ShelfItem } from "../bridge.slint";
-import { Glyph, Label, Button, Tip } from "../widgets.slint";
+import { Glyph, Label, Button, Tip, Segmented } from "../widgets.slint";
+import { SendView } from "send.slint";
 
 component ShelfTile inherits Rectangle {
     in property <ShelfItem> item;
@@ -86,10 +87,12 @@ component ShelfTile inherits Rectangle {
 }
 
 export component ShelfPage inherits Rectangle {
-    VerticalLayout {
+    if Bridge.shelf-view == 1: SendView { }
+    if Bridge.shelf-view == 0: VerticalLayout {
         spacing: 8px;
         HorizontalLayout {
             spacing: 8px;
+            padding-right: 158px;   // room for the Shelf / Send switch
             VerticalLayout {
                 horizontal-stretch: 1;
                 alignment: center;
@@ -131,5 +134,13 @@ export component ShelfPage inherits Rectangle {
                 }
             }
         }
+    }
+    Segmented {
+        x: parent.width - self.width;
+        y: 0;
+        width: 150px;
+        items: ["Shelf", "Send"];
+        value: Bridge.shelf-view;
+        picked(i) => { Bridge.shelf-view = i; Bridge.shelf-view-changed(i); }
     }
 }

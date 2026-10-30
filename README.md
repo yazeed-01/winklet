@@ -8,7 +8,7 @@ Built in **Rust + Slint**, with a native GPU renderer and no browser engine.
 
 ## Contents
 
-[The pill](#the-pill) · [Notifications](#notifications) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water and drinks](#water-and-drinks) · [Alarms](#alarms) · [Shelf](#shelf) · [Audio](#audio) · [Developer](#developer) · [Game mode](#game-mode) · [Settings](#settings) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
+[The pill](#the-pill) · [Notifications](#notifications) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water and drinks](#water-and-drinks) · [Alarms](#alarms) · [Shelf](#shelf) · [Send](#send-to-phone-or-pc) · [Audio](#audio) · [Developer](#developer) · [Game mode](#game-mode) · [Settings](#settings) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
 
 ## Features
 
@@ -116,6 +116,17 @@ Not just water: tap **Water, Tea, Green tea, Coffee, Espresso, Iced latte, Spani
 Drag files or folders onto the island, or use the **Files** and **Folders** buttons. Items are saved as shortcuts; nothing is moved or copied. **Click** opens an item, **right-click** copies its path and **middle-click** shows it in Explorer.
 
 <img src="docs/screenshots/shelf.png" width="560" alt="Shelf">
+
+### Send to phone or PC
+
+**Shelf → Send** moves files between this PC and a phone (or another PC) on the same Wi-Fi, with no app or account on the other side.
+
+* **Fill the basket.** Drag files or folders onto the island, one at a time or many at once, or use **Files** / **Folder**. Forgot one? Drop it in any time, even while sharing: it shows up on the phone by itself. Folders are sent as a .zip.
+* **Show QR code.** Scan it with the phone camera, or open the link on any device on the same Wi-Fi. The page lists every file with **Get** and **Download all**.
+* **Phone to PC.** The same page has **Send to the PC**: pick photos or files on the phone and they land in your Downloads folder, with a notification on the island. Nothing to send? **Receive from phone** opens the page for that alone.
+* **Safe by default.** Each link has a long random secret and closes after 30 minutes or when you press **Stop**. A device that keeps guessing wrong links gets blocked, file names from the phone are cleaned up, and received files are marked as downloaded so Windows warns before running them. The first time, Windows Firewall may ask to let Winklet receive connections: allow it on private networks.
+
+<img src="docs/screenshots/send.png" width="440" alt="The send basket with files and a folder"> <img src="docs/screenshots/send-qr.png" width="440" alt="QR code and link for the phone">
 
 ### Audio
 

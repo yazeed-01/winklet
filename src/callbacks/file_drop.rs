@@ -34,8 +34,15 @@ pub fn wire_file_drop(ui: &AppWindow) {
                 let path = path.clone();
                 defer(move |s| {
                     let mut a = s.borrow_mut();
-                    a.ui().global::<Bridge>().set_drop_hover(false);
-                    if a.shelf_add([path]) > 0 {
+                    let ui = a.ui();
+                    let b = ui.global::<Bridge>();
+                    b.set_drop_hover(false);
+                    // Shelf > Send collects files to send; the Shelf keeps shortcuts
+                    if b.get_shelf_view() == 1 {
+                        if a.send_add([path]) > 0 {
+                            a.toast("Added to the basket");
+                        }
+                    } else if a.shelf_add([path]) > 0 {
                         a.toast("Added to shelf");
                     }
                     a.hovering = false;

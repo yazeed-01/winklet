@@ -16,6 +16,7 @@ mod planner;
 mod playlists;
 mod refresh;
 mod screen;
+mod send;
 mod shelf;
 mod sound;
 mod summary;
@@ -26,6 +27,7 @@ mod workspaces;
 pub use car::{CAR_PUFFS, CAR_SKIDS};
 pub use focus::Focus;
 pub use game::{Play, TAB_GAME, games_pick};
+pub use send::send_pick;
 pub use screen::ScreenTrack;
 pub use tools::{folder_for, open_folder, pick_folder, pick_workspace, take_screenshot};
 pub use wellbeing::Wellbeing;
@@ -127,6 +129,8 @@ pub struct App {
     pub screen: ScreenTrack,
     /// game mode, game detection and the library
     pub play: Play,
+    /// Shelf > Send: the basket and the open share link
+    pub send: send::Send,
 }
 
 pub type Shared = Rc<RefCell<App>>;
@@ -290,7 +294,10 @@ impl App {
                 }
             }
             TAB_AUDIO => self.refresh_audio(),
-            TAB_SHELF => self.refresh_shelf(),
+            TAB_SHELF => {
+                self.refresh_shelf();
+                self.refresh_send();
+            }
             TAB_GEAR => self.refresh_gear_time(),
             TAB_GAME => {
                 self.refresh_game();

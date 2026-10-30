@@ -13,6 +13,7 @@ mod lenovo;
 mod media;
 mod pad;
 mod ports;
+mod share;
 mod store;
 mod sys;
 mod uptime;
@@ -129,6 +130,7 @@ fn main() {
         dev_ws_sel: String::new(),
         screen: app::ScreenTrack::load(),
         play: Default::default(),
+        send: Default::default(),
         data,
     };
     ui.global::<Bridge>().set_app_volumes(ModelRc::from(app.app_volumes.clone()));
@@ -276,6 +278,14 @@ fn init_window(app: Shared) {
                         b.set_drink_edit_ml(300);
                     })
                 });
+            }
+            // WINKLET_DEMO_SEND=path;path fills Shelf > Send (add WINKLET_DEMO_SEND_START to open the link)
+            if let Ok(paths) = std::env::var("WINKLET_DEMO_SEND") {
+                a.ui().global::<Bridge>().set_shelf_view(1);
+                a.send_add(paths.split(';').filter(|p| !p.is_empty()).map(std::path::PathBuf::from));
+                if std::env::var_os("WINKLET_DEMO_SEND_START").is_some() {
+                    a.send_start();
+                }
             }
             // WINKLET_DEMO_SIZES=drink-id opens the cup-size sheet for that drink
             if let Ok(id) = std::env::var("WINKLET_DEMO_SIZES") {

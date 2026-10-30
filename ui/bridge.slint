@@ -41,6 +41,13 @@ export struct ShelfItem {
     missing: bool,
 }
 
+export struct SendItem {
+    index: int,
+    name: string,
+    size: string,
+    is-dir: bool,
+}
+
 export struct DrinkItem {
     id: string,
     name: string,
@@ -326,6 +333,25 @@ export global Bridge {
     callback shelf-reveal(string);
     callback shelf-remove(string);
     callback shelf-clear();
+    // ---- Shelf > Send ----
+    in-out property <int> shelf-view;         // 0 shelf, 1 send
+    callback shelf-view-changed(int);
+    in property <[SendItem]> send-items;
+    in property <string> send-total;
+    in property <bool> send-sharing;          // the link is open
+    in property <bool> send-preparing;        // starting / zipping folders
+    in property <string> send-status;
+    in property <string> send-url;
+    in property <string> send-ip;
+    in property <string> send-left;           // time left on the link, m:ss
+    in property <image> send-qr;
+    callback send-add(bool);                  // true = folders
+    callback send-remove(int);
+    callback send-clear();
+    callback send-start();
+    callback send-stop();
+    callback send-copy-link();
+    callback send-open-inbox();
 
     // ---- audio ----
     in property <float> master-volume;

@@ -32,6 +32,24 @@ pub fn wire(b: &Bridge, app: &Shared) {
             }
         }
     });
+    // ---- Send
+    on!(b, app, on_shelf_view_changed, |a, _v| { a.refresh_send(); });
+    // the file dialog is modal: open it after the click, unborrowed
+    b.on_send_add(|folders| defer(move |s| crate::app::send_pick(s, folders)));
+    on!(b, app, on_send_remove, |a, i| { a.send_remove(i.max(0) as usize); });
+    on!(b, app, on_send_clear, |a| { a.send_clear(); });
+    on!(b, app, on_send_start, |a| { a.send_start(); });
+    on!(b, app, on_send_stop, |a| { a.send_stop(); });
+    on!(b, app, on_send_copy_link, |a| {
+        let url = a.send.server.as_ref().map(|s| s.url.clone()).unwrap_or_default();
+        if !url.is_empty() && sys::set_clipboard(&url) {
+            a.toast("Link copied");
+        }
+    });
+    on!(b, app, on_send_open_inbox, |a| {
+        let dir = crate::app::folder_for(&a, "downloads");
+        sys::open(&dir, "");
+    });
     on!(b, app, on_shelf_copy, |a, id| {
         if let Some(p) = a.shelf_path(&id) {
             if sys::set_clipboard(&p) {
