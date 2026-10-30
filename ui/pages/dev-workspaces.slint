@@ -9,9 +9,9 @@ component WsCard inherits Rectangle {
     property <bool> sel: Bridge.ws-selected == item.id;
     height: 54px;
     border-radius: 13px;
-    background: sel ? #8b7bff22 : ta.has-hover ? Theme.surface-hover : Theme.surface;
+    background: sel ? Theme.accent.with-alpha(0.13) : ta.has-hover ? Theme.surface-hover : Theme.surface;
     border-width: 1px;
-    border-color: sel ? #8b7bff88 : Theme.stroke;
+    border-color: sel ? Theme.accent.with-alpha(0.53) : Theme.stroke;
     animate background, border-color { duration: 140ms; }
     ta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.ws-select(root.item.id); } }
     HorizontalLayout {

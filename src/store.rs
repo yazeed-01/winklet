@@ -58,6 +58,8 @@ pub struct Settings {
     pub island_pos: Option<(i32, i32)>,
     /// every launch puts the island back at the top centre
     pub island_home_on_start: bool,
+    /// colour theme (0 = Classic)
+    pub theme: i32,
     /// Dev tools folders; empty = found automatically
     pub projects_dir: String,
     pub downloads_dir: String,
@@ -118,6 +120,7 @@ impl Default for Settings {
             eyes_lively: true,
             island_pos: None,
             island_home_on_start: true,
+            theme: 0,
             projects_dir: String::new(),
             downloads_dir: String::new(),
             stand_reminders: true,

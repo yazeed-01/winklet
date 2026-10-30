@@ -1,15 +1,15 @@
 // Settings page.
 
-import { Theme, Icon, Cars } from "../theme.slint";
+import { Theme, Icon, Cars, Palette } from "../theme.slint";
 import { Bridge } from "../bridge.slint";
-import { Label, Button, Toggle, Stepper } from "../widgets.slint";
+import { Label, Button, Toggle, Stepper, Glyph, IconButton } from "../widgets.slint";
 
 component SettingRow inherits HorizontalLayout {
     in property <string> title;
     in property <string> sub;
     in property <bool> value;
     in property <string> key;
-    height: 34px;
+    height: 30px;
     VerticalLayout {
         alignment: center;
         horizontal-stretch: 1;
@@ -30,7 +30,7 @@ component CarPick inherits Rectangle {
     property <bool> active: Bridge.car-model == model;
     height: 50px;
     border-radius: 12px;
-    background: active ? #8b7bff2a : ta.has-hover ? Theme.surface-hover : Theme.surface;
+    background: active ? Theme.accent.with-alpha(0.16) : ta.has-hover ? Theme.surface-hover : Theme.surface;
     border-width: active ? 1.5px : 0;
     border-color: Theme.accent;
     animate background { duration: 140ms; }
@@ -57,8 +57,64 @@ component CarPick inherits Rectangle {
     }
 }
 
+// One theme in the picker: a tiny island in its colours, its swatches and name.
+component ThemeCard inherits Rectangle {
+    in property <Palette> pal;
+    in property <int> index;
+    property <bool> on: Bridge.theme == index;
+    height: 62px;
+    border-radius: 14px;
+    background: ta.has-hover ? Theme.surface-hover : Theme.surface;
+    border-width: on ? 2px : 1px;
+    border-color: on ? pal.accent : Theme.stroke;
+    animate background { duration: 120ms; }
+    HorizontalLayout {
+        padding: 7px;
+        spacing: 10px;
+        // mini island
+        Rectangle {
+            width: 66px;
+            border-radius: 10px;
+            background: pal.island;
+            border-width: 1px;
+            border-color: #ffffff1a;
+            Rectangle {
+                x: 8px;
+                y: 9px;
+                width: 50px;
+                height: 14px;
+                border-radius: 7px;
+                background: @linear-gradient(90deg, pal.grad-a 0%, pal.grad-b 50%, pal.grad-c 100%);
+            }
+            Rectangle { x: 8px; y: 30px; width: 34px; height: 5px; border-radius: 2.5px; background: pal.text; opacity: 0.85; }
+            Rectangle { x: 8px; y: 40px; width: 24px; height: 4px; border-radius: 2px; background: pal.text-dim; }
+            Rectangle { x: 42px; y: 36px; width: 16px; height: 10px; border-radius: 5px; background: pal.accent; }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 6px;
+            Label { text: pal.name; font-size: 12px; font-weight: on ? 700 : 600; }
+            HorizontalLayout {
+                spacing: 4px;
+                alignment: start;
+                for c in [pal.island, pal.accent, pal.accent-2, pal.text]: Rectangle {
+                    width: 13px;
+                    height: 13px;
+                    border-radius: 6.5px;
+                    background: c;
+                    border-width: 1px;
+                    border-color: #ffffff2a;
+                }
+            }
+        }
+    }
+    if on: Glyph { x: parent.width - 22px; y: 6px; width: 16px; height: 16px; text: Icon.check; font-size: 10px; color: pal.accent; }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.set-theme(root.index); } }
+}
+
 export component SettingsPage inherits Rectangle {
     property <bool> reset-armed;
+    init => { Bridge.theme-picking = false; }
     disarm := Timer {
         interval: 4s;
         running: false;
@@ -74,7 +130,7 @@ export component SettingsPage inherits Rectangle {
             SettingRow { title: "Game mode"; sub: "Stats pill, stays over fullscreen games"; key: "gamemode"; value: Bridge.game-mode; }
             SettingRow { title: "Water reminders"; sub: "08:00 to 22:00"; key: "water"; value: Bridge.water-reminders; }
             HorizontalLayout {
-                height: 34px;
+                height: 30px;
                 Label { text: "Remind every"; font-size: 12px; }
                 Stepper { value: Bridge.water-interval + " min"; step(d) => { Bridge.water-interval-adjust(d); } }
             }
@@ -108,8 +164,29 @@ export component SettingsPage inherits Rectangle {
                     }
                 }
             }
+            HorizontalLayout {
+                height: 30px;
+                spacing: 6px;
+                Label { text: "Theme"; font-size: 12px; horizontal-stretch: 1; }
+                Rectangle {
+                    width: tl.preferred-width + 54px;
+                    height: 28px;
+                    border-radius: 10px;
+                    background: tta.has-hover ? Theme.surface-hover : Theme.surface;
+                    animate background { duration: 120ms; }
+                    HorizontalLayout {
+                        padding-left: 10px;
+                        padding-right: 10px;
+                        spacing: 6px;
+                        alignment: center;
+                        Rectangle { width: 10px; height: 10px; y: 9px; border-radius: 5px; background: Theme.accent; }
+                        tl := Label { text: Theme.p.name; font-size: 11.5px; font-weight: 600; }
+                        Glyph { text: Icon.right; font-size: 8px; color: Theme.text-faint; }
+                    }
+                    tta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.theme-picking = true; } }
+                }
+            }
             Rectangle { }
-            Label { text: "Ctrl+Alt+ S shot · M mic · Space open · G game mode"; font-size: 9.5px; color: Theme.text-faint; }
         }
         VerticalLayout {
             width: 262px;
@@ -145,6 +222,35 @@ export component SettingsPage inherits Rectangle {
                 spacing: 6px;
                 Button { icon: Icon.play; text: "Test drive"; horizontal-stretch: 1; clicked => { Bridge.car-preview(); } }
                 Button { icon: Icon.power; text: "Quit"; primary: true; tint: Theme.red; clicked => { Bridge.quit(); } }
+            }
+        }
+    }
+    // theme picker: covers the page, changes apply right away
+    if Bridge.theme-picking: Rectangle {
+        background: Theme.island;
+        TouchArea { }
+        VerticalLayout {
+            spacing: 10px;
+            HorizontalLayout {
+                height: 28px;
+                spacing: 8px;
+                IconButton { icon: Icon.left; size: 28px; icon-size: 10px; fill: Theme.surface; tip: "Back to settings"; clicked => { Bridge.theme-picking = false; } }
+                Label { text: "Theme"; font-size: 14px; font-weight: 700; font-family: Theme.font-display; horizontal-stretch: 1; }
+                Label { text: "Classic is the original look"; font-size: 10.5px; color: Theme.text-faint; }
+            }
+            grid := Rectangle {
+                vertical-stretch: 1;
+                property <length> cw: (self.width - 2 * 8px) / 3;
+                Flickable {
+                    content-height: ceil(Theme.palettes.length / 3) * 70px;
+                    for pal[i] in Theme.palettes: ThemeCard {
+                        pal: pal;
+                        index: i;
+                        x: mod(i, 3) * (grid.cw + 8px);
+                        y: floor(i / 3) * 70px;
+                        width: grid.cw;
+                    }
+                }
             }
         }
     }

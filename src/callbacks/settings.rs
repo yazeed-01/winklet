@@ -70,6 +70,11 @@ pub fn wire(b: &Bridge, app: &Shared) {
         sys::open(&dir.to_string_lossy(), "");
     });
     on!(b, app, on_data_reset, |a| { a.reset_all_data(); });
+    on!(b, app, on_set_theme, |a, t| {
+        a.data.settings.theme = t.max(0);
+        a.data.save();
+        a.ui().global::<Bridge>().set_theme(t.max(0));
+    });
     // collapses the panel it was clicked in: let the click finish first
     b.on_island_move(|| defer(App::start_move));
     b.on_car_preview(|| {

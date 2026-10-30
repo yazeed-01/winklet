@@ -163,9 +163,13 @@ Turn it on in the **Game** tab, in Settings or with **Ctrl+Alt+G**, or let it sw
 
 ### Settings
 
-Launch at startup, 12- or 24-hour clock, hide during fullscreen games, videos and presentations, game mode, water reminders and their interval, lively eyes, car show and car model, where the island sits (**Move**, **Top centre**, **Top centre at start**), **Your data** (open the folder it's saved in, or **Reset all** with a second click to confirm), and Quit. The tray icon has Open and Quit too.
+Launch at startup, 12- or 24-hour clock, hide during fullscreen games, videos and presentations, game mode, water reminders and their interval, lively eyes, car show and car model, the colour theme, where the island sits (**Move**, **Top centre**, **Top centre at start**), **Your data** (open the folder it's saved in, or **Reset all** with a second click to confirm), and Quit. The tray icon has Open and Quit too.
 
 <img src="docs/screenshots/settings.png" width="560" alt="Settings">
+
+**Theme** picks the colours: **Classic** (the original look, and the default), **Racing Green**, **Burgundy Sage**, **Acid Lime**, **Orchid Sunset**, **Chrome Laser**, **Coral Steel**, **Aurora** and **Graphite**. The island stays dark in every theme; each one tints it and changes the text and accent colours, and the change applies right away.
+
+<img src="docs/screenshots/themes.png" width="560" alt="Theme picker with nine colour themes">
 
 ### Hotkeys
 

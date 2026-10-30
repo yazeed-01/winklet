@@ -275,7 +275,7 @@ export component WaterPage inherits Rectangle {
                         border-radius: 9px;
                         border-width: 1px;
                         border-color: nta.has-hover ? Theme.accent : Theme.stroke;
-                        background: nta.has-hover ? #8b7bff1a : transparent;
+                        background: nta.has-hover ? Theme.accent.with-alpha(0.10) : transparent;
                         animate background, border-color { duration: 140ms; }
                         HorizontalLayout {
                             alignment: center;

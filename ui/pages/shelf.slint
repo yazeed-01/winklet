@@ -47,7 +47,7 @@ component ShelfTile inherits Rectangle {
                 width: 34px;
                 height: 34px;
                 border-radius: 10px;
-                background: item.is-dir ? #fbbf2426 : #8b7bff26;
+                background: item.is-dir ? #fbbf2426 : Theme.accent.with-alpha(0.15);
                 Glyph {
                     width: 100%;
                     height: 100%;
@@ -112,7 +112,7 @@ export component ShelfPage inherits Rectangle {
             border-radius: 16px;
             border-width: Bridge.drop-hover ? 2px : Bridge.shelf.length == 0 ? 1px : 0;
             border-color: Bridge.drop-hover ? Theme.accent : Theme.stroke;
-            background: Bridge.drop-hover ? #8b7bff1f : transparent;
+            background: Bridge.drop-hover ? Theme.accent.with-alpha(0.12) : transparent;
             animate background, border-color { duration: 160ms; }
             Flickable {
                 content-height: (floor((Bridge.shelf.length + 4) / 5)) * 92px;

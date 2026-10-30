@@ -142,7 +142,7 @@ component AppRow inherits Rectangle {
     property <bool> sel: Bridge.screen-selected == item.key;
     height: 30px;
     border-radius: 8px;
-    background: sel ? #8b7bff24 : ta.has-hover ? Theme.surface : transparent;
+    background: sel ? Theme.accent.with-alpha(0.14) : ta.has-hover ? Theme.surface : transparent;
     animate background { duration: 120ms; }
     ta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.screen-pick(root.item.key); } }
     HorizontalLayout {
@@ -162,7 +162,7 @@ component AppRow inherits Rectangle {
                     x: 0;
                     width: max(3px, parent.width * root.item.frac);
                     border-radius: 2.5px;
-                    background: root.sel ? Theme.accent : #8b7bff88;
+                    background: root.sel ? Theme.accent : Theme.accent.with-alpha(0.53);
                 }
             }
         }

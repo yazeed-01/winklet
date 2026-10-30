@@ -1,17 +1,69 @@
 import { Bridge } from "bridge.slint";
 
-// Design tokens shared by every page.
+// One colour theme. The island stays dark in every theme (it's a notch); a theme sets its
+// base, the text tint and the accent colours.
+export struct Palette {
+    name: string,
+    island: color,
+    surface: color,
+    surface-hover: color,
+    stroke: color,
+    text: color,
+    text-dim: color,
+    text-faint: color,
+    accent: color,
+    accent-2: color,
+    grad-a: color,     // accent gradient: start, middle, end
+    grad-b: color,
+    grad-c: color,
+}
+
+// Design tokens shared by every page. They follow the theme picked in Settings.
 export global Theme {
-    out property <color> island: #000000;
-    out property <color> surface: #ffffff0d;
-    out property <color> surface-hover: #ffffff18;
-    out property <color> stroke: #ffffff14;
-    out property <color> text: #f5f5f7;
-    out property <color> text-dim: #a1a1aa;
-    out property <color> text-faint: #6b6b76;
-    out property <color> accent: #8b7bff;
-    out property <color> accent-2: #4f8dff;
-    out property <brush> accent-grad: @linear-gradient(135deg, #a78bfa 0%, #6366f1 50%, #3b82f6 100%);
+    // Classic first (the default); the others come from colour palettes:
+    // charcoal / forest / crimson, sage / cream / burgundy, midnight / cobalt / acid lime,
+    // orchid / eggplant / signal orange, obsidian / chrome / laser red,
+    // steel grey / midnight charcoal / coral, a navy glow dashboard and a graphite bank app.
+    out property <[Palette]> palettes: [
+        { name: "Classic", island: #000000, surface: #ffffff0d, surface-hover: #ffffff18, stroke: #ffffff14,
+          text: #f5f5f7, text-dim: #a1a1aa, text-faint: #6b6b76, accent: #8b7bff, accent-2: #4f8dff,
+          grad-a: #a78bfa, grad-b: #6366f1, grad-c: #3b82f6 },
+        { name: "Racing Green", island: #06110c, surface: #ffffff0d, surface-hover: #ffffff17, stroke: #ffffff14,
+          text: #f3efe6, text-dim: #a7ada6, text-faint: #6a736c, accent: #d93a35, accent-2: #2f7a57,
+          grad-a: #ef5a4c, grad-b: #c22a26, grad-c: #a31c1b },
+        { name: "Burgundy Sage", island: #140706, surface: #e8d2b50f, surface-hover: #e8d2b51c, stroke: #e8d2b51a,
+          text: #f1e3cf, text-dim: #a5a79b, text-faint: #77756a, accent: #c2423a, accent-2: #a5a79b,
+          grad-a: #e8d2b5, grad-b: #b8433a, grad-c: #590907 },
+        { name: "Acid Lime", island: #030407, surface: #ffffff0d, surface-hover: #ffffff18, stroke: #ffffff14,
+          text: #f4f6fb, text-dim: #a2a8b8, text-faint: #646a7a, accent: #d4ff24, accent-2: #3d7bff,
+          grad-a: #d4ff24, grad-b: #4f8dff, grad-c: #1558c9 },
+        { name: "Orchid Sunset", island: #16051d, surface: #e7b0de12, surface-hover: #e7b0de1f, stroke: #e7b0de1c,
+          text: #fbeefa, text-dim: #c4a6c4, text-faint: #806582, accent: #ff6a1f, accent-2: #e7b0de,
+          grad-a: #e7b0de, grad-b: #ff8a4a, grad-c: #ff5a0a },
+        { name: "Chrome Laser", island: #080808, surface: #cdcbca10, surface-hover: #cdcbca1c, stroke: #cdcbca1a,
+          text: #f2f1f0, text-dim: #a8a6a5, text-faint: #6b6968, accent: #ee2c26, accent-2: #cdcbca,
+          grad-a: #cdcbca, grad-b: #ee2c26, grad-c: #d41514 },
+        { name: "Coral Steel", island: #17191c, surface: #929da714, surface-hover: #929da722, stroke: #929da71f,
+          text: #f1f3f5, text-dim: #a4adb6, text-faint: #6c747c, accent: #ff4b32, accent-2: #929da7,
+          grad-a: #ff8a6b, grad-b: #ff4b32, grad-c: #e0341f },
+        { name: "Aurora", island: #060a17, surface: #6aa8ff12, surface-hover: #6aa8ff1f, stroke: #6aa8ff1f,
+          text: #eef3ff, text-dim: #9fabc6, text-faint: #626e8a, accent: #4f8dff, accent-2: #f08a4b,
+          grad-a: #7fb2ff, grad-b: #4f8dff, grad-c: #2e5bff },
+        { name: "Graphite", island: #0c0c0e, surface: #ffffff0f, surface-hover: #ffffff1a, stroke: #ffffff17,
+          text: #f5f5f7, text-dim: #a3a3ab, text-faint: #67676f, accent: #3b7bff, accent-2: #8a8a94,
+          grad-a: #5b93ff, grad-b: #3b7bff, grad-c: #2563eb },
+    ];
+    out property <Palette> p: palettes[max(0, min(palettes.length - 1, Bridge.theme))];
+    out property <color> island: p.island;
+    out property <color> surface: p.surface;
+    out property <color> surface-hover: p.surface-hover;
+    out property <color> stroke: p.stroke;
+    out property <color> text: p.text;
+    out property <color> text-dim: p.text-dim;
+    out property <color> text-faint: p.text-faint;
+    out property <color> accent: p.accent;
+    out property <color> accent-2: p.accent-2;
+    out property <brush> accent-grad: @linear-gradient(135deg, p.grad-a 0%, p.grad-b 50%, p.grad-c 100%);
     out property <color> green: #34d399;
     out property <color> orange: #fb923c;
     out property <color> red: #f87171;

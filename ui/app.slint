@@ -174,7 +174,7 @@ component Eyes inherits Rectangle {
             border-top-right-radius: 1px;
             background: @linear-gradient(90deg, #ffffff 0%, #e7e1d8 100%);
             Rectangle { y: 1px; x: 1px; width: 8px; height: 2.5px; border-radius: 1px; background: #6b3f1d; }
-            Rectangle { y: 6px; x: 2px; width: 6px; height: 2px; border-radius: 1px; background: #8b7bff; }
+            Rectangle { y: 6px; x: 2px; width: 6px; height: 2px; border-radius: 1px; background: Theme.accent; }
         }
         // steam
         for i in 2: Path {
@@ -503,7 +503,7 @@ component Peek inherits Rectangle {
             y: (parent.height - self.height) / 2;
             icon: Icon.chart;
             size: 34px;
-            fill: #8b7bff33;
+            fill: Theme.accent.with-alpha(0.20);
             tint: Theme.accent;
             tip: "Open the day summary";
             clicked => { Bridge.open-summary(); }
@@ -847,7 +847,7 @@ export component AppWindow inherits Window {
             height: 1px;
             x: parent.width * 0.2;
             width: parent.width * 0.6;
-            background: @linear-gradient(90deg, #8b7bff00 0%, #8b7bff55 50%, #8b7bff00 100%);
+            background: @linear-gradient(90deg, Theme.accent.with-alpha(0.00) 0%, Theme.accent.with-alpha(0.33) 50%, Theme.accent.with-alpha(0.00) 100%);
             opacity: Bridge.expanded ? 1 : 0;
             animate opacity { duration: 300ms; }
         }

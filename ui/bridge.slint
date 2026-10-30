@@ -410,6 +410,9 @@ export global Bridge {
     in property <string> downloads-dir;
     callback island-move();
     in property <string> data-dir;           // where everything is saved
+    in-out property <int> theme;             // index in Theme.palettes (0 = Classic)
+    in-out property <bool> theme-picking;    // Settings shows the theme picker
+    callback set-theme(int);
     callback data-open();
     callback data-reset();
     callback island-home();

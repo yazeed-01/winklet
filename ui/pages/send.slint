@@ -21,7 +21,7 @@ component BasketRow inherits Rectangle {
             height: 26px;
             y: (parent.height - self.height) / 2;
             border-radius: 8px;
-            background: root.item.is-dir ? #fbbf2426 : #8b7bff26;
+            background: root.item.is-dir ? #fbbf2426 : Theme.accent.with-alpha(0.15);
             Glyph { text: root.item.is-dir ? Icon.folder : Icon.file; font-size: 12px; color: root.item.is-dir ? #fbbf24 : Theme.accent; }
         }
         Label { text: root.item.name; font-size: 12px; font-weight: 600; horizontal-stretch: 1; }

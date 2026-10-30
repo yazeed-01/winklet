@@ -287,6 +287,15 @@ fn init_window(app: Shared) {
                     a.send_start();
                 }
             }
+            // WINKLET_DEMO_THEME=n shows theme n; WINKLET_DEMO_THEMES opens the theme picker
+            if let Some(t) = std::env::var("WINKLET_DEMO_THEME").ok().and_then(|t| t.parse::<i32>().ok()) {
+                a.ui().global::<Bridge>().set_theme(t);
+            }
+            if std::env::var_os("WINKLET_DEMO_THEMES").is_some() {
+                slint::Timer::single_shot(std::time::Duration::from_millis(1200), || {
+                    app::with_app(|s| s.borrow().ui().global::<Bridge>().set_theme_picking(true))
+                });
+            }
             // WINKLET_DEMO_SIZES=drink-id opens the cup-size sheet for that drink
             if let Ok(id) = std::env::var("WINKLET_DEMO_SIZES") {
                 slint::Timer::single_shot(std::time::Duration::from_millis(1500), move || {
