@@ -376,6 +376,8 @@ export component Gauge inherits Rectangle {
     in property <string> unit;
     in property <int> minor: 4;           // minor ticks between numbers
     property <length> r: self.width / 2;
+    // small dials (network) skip the rim numbers: there's no room for them and the readout
+    property <bool> compact: self.width < 110px;
     property <float> v: max(0, min(1, value));
     property <angle> start: 135deg;
     property <angle> needle: start + 270deg * v;
@@ -451,6 +453,7 @@ export component Gauge inherits Rectangle {
         x: root.r + root.r * 0.6 * cos(a) - 12px;
         y: root.r + root.r * 0.6 * sin(a) - 6px;
         text: m;
+        visible: !root.compact;
         font-family: Theme.font-display;
         font-size: max(8px, root.r * 0.11);
         font-weight: 600;
@@ -460,17 +463,17 @@ export component Gauge inherits Rectangle {
     }
     // label + digital readout in the lower gap
     Text {
-        y: root.r + root.r * 0.28;
+        y: root.r + root.r * (root.compact ? 0.3 : 0.28);
         width: root.width;
         text: root.readout;
         font-family: "Cascadia Mono";
-        font-size: max(10px, root.r * 0.2);
+        font-size: root.compact ? 12px : max(10px, root.r * 0.2);
         font-weight: 700;
         color: white;
         horizontal-alignment: center;
     }
     Text {
-        y: root.r + root.r * 0.52;
+        y: root.r + root.r * (root.compact ? 0.66 : 0.52);
         width: root.width;
         text: root.unit;
         font-family: Theme.font;
@@ -479,7 +482,7 @@ export component Gauge inherits Rectangle {
         horizontal-alignment: center;
     }
     Text {
-        y: root.r - root.r * 0.42;
+        y: root.r - root.r * (root.compact ? 0.55 : 0.42);
         width: root.width;
         text: root.label;
         font-family: Theme.font;

@@ -88,9 +88,9 @@ export component DashView inherits Rectangle {
     }
     // network: two small dials under the GPU, Mbps on a 0 / 1 / 10 / 100 / 1G scale
     Gauge {
-        x: parent.width / 2 - 120px;
-        y: 170px;
-        width: 72px;
+        x: parent.width / 2 - 138px;
+        y: 156px;
+        width: 90px;
         value: root.sweep ? 1 : Bridge.dash-net;
         marks: ["0", "1", "10", "100", "1G"];
         minor: 1;
@@ -101,8 +101,8 @@ export component DashView inherits Rectangle {
     }
     Gauge {
         x: parent.width / 2 + 48px;
-        y: 170px;
-        width: 72px;
+        y: 156px;
+        width: 90px;
         value: root.sweep ? 1 : Bridge.dash-up;
         marks: ["0", "1", "10", "100", "1G"];
         minor: 1;
@@ -141,7 +141,7 @@ export component DashView inherits Rectangle {
     Rectangle {
         x: (parent.width - self.width) / 2;
         y: 224px;
-        width: 96px;
+        width: 88px;
         height: 20px;
         border-radius: 5px;
         background: #000;
