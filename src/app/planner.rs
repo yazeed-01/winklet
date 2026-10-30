@@ -57,6 +57,7 @@ impl App {
                     today: d == today,
                     selected: d == self.cal_selected,
                     has_items: self.data.todos.iter().any(|t| t.date == Some(d) && !t.done),
+                    future: false,
                 }
             })
             .collect();

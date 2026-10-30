@@ -2,8 +2,8 @@
 //! Also the 2 s "who's in front" tick that feeds game detection and game-mode stats.
 
 use super::{App, TAB_HEALTH, s};
-use crate::{AppUseItem, Bridge, SpanItem, fg, store, sys};
-use chrono::{Duration as CDuration, Local, NaiveDate, Timelike};
+use crate::{AppUseItem, Bridge, DayCell, SpanItem, fg, store, sys};
+use chrono::{Datelike, Duration as CDuration, Local, NaiveDate, Timelike};
 use slint::{ComponentHandle, Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, VecModel};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -22,6 +22,8 @@ pub struct ScreenTrack {
     pub unsaved_s: u32,
     /// day shown in the Apps and Summary views
     pub day: NaiveDate,
+    /// first day of the month shown in the day picker
+    pub pick_month: NaiveDate,
     /// selected app (file name key)
     pub sel: String,
     pub icons: HashMap<String, Option<Image>>,
@@ -35,6 +37,7 @@ impl ScreenTrack {
             log: store::Screen::load(),
             unsaved_s: 0,
             day: Local::now().date_naive(),
+            pick_month: Local::now().date_naive().with_day(1).unwrap_or_default(),
             sel: String::new(),
             icons: HashMap::new(),
             last: None,
@@ -222,6 +225,52 @@ impl App {
         b.set_screen_selected(s(self.screen.sel.clone()));
         b.set_screen_sel(sel_item);
         b.set_screen_spans(ModelRc::new(VecModel::from(spans)));
+    }
+
+    /// Jumps the Summary and Apps views to `day` (never past today).
+    pub fn screen_goto(&mut self, day: &str) {
+        let Ok(day) = NaiveDate::parse_from_str(day, "%Y-%m-%d") else { return };
+        self.screen.day = day.min(Local::now().date_naive());
+        self.refresh_screen();
+        self.refresh_summary();
+    }
+
+    /// Month grid for the day picker: days with activity get a dot, future days are off.
+    pub fn refresh_daypick(&self) {
+        let today = Local::now().date_naive();
+        let first = self.screen.pick_month;
+        let start = first - CDuration::days(first.weekday().num_days_from_monday() as i64);
+        let days: Vec<DayCell> = (0..42)
+            .map(|i| {
+                let d = start + CDuration::days(i);
+                DayCell {
+                    day: d.day() as i32,
+                    date: s(d.to_string()),
+                    in_month: d.month() == first.month(),
+                    today: d == today,
+                    selected: d == self.screen.day,
+                    has_items: self.data.health.get(&d).is_some_and(|h| h.active_s >= 60),
+                    future: d > today,
+                }
+            })
+            .collect();
+        let ui = self.ui();
+        let b = ui.global::<Bridge>();
+        b.set_daypick_days(ModelRc::new(VecModel::from(days)));
+        b.set_daypick_title(s(first.format("%B %Y").to_string()));
+        b.set_daypick_can_next(first < today.with_day(1).unwrap_or(today));
+    }
+
+    pub fn daypick_shift(&mut self, months: i32) {
+        let m = self.screen.pick_month;
+        let next = if months >= 0 {
+            m.checked_add_months(chrono::Months::new(months as u32))
+        } else {
+            m.checked_sub_months(chrono::Months::new((-months) as u32))
+        };
+        let cap = Local::now().date_naive().with_day(1).unwrap_or(m);
+        self.screen.pick_month = next.unwrap_or(m).min(cap);
+        self.refresh_daypick();
     }
 
     pub fn screen_shift(&mut self, d: i32) {

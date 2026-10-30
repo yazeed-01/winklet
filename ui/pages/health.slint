@@ -5,7 +5,7 @@ import { Bridge } from "../bridge.slint";
 import { Label, Button, Ring, Stepper, Segmented, ChipToggle } from "../widgets.slint";
 import { Stat } from "stat.slint";
 import { HistoryView } from "health-history.slint";
-import { AppsView, DayView } from "health-apps.slint";
+import { AppsView, DayView, DayPicker } from "health-apps.slint";
 
 export component HealthPage inherits Rectangle {
     Segmented {
@@ -19,6 +19,7 @@ export component HealthPage inherits Rectangle {
     if Bridge.health-view == 1: DayView { width: parent.width; }
     if Bridge.health-view == 2: AppsView { width: parent.width; }
     if Bridge.health-view == 3: HistoryView { width: parent.width - 0px; }
+    init => { Bridge.daypick-open = false; }
     if Bridge.health-view == 0: HorizontalLayout {
         spacing: 14px;
         // sitting ring
@@ -125,5 +126,15 @@ export component HealthPage inherits Rectangle {
                 Rectangle { }
             }
         }
+    }
+    // day picker over Summary / Apps; a click anywhere else closes it
+    if Bridge.daypick-open && (Bridge.health-view == 1 || Bridge.health-view == 2): TouchArea {
+        width: parent.width;
+        height: parent.height;
+        clicked => { Bridge.daypick-open = false; }
+    }
+    if Bridge.daypick-open && (Bridge.health-view == 1 || Bridge.health-view == 2): DayPicker {
+        x: 26px;
+        y: 28px;
     }
 }

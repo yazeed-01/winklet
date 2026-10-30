@@ -22,6 +22,7 @@ export struct DayCell {
     today: bool,
     selected: bool,
     has-items: bool,
+    future: bool,
 }
 
 export struct Bar {
@@ -128,6 +129,14 @@ export struct PortItem {
 export global Bridge {
     // ---- screen time per app + day summary ----
     in property <string> screen-day-label: "Today";
+    // day picker under ◀ Today ▶ (Summary and Apps)
+    in-out property <bool> daypick-open;
+    in property <string> daypick-title;
+    in property <[DayCell]> daypick-days;
+    in property <bool> daypick-can-next;
+    callback daypick-reset();          // show the month of the day on screen
+    callback daypick-shift(int);       // months
+    callback screen-goto(string);      // yyyy-mm-dd
     in property <bool> screen-can-next;
     in property <string> screen-total;
     in property <[AppUseItem]> screen-apps;

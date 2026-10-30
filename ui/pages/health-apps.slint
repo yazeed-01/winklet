@@ -2,7 +2,7 @@
 
 import { Theme, Icon } from "../theme.slint";
 import { Bridge, AppUseItem, SpanItem } from "../bridge.slint";
-import { Label, IconButton, Card, Stepper, ChipToggle, AppIcon } from "../widgets.slint";
+import { Label, IconButton, Card, Stepper, ChipToggle, AppIcon, Glyph } from "../widgets.slint";
 import { Stat } from "stat.slint";
 
 // ◀ Today ▶  note   (leaves room on the right for the view switch)
@@ -12,7 +12,29 @@ export component DayBar inherits HorizontalLayout {
     spacing: 6px;
     padding-right: 270px;
     IconButton { icon: Icon.left; size: 24px; icon-size: 10px; fill: Theme.surface; tip: "Previous day"; clicked => { Bridge.screen-shift(-1); } }
-    Label { text: Bridge.screen-day-label; font-size: 12px; font-weight: 700; min-width: 64px; horizontal-alignment: center; }
+    // the day (and the note next to it) opens a calendar to jump straight to a day
+    Rectangle {
+        min-width: 72px;
+        preferred-width: dl.preferred-width + 30px;
+        border-radius: 8px;
+        background: dta.has-hover || Bridge.daypick-open ? Theme.surface : transparent;
+        animate background { duration: 120ms; }
+        HorizontalLayout {
+            padding-left: 8px;
+            padding-right: 8px;
+            spacing: 5px;
+            alignment: center;
+            Glyph { text: Icon.calendar; font-size: 10px; color: Bridge.daypick-open ? Theme.accent : Theme.text-faint; }
+            dl := Label { text: Bridge.screen-day-label; font-size: 12px; font-weight: 700; }
+        }
+        dta := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                Bridge.daypick-open = !Bridge.daypick-open;
+                if Bridge.daypick-open { Bridge.daypick-reset(); }
+            }
+        }
+    }
     IconButton {
         icon: Icon.right;
         size: 24px;
@@ -22,7 +44,97 @@ export component DayBar inherits HorizontalLayout {
         tip: "Next day";
         clicked => { if Bridge.screen-can-next { Bridge.screen-shift(1); } }
     }
-    Label { text: note; font-size: 10.5px; color: Theme.text-faint; horizontal-stretch: 1; }
+    Rectangle {
+        horizontal-stretch: 1;
+        Label { width: 100%; height: 100%; text: note; font-size: 10.5px; color: nta.has-hover ? Theme.text-dim : Theme.text-faint; }
+        nta := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                Bridge.daypick-open = !Bridge.daypick-open;
+                if Bridge.daypick-open { Bridge.daypick-reset(); }
+            }
+        }
+    }
+}
+
+// Month calendar that drops down from the day bar.
+export component DayPicker inherits Rectangle {
+    property <length> cell: 26px;
+    width: 232px;
+    height: lay.preferred-height;
+    border-radius: 14px;
+    background: #1c1c22;
+    border-width: 1px;
+    border-color: Theme.stroke;
+    drop-shadow-blur: 18px;
+    drop-shadow-color: #000a;
+    TouchArea { }   // clicks on the card don't close it
+    lay := VerticalLayout {
+        padding: 10px;
+        spacing: 4px;
+        HorizontalLayout {
+            height: 24px;
+            spacing: 2px;
+            Label { text: Bridge.daypick-title; font-size: 12.5px; font-weight: 700; font-family: Theme.font-display; horizontal-stretch: 1; }
+            IconButton { icon: Icon.left; size: 24px; icon-size: 9px; tip: "Previous month"; clicked => { Bridge.daypick-shift(-1); } }
+            IconButton {
+                icon: Icon.right;
+                size: 24px;
+                icon-size: 9px;
+                opacity: Bridge.daypick-can-next ? 1 : 0.3;
+                tip: "Next month";
+                clicked => { if Bridge.daypick-can-next { Bridge.daypick-shift(1); } }
+            }
+        }
+        HorizontalLayout {
+            height: 14px;
+            for d in ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]: Label {
+                text: d;
+                horizontal-alignment: center;
+                font-size: 9.5px;
+                color: Theme.text-faint;
+                font-weight: 600;
+            }
+        }
+        Rectangle {
+            height: 6 * 24px;
+            for c[i] in Bridge.daypick-days: Rectangle {
+                x: mod(i, 7) * (parent.width / 7) + (parent.width / 7 - root.cell) / 2;
+                y: floor(i / 7) * 24px;
+                width: root.cell;
+                height: 22px;
+                border-radius: 8px;
+                background: c.selected ? Theme.accent : c.today ? #ffffff1f : cta.has-hover && !c.future ? Theme.surface-hover : transparent;
+                animate background { duration: 120ms; }
+                Text {
+                    text: c.day;
+                    font-family: Theme.font;
+                    font-size: 11px;
+                    font-weight: c.today || c.selected ? 700 : 400;
+                    color: c.selected ? #0b0b12 : c.future ? #ffffff2a : c.in-month ? Theme.text : Theme.text-faint;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+                // had some activity that day
+                if c.has-items && !c.selected: Rectangle {
+                    y: parent.height - 4px;
+                    width: 3px;
+                    height: 3px;
+                    border-radius: 1.5px;
+                    background: Theme.green;
+                }
+                cta := TouchArea {
+                    mouse-cursor: c.future ? MouseCursor.default : MouseCursor.pointer;
+                    clicked => {
+                        if !c.future {
+                            Bridge.screen-goto(c.date);
+                            Bridge.daypick-open = false;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 component AppRow inherits Rectangle {

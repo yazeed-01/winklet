@@ -2,6 +2,7 @@
 
 use crate::Bridge;
 use crate::app::{Shared, defer, schedule_shrink};
+use chrono::Datelike;
 use slint::ComponentHandle;
 use std::time::{Duration, Instant};
 
@@ -18,6 +19,12 @@ pub fn wire(b: &Bridge, app: &Shared) {
         }
     });
     on!(b, app, on_screen_shift, |a, d| { a.screen_shift(d); });
+    on!(b, app, on_screen_goto, |a, d| { a.screen_goto(&d); });
+    on!(b, app, on_daypick_shift, |a, m| { a.daypick_shift(m); });
+    on!(b, app, on_daypick_reset, |a| {
+        a.screen.pick_month = a.screen.day.with_day(1).unwrap_or(a.screen.day);
+        a.refresh_daypick();
+    });
     on!(b, app, on_screen_pick, |a, key| {
         a.screen.sel = key.to_string();
         a.refresh_screen();
