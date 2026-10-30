@@ -82,7 +82,7 @@ impl Server {
                     .arg(&zip)
                     .arg("-C")
                     .arg(p.parent().unwrap_or(Path::new(".")))
-                    .arg(&name)
+                    .arg(format!("./{name}")) // never read as an option, even if it starts with "-"
                     .creation_flags_no_window()
                     .status()
                     .map_err(|e| format!("Couldn't zip {name}: {e}"))?;
@@ -124,9 +124,10 @@ impl NoWindow for std::process::Command {
 /// `inbox`. `notify` runs on the server threads.
 pub fn start(paths: &[PathBuf], inbox: PathBuf, notify: impl Fn(Event) + Send + Sync + 'static) -> Result<Arc<Server>, String> {
     let ip = lan_ip().ok_or("Not connected to a network. Connect to Wi-Fi and try again.")?;
+    // only on the Wi-Fi / LAN adapter, not every network this PC is on
     let http = (49152..49200)
-        .find_map(|port| tiny_http::Server::http(("0.0.0.0", port)).ok())
-        .or_else(|| tiny_http::Server::http("0.0.0.0:0").ok())
+        .find_map(|port| tiny_http::Server::http((ip.as_str(), port)).ok())
+        .or_else(|| tiny_http::Server::http((ip.as_str(), 0)).ok())
         .ok_or("Couldn't open a network port")?;
     let port = http.server_addr().to_ip().map(|a| a.port()).unwrap_or(0);
     let tok = token();
@@ -180,6 +181,21 @@ fn file_name(p: &Path) -> String {
 
 fn size_of_file(p: &Path) -> u64 {
     std::fs::metadata(p).map(|m| m.len()).unwrap_or(0)
+}
+
+/// Creates `dir/name`, or "name (2).ext", "name (3).ext"… if taken, atomically
+/// (create_new), so an existing file is never opened. None when nothing is free.
+fn create_new(dir: &Path, name: &str) -> Option<(PathBuf, std::fs::File)> {
+    let first = dir.join(name);
+    let stem = first.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+    let ext = first.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    std::iter::once(first).chain((2..10_000).map(|i| dir.join(format!("{stem} ({i}){ext}")))).find_map(|p| {
+        match std::fs::OpenOptions::new().write(true).create_new(true).open(&p) {
+            Ok(f) => Some(Some((p, f))),
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => None,
+            Err(_) => Some(None),
+        }
+    })?
 }
 
 /// `path`, or "name (2).ext", "name (3).ext"… when it's taken.
@@ -350,13 +366,17 @@ fn handle(req: tiny_http::Request, tok: &str, s: &Server, notify: &(dyn Fn(Event
     if path == format!("{base}/up") {
         let name = query.split('&').find_map(|kv| kv.strip_prefix("name=")).map(pct_decode).unwrap_or_else(|| "file".into());
         let _ = std::fs::create_dir_all(&s.inbox);
-        let target = unique(s.inbox.join(sanitize(&name)));
         let mut req = req;
         if req.body_length().is_some_and(|n| n as u64 > MAX_UPLOAD) {
             let _ = req.respond(tiny_http::Response::from_string("File too large").with_status_code(413));
             return;
         }
-        let written = std::fs::File::create(&target).and_then(|mut f| std::io::copy(&mut req.as_reader().take(MAX_UPLOAD + 1), &mut f));
+        // a brand-new file only: never opens (or later deletes) one that already exists
+        let Some((target, file)) = create_new(&s.inbox, &sanitize(&name)) else {
+            let _ = req.respond(tiny_http::Response::from_string("error").with_status_code(500));
+            return;
+        };
+        let written = std::io::copy(&mut req.as_reader().take(MAX_UPLOAD + 1), &mut { file });
         if matches!(written, Ok(n) if n <= MAX_UPLOAD) {
             mark_of_the_web(&target);
             s.uploads.fetch_add(1, Ordering::Relaxed);
@@ -436,6 +456,17 @@ mod tests {
         assert_eq!(sanitize("CON.txt"), "_CON.txt");
         assert_eq!(sanitize("photo\u{202E}gpj.exe"), "photogpj.exe");
         assert_eq!(sanitize("   "), "file");
+    }
+
+    #[test]
+    fn uploads_never_overwrite() {
+        let dir = std::env::temp_dir().join(format!("winklet-share-test-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        std::fs::write(dir.join("a.txt"), "keep me").unwrap();
+        let (p, _) = create_new(&dir, "a.txt").unwrap();
+        assert_eq!(p.file_name().unwrap(), "a (2).txt");
+        assert_eq!(std::fs::read_to_string(dir.join("a.txt")).unwrap(), "keep me");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
