@@ -64,6 +64,12 @@ pub fn wire(b: &Bridge, app: &Shared) {
         a.refresh_settings();
     });
     on!(b, app, on_island_home, |a| { a.island_home(); });
+    b.on_data_open(|| {
+        let dir = crate::store::data_dir();
+        let _ = std::fs::create_dir_all(&dir);
+        sys::open(&dir.to_string_lossy(), "");
+    });
+    on!(b, app, on_data_reset, |a| { a.reset_all_data(); });
     // collapses the panel it was clicked in: let the click finish first
     b.on_island_move(|| defer(App::start_move));
     b.on_car_preview(|| {

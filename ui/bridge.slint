@@ -368,6 +368,9 @@ export global Bridge {
     in property <string> projects-dir;       // Dev tools folders ("" = not known yet)
     in property <string> downloads-dir;
     callback island-move();
+    in property <string> data-dir;           // where everything is saved
+    callback data-open();
+    callback data-reset();
     callback island-home();
     // a right-drag is moving the island; right-click actions are ignored meanwhile
     in property <bool> dragging;

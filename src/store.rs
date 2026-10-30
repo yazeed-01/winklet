@@ -271,6 +271,18 @@ impl Screen {
     }
 }
 
+/// Folder holding everything Winklet saves (%APPDATA%\\Winklet).
+pub fn data_dir() -> PathBuf {
+    path().parent().map(PathBuf::from).unwrap_or_default()
+}
+
+/// Deletes everything Winklet saved (data.json, screen.json and their temp files).
+pub fn delete_all() {
+    for name in ["data.json", "screen.json", "data.tmp", "screen.tmp"] {
+        let _ = std::fs::remove_file(file(name));
+    }
+}
+
 fn file(name: &str) -> PathBuf {
     path().with_file_name(name)
 }

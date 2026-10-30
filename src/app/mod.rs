@@ -356,6 +356,25 @@ impl App {
         });
     }
 
+    /// Settings > Reset: forgets everything and starts fresh (the island keeps running).
+    pub fn reset_all_data(&mut self) {
+        self.stop_mic_test();
+        self.stop_car_show();
+        crate::store::delete_all();
+        self.play.run = None;
+        crate::fps::set_target(0);
+        self.data = crate::store::Data::default();
+        // launch-at-startup lives in the registry: keep showing what it really is
+        self.data.settings.autostart = sys::autostart_enabled();
+        self.screen.log = Default::default();
+        self.data.save();
+        self.screen.log.save();
+        self.place();
+        self.refresh_all();
+        self.refresh_shelf();
+        self.toast("Everything was reset");
+    }
+
     pub fn refresh_all(&mut self) {
         self.refresh_clock();
         self.refresh_todos();

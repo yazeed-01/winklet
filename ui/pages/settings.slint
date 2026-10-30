@@ -58,6 +58,12 @@ component CarPick inherits Rectangle {
 }
 
 export component SettingsPage inherits Rectangle {
+    property <bool> reset-armed;
+    disarm := Timer {
+        interval: 4s;
+        running: false;
+        triggered => { root.reset-armed = false; self.running = false; }
+    }
     HorizontalLayout {
         spacing: 18px;
         VerticalLayout {
@@ -71,6 +77,36 @@ export component SettingsPage inherits Rectangle {
                 height: 34px;
                 Label { text: "Remind every"; font-size: 12px; }
                 Stepper { value: Bridge.water-interval + " min"; step(d) => { Bridge.water-interval-adjust(d); } }
+            }
+            // your data: where it lives, open it, wipe it (two clicks so it can't happen by accident)
+            HorizontalLayout {
+                height: 30px;
+                spacing: 6px;
+                Label { text: "Your data"; font-size: 12px; horizontal-stretch: 1; }
+                Button {
+                    height: 28px;
+                    icon: Icon.folder;
+                    text: "Open";
+                    tip: Bridge.data-dir;
+                    clicked => { Bridge.data-open(); }
+                }
+                Button {
+                    height: 28px;
+                    icon: Icon.delete;
+                    text: root.reset-armed ? "Sure? Click again" : "Reset all";
+                    primary: root.reset-armed;
+                    tint: Theme.red;
+                    tip: "Deletes every to-do, drink, stat, game and setting";
+                    clicked => {
+                        if root.reset-armed {
+                            root.reset-armed = false;
+                            Bridge.data-reset();
+                        } else {
+                            root.reset-armed = true;
+                            disarm.running = true;
+                        }
+                    }
+                }
             }
             Rectangle { }
             Label { text: "Ctrl+Alt+ S shot · M mic · Space open · G game mode"; font-size: 9.5px; color: Theme.text-faint; }
