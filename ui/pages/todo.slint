@@ -1,0 +1,28 @@
+// To-do page.
+
+import { Bridge } from "../bridge.slint";
+import { Button, Field } from "../widgets.slint";
+import { TodoList } from "todo-list.slint";
+
+export component TodoPage inherits Rectangle {
+    VerticalLayout {
+        spacing: 10px;
+        HorizontalLayout {
+            spacing: 8px;
+            Field {
+                horizontal-stretch: 1;
+                placeholder: "Add a task…  tip: \"Call mom @18:30\" sets a reminder";
+                accepted(t) => { Bridge.todo-add(t); }
+            }
+            Button {
+                text: "Clear done";
+                clicked => { Bridge.todo-clear-done(); }
+            }
+        }
+        TodoList {
+            vertical-stretch: 1;
+            items: Bridge.todos;
+            empty: "No tasks. Enjoy the calm";
+        }
+    }
+}

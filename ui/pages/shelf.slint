@@ -1,0 +1,135 @@
+// Shelf: pinned files and folders.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge, ShelfItem } from "../bridge.slint";
+import { Glyph, Label, Button, Tip } from "../widgets.slint";
+
+component ShelfTile inherits Rectangle {
+    in property <ShelfItem> item;
+    width: 100px;
+    height: 88px;
+    border-radius: 14px;
+    background: ta.pressed ? Theme.surface-hover : ta.has-hover ? Theme.surface : transparent;
+    animate background { duration: 120ms; }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        changed has-hover => {
+            if self.has-hover {
+                Tip.text = root.item.missing ? "Missing: " + root.item.path : root.item.path;
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else {
+                Tip.shown = false;
+            }
+        }
+        clicked => { Tip.shown = false; Bridge.shelf-open(item.id); }
+        pointer-event(e) => {
+            if e.button == PointerEventButton.right && e.kind == PointerEventKind.up && !Bridge.dragging {
+                Bridge.shelf-copy(item.id);
+            }
+            if e.button == PointerEventButton.middle && e.kind == PointerEventKind.up {
+                Bridge.shelf-reveal(item.id);
+            }
+        }
+    }
+    VerticalLayout {
+        padding: 8px;
+        padding-top: 10px;
+        spacing: 5px;
+        alignment: start;
+        Rectangle {
+            height: 34px;
+            Rectangle {
+                width: 34px;
+                height: 34px;
+                border-radius: 10px;
+                background: item.is-dir ? #fbbf2426 : #8b7bff26;
+                Glyph {
+                    width: 100%;
+                    height: 100%;
+                    text: item.icon;
+                    font-size: 16px;
+                    color: item.missing ? Theme.text-faint : item.is-dir ? #fbbf24 : Theme.accent;
+                }
+            }
+        }
+        Text {
+            text: item.name;
+            font-family: Theme.font;
+            font-size: 11px;
+            color: item.missing ? Theme.text-faint : Theme.text;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+            overflow: elide;
+            height: 28px;
+        }
+    }
+    // remove: always present (just faded out) so it can't vanish while the pointer moves onto it
+    Rectangle {
+        x: parent.width - 26px;
+        y: 4px;
+        width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        background: xa.has-hover ? Theme.red : #ffffff2e;
+        opacity: ta.has-hover || xa.has-hover ? 1 : 0;
+        animate opacity, background { duration: 120ms; }
+        Glyph { width: 100%; height: 100%; text: Icon.close; font-size: 8px; }
+        xa := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { Tip.shown = false; Bridge.shelf-remove(item.id); }
+        }
+    }
+}
+
+export component ShelfPage inherits Rectangle {
+    VerticalLayout {
+        spacing: 8px;
+        HorizontalLayout {
+            spacing: 8px;
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                Label { text: "Shelf"; font-weight: 700; font-size: 14px; font-family: Theme.font-display; }
+                Label {
+                    text: "Click opens · Right-click copies path · Middle-click shows in folder";
+                    font-size: 10px;
+                    color: Theme.text-faint;
+                }
+            }
+            Button { icon: Icon.file; text: "Files"; clicked => { Bridge.shelf-add(false); } }
+            Button { icon: Icon.folder; text: "Folders"; clicked => { Bridge.shelf-add(true); } }
+            if Bridge.shelf.length > 0: Button { icon: Icon.delete; tip: "Remove everything from the shelf"; clicked => { Bridge.shelf-clear(); } }
+        }
+        Rectangle {
+            vertical-stretch: 1;
+            border-radius: 16px;
+            border-width: Bridge.drop-hover ? 2px : Bridge.shelf.length == 0 ? 1px : 0;
+            border-color: Bridge.drop-hover ? Theme.accent : Theme.stroke;
+            background: Bridge.drop-hover ? #8b7bff1f : transparent;
+            animate background, border-color { duration: 160ms; }
+            Flickable {
+                content-height: (floor((Bridge.shelf.length + 4) / 5)) * 92px;
+                for it[i] in Bridge.shelf: ShelfTile {
+                    x: mod(i, 5) * 109px + 2px;
+                    y: floor(i / 5) * 92px;
+                    item: it;
+                }
+            }
+            if Bridge.shelf.length == 0 || Bridge.drop-hover: VerticalLayout {
+                alignment: center;
+                spacing: 6px;
+                Glyph { text: Icon.shelf; font-size: 26px; color: Bridge.drop-hover ? Theme.accent : Theme.text-faint; }
+                Label {
+                    text: Bridge.drop-hover ? "Drop to add shortcuts" : "Drag files or folders onto the island";
+                    horizontal-alignment: center;
+                    color: Bridge.drop-hover ? Theme.text : Theme.text-faint;
+                    font-size: 12px;
+                }
+            }
+        }
+    }
+}

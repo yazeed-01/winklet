@@ -1,0 +1,18 @@
+// Small titled number card used on the Health views.
+
+import { Theme } from "../theme.slint";
+import { Label, Card } from "../widgets.slint";
+
+export component Stat inherits Card {
+    in property <string> title;
+    in property <string> value;
+    in property <color> tint: Theme.text;
+    height: 52px;
+    VerticalLayout {
+        padding-left: 10px;
+        padding-right: 8px;
+        alignment: center;
+        Label { text: title; font-size: 10px; color: Theme.text-faint; }
+        Label { text: value; font-size: 15px; font-weight: 700; color: tint; font-family: Theme.font-display; }
+    }
+}

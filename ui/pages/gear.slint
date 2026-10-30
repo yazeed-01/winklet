@@ -1,0 +1,232 @@
+// Drive modes: an H-pattern gear shifter. Drag the knob (or click a gear),
+// and each gear decides which reminders get through.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge } from "../bridge.slint";
+import { Label, Button, Toggle } from "../widgets.slint";
+
+// Top view of the gate: 1 3 5 on top, 2 4 6 below, N across the middle.
+component Shifter inherits Rectangle {
+    property <[length]> cols: [44px, 100px, 156px];
+    property <length> top: 46px;
+    property <length> mid: 112px;
+    property <length> bot: 178px;
+    property <bool> drag;
+    property <length> px;
+    property <length> py;
+    property <color> tint: Theme.gear-tint(Bridge.gear);
+
+    pure function gx(g: int) -> length {
+        return g == 0 ? cols[1] : cols[(g - 1) / 2];
+    }
+    pure function gy(g: int) -> length {
+        return g == 0 ? mid : mod(g, 2) == 1 ? top : bot;
+    }
+    // where the knob lands when released at (x, y)
+    pure function pick(x: length, y: length) -> int {
+        if abs(y - mid) < 26px {
+            return 0;
+        }
+        return (x < (cols[0] + cols[1]) / 2 ? 0 : x < (cols[1] + cols[2]) / 2 ? 1 : 2) * 2 + (y < mid ? 1 : 2);
+    }
+
+    width: 200px;
+    height: 224px;
+    border-radius: 20px;
+    background: @linear-gradient(180deg, #ffffff0c 0%, #ffffff05 100%);
+    border-width: 1px;
+    border-color: #ffffff10;
+
+    // gate slots
+    for c in 3: Rectangle {
+        x: root.cols[c] - 5px;
+        y: root.top - 5px;
+        width: 10px;
+        height: root.bot - root.top + 10px;
+        border-radius: 5px;
+        background: #00000080;
+        border-width: 1px;
+        border-color: #ffffff0d;
+    }
+    Rectangle {
+        x: root.cols[0] - 5px;
+        y: root.mid - 5px;
+        width: root.cols[2] - root.cols[0] + 10px;
+        height: 10px;
+        border-radius: 5px;
+        background: #00000080;
+    }
+
+    // gear numbers
+    for g in 7: Text {
+        property <bool> on: Bridge.gear == g;
+        x: g == 0 ? root.cols[1] + 10px : root.gx(g) - self.width / 2;
+        y: g == 0 ? root.mid - 18px : mod(g, 2) == 1 ? root.top - 34px : root.bot + 14px;
+        width: 20px;
+        text: Theme.gear-label(g);
+        font-family: Theme.font-display;
+        font-size: g == 0 ? 10px : 13px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        color: on ? Theme.gear-tint(g) : Theme.text-faint;
+        animate color { duration: 200ms; }
+    }
+
+    // the knob
+    knob := Rectangle {
+        property <length> kx: root.drag ? root.px : root.gx(Bridge.gear);
+        property <length> ky: root.drag ? root.py : root.gy(Bridge.gear);
+        x: self.kx - self.width / 2;
+        y: self.ky - self.height / 2;
+        width: 36px;
+        height: 36px;
+        border-radius: 18px;
+        background: @radial-gradient(circle, root.tint.brighter(30%) 0%, root.tint 55%, root.tint.darker(40%) 100%);
+        drop-shadow-blur: 14px;
+        drop-shadow-color: root.tint.with-alpha(0.6);
+        animate x, y { duration: root.drag ? 0ms : 320ms; easing: Theme.spring-ease; }
+        animate background, drop-shadow-color { duration: 250ms; }
+        Text {
+            width: 100%;
+            height: 100%;
+            text: Theme.gear-label(Bridge.gear);
+            font-family: Theme.font-display;
+            font-size: 14px;
+            font-weight: 900;
+            color: #0b0b10;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+
+    TouchArea {
+        mouse-cursor: root.drag ? MouseCursor.grabbing : MouseCursor.grab;
+        pointer-event(e) => {
+            if e.button == PointerEventButton.left && e.kind == PointerEventKind.down {
+                root.px = max(root.cols[0], min(root.cols[2], self.mouse-x));
+                root.py = max(root.top, min(root.bot, self.mouse-y));
+                root.drag = true;
+            }
+            if e.button == PointerEventButton.left && e.kind == PointerEventKind.up && root.drag {
+                root.drag = false;
+                Bridge.gear-shift(root.pick(self.mouse-x, self.mouse-y));
+            }
+        }
+        moved => {
+            if root.drag {
+                root.px = max(root.cols[0], min(root.cols[2], self.mouse-x));
+                root.py = max(root.top, min(root.bot, self.mouse-y));
+            }
+        }
+    }
+}
+
+export component GearPage inherits Rectangle {
+    property <color> tint: Theme.gear-tint(Bridge.gear);
+
+    HorizontalLayout {
+        spacing: 22px;
+        padding-left: 8px;
+        Shifter { y: 4px; }
+        VerticalLayout {
+            spacing: 6px;
+            horizontal-stretch: 1;
+            // gear + name
+            HorizontalLayout {
+                spacing: 12px;
+                height: 40px;
+                alignment: start;
+                Text {
+                    text: Theme.gear-label(Bridge.gear);
+                    font-family: Theme.font-display;
+                    font-size: 36px;
+                    font-weight: 800;
+                    color: root.tint;
+                    vertical-alignment: center;
+                    animate color { duration: 250ms; }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: Bridge.gear-name;
+                        font-family: Theme.font-display;
+                        font-size: 18px;
+                        font-weight: 700;
+                        color: Theme.text;
+                    }
+                    Label { text: "Drive mode · Ctrl+Alt+PgUp / PgDn to shift"; font-size: 10px; color: Theme.text-faint; }
+                }
+            }
+            // what this gear does
+            VerticalLayout {
+                spacing: 3px;
+                height: 54px;
+                alignment: start;
+                for r in Bridge.gear-rules: HorizontalLayout {
+                    spacing: 7px;
+                    Rectangle {
+                        width: 5px;
+                        height: 5px;
+                        y: (parent.height - self.height) / 2;
+                        border-radius: 2.5px;
+                        background: root.tint;
+                    }
+                    Label { text: r; font-size: 12px; color: Theme.text-dim; }
+                }
+            }
+            // active time per gear today
+            Label { text: "TODAY IN EACH GEAR"; font-size: 9.5px; color: Theme.text-faint; letter-spacing: 1px; }
+            HorizontalLayout {
+                height: 62px;
+                spacing: 6px;
+                for b[i] in Bridge.gear-time: VerticalLayout {
+                    spacing: 2px;
+                    Label {
+                        text: b.label;
+                        font-size: 9px;
+                        horizontal-alignment: center;
+                        color: b.today ? Theme.text : Theme.text-faint;
+                    }
+                    Rectangle {
+                        vertical-stretch: 1;
+                        Rectangle {
+                            y: parent.height - self.height;
+                            height: max(3px, parent.height * b.value);
+                            border-radius: 3px;
+                            background: Theme.gear-tint(i).with-alpha(b.today ? 1 : 0.4);
+                        }
+                    }
+                    Label {
+                        text: Theme.gear-label(i);
+                        font-size: 10px;
+                        font-weight: 700;
+                        horizontal-alignment: center;
+                        color: b.today ? Theme.gear-tint(i) : Theme.text-faint;
+                    }
+                }
+            }
+            Rectangle { vertical-stretch: 1; }
+            HorizontalLayout {
+                spacing: 8px;
+                height: 30px;
+                VerticalLayout {
+                    alignment: center;
+                    horizontal-stretch: 1;
+                    Label { text: "Change Windows power mode"; font-size: 11.5px; }
+                    Label { text: "N–2 saver · 3–4 balanced · 5–6 performance"; font-size: 9.5px; color: Theme.text-faint; }
+                }
+                Toggle {
+                    y: (parent.height - self.height) / 2;
+                    checked: Bridge.gear-power;
+                    toggled(v) => { Bridge.set-setting("gearpower", v); }
+                }
+                Button {
+                    text: "R  " + Theme.gear-label(Bridge.gear-prev);
+                    icon: Icon.undo;
+                    tip: "Reverse: back to your previous gear";
+                    clicked => { Bridge.gear-reverse(); }
+                }
+            }
+        }
+    }
+}

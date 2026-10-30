@@ -1,0 +1,112 @@
+// Developer > Ports: listening dev servers with a two-click kill.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge, PortItem } from "../bridge.slint";
+import { Glyph, Label, Button } from "../widgets.slint";
+
+component PortRow inherits Rectangle {
+    in property <PortItem> item;
+    property <bool> armed;
+    height: 38px;
+    border-radius: 11px;
+    background: armed ? #f8717118 : ta.has-hover ? Theme.surface : transparent;
+    animate background { duration: 120ms; }
+    ta := TouchArea {
+        HorizontalLayout {
+            padding-left: 10px;
+            padding-right: 6px;
+            spacing: 10px;
+            Text {
+                width: 54px;
+                text: item.port;
+                font-family: "Cascadia Mono";
+                font-size: 15px;
+                font-weight: 700;
+                color: item.system ? Theme.text-faint : item.label != "" ? Theme.green : Theme.text;
+                vertical-alignment: center;
+            }
+            VerticalLayout {
+                alignment: center;
+                horizontal-stretch: 1;
+                Label { text: item.label != "" ? item.label : item.name; font-size: 12px; font-weight: 600; }
+                Label {
+                    text: (item.label != "" ? item.name + " · " : "") + "PID " + item.pid + " · " + item.addr;
+                    font-size: 10px;
+                    color: Theme.text-faint;
+                }
+            }
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                width: kt.preferred-width + 22px;
+                height: 26px;
+                border-radius: 9px;
+                background: root.armed ? Theme.red : ka.has-hover ? #f8717133 : Theme.surface;
+                animate background { duration: 120ms; }
+                kt := Text {
+                    x: 11px;
+                    height: 100%;
+                    text: root.armed ? "Kill " + item.name + "?" : "Kill";
+                    font-family: Theme.font;
+                    font-size: 11px;
+                    font-weight: 700;
+                    color: root.armed ? #1a0505 : Theme.red;
+                    vertical-alignment: center;
+                }
+                ka := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        if root.armed {
+                            root.armed = false;
+                            Bridge.port-kill(item.pid, item.port);
+                        } else {
+                            root.armed = true;
+                            disarm.running = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // a second click within 3 s confirms; otherwise it quietly un-arms
+    disarm := Timer {
+        interval: 3s;
+        running: false;
+        triggered => { root.armed = false; self.running = false; }
+    }
+}
+
+export component PortsView inherits Rectangle {
+    VerticalLayout {
+        spacing: 6px;
+        HorizontalLayout {
+            height: 26px;
+            spacing: 8px;
+            padding-right: 280px;   // room for the view switch
+            Button { icon: Icon.reset; tip: "Refresh"; height: 26px; clicked => { Bridge.ports-refresh(); } }
+            Button {
+                height: 26px;
+                text: Bridge.ports-system ? "Hide system" : "Show system (" + Bridge.ports-hidden + ")";
+                tip: "Windows services and system processes";
+                clicked => { Bridge.ports-toggle-system(); }
+            }
+            Label { text: Bridge.ports.length + " listening"; font-size: 10.5px; color: Theme.text-faint; }
+        }
+        Rectangle {
+            vertical-stretch: 1;
+            Flickable {
+                content-height: plist.preferred-height;
+                plist := VerticalLayout {
+                    spacing: 2px;
+                    for p in Bridge.ports: PortRow { item: p; }
+                }
+            }
+            if Bridge.ports.length == 0: VerticalLayout {
+                alignment: center;
+                spacing: 4px;
+                Glyph { text: Icon.globe; font-size: 22px; color: Theme.text-faint; }
+                Label { text: "No dev servers running"; horizontal-alignment: center; color: Theme.text-dim; font-size: 12px; }
+                Label { text: "Start Metro, Vite or a Node server and it shows up here"; horizontal-alignment: center; color: Theme.text-faint; font-size: 10.5px; }
+            }
+        }
+    }
+}

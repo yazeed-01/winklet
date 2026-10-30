@@ -1,0 +1,241 @@
+// Developer > Workspaces: sets of apps, files, folders and links that open with one button.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge, WsItem, WsApp } from "../bridge.slint";
+import { Glyph, Label, Button, IconButton, Card, Field, Tip, AppIcon } from "../widgets.slint";
+
+component WsCard inherits Rectangle {
+    in property <WsItem> item;
+    property <bool> sel: Bridge.ws-selected == item.id;
+    height: 54px;
+    border-radius: 13px;
+    background: sel ? #8b7bff22 : ta.has-hover ? Theme.surface-hover : Theme.surface;
+    border-width: 1px;
+    border-color: sel ? #8b7bff88 : Theme.stroke;
+    animate background, border-color { duration: 140ms; }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.ws-select(root.item.id); } }
+    HorizontalLayout {
+        padding-left: 11px;
+        padding-right: 8px;
+        spacing: 8px;
+        VerticalLayout {
+            alignment: center;
+            spacing: 4px;
+            horizontal-stretch: 1;
+            Label { text: root.item.name; font-size: 12.5px; font-weight: 700; }
+            HorizontalLayout {
+                spacing: 3px;
+                height: 14px;
+                for ic in root.item.icons: AppIcon { width: 14px; height: 14px; border-radius: 3px; img: ic; }
+                Label {
+                    text: root.item.count == 0 ? "empty" : root.item.count > root.item.icons.length ? "+" + (root.item.count - root.item.icons.length) : "";
+                    font-size: 9.5px;
+                    color: Theme.text-faint;
+                }
+                Rectangle { horizontal-stretch: 1; }
+            }
+        }
+        // one button opens everything
+        Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 30px;
+            height: 30px;
+            border-radius: 15px;
+            background: la.has-hover ? Theme.green : #34d39933;
+            animate background { duration: 140ms; }
+            Glyph { text: Icon.play; font-size: 11px; color: la.has-hover ? #0b0b12 : Theme.green; }
+            la := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { Tip.shown = false; Bridge.ws-launch(root.item.id); }
+                changed has-hover => {
+                    if self.has-hover {
+                        Tip.text = "Open " + root.item.name;
+                        Tip.ax = parent.absolute-position.x;
+                        Tip.ay = parent.absolute-position.y;
+                        Tip.aw = parent.width;
+                        Tip.ah = parent.height;
+                        Tip.shown = true;
+                    } else {
+                        Tip.shown = false;
+                    }
+                }
+            }
+        }
+    }
+}
+
+component AppRow inherits Rectangle {
+    in property <WsApp> item;
+    in property <int> index;
+    height: 28px;
+    border-radius: 8px;
+    background: ta.has-hover ? Theme.surface : transparent;
+    ta := TouchArea { }
+    HorizontalLayout {
+        padding-left: 4px;
+        spacing: 8px;
+        AppIcon { y: 5px; width: 18px; height: 18px; img: root.item.icon; fallback: Icon.globe; }
+        Label { text: root.item.name; font-size: 11.5px; font-weight: 600; min-width: 60px; }
+        Label { text: root.item.path; font-size: 9.5px; color: Theme.text-faint; horizontal-stretch: 1; }
+        IconButton { y: 2px; icon: Icon.close; size: 24px; icon-size: 8px; tint: Theme.text-faint; tip: "Remove from workspace"; clicked => { Bridge.ws-remove-app(root.index); } }
+    }
+}
+
+// An open app you can add with one click.
+component RunningApp inherits Rectangle {
+    in property <WsApp> item;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: ta.has-hover ? Theme.surface-hover : Theme.surface;
+    animate background { duration: 120ms; }
+    AppIcon { x: 7px; y: 7px; width: 20px; height: 20px; img: root.item.icon; }
+    Rectangle {
+        x: parent.width - 12px;
+        y: -2px;
+        width: 13px;
+        height: 13px;
+        border-radius: 6.5px;
+        background: Theme.green;
+        opacity: ta.has-hover ? 1 : 0;
+        animate opacity { duration: 120ms; }
+        Glyph { text: Icon.add; font-size: 7px; color: #0b0b12; }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { Tip.shown = false; Bridge.ws-add(root.item.path); }
+        changed has-hover => {
+            if self.has-hover {
+                Tip.text = "Add " + root.item.name;
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if Tip.text == "Add " + root.item.name {
+                Tip.shown = false;
+            }
+        }
+    }
+}
+
+export component WorkspacesView inherits Rectangle {
+    property <bool> armed;
+    // left: your workspaces
+    VerticalLayout {
+        x: 0;
+        y: 0;
+        width: 196px;
+        height: parent.height;
+        spacing: 8px;
+        Field {
+            height: 30px;
+            placeholder: "New workspace, e.g. Coding";
+            accepted(t) => { Bridge.ws-create(t); }
+        }
+        Rectangle {
+            vertical-stretch: 1;
+            Flickable {
+                content-height: wl.preferred-height;
+                wl := VerticalLayout {
+                    spacing: 6px;
+                    for w in Bridge.workspaces: WsCard { item: w; }
+                }
+            }
+            if Bridge.workspaces.length == 0: VerticalLayout {
+                alignment: center;
+                spacing: 4px;
+                Glyph { text: Icon.split; font-size: 20px; color: Theme.text-faint; }
+                Label { text: "No workspaces yet"; horizontal-alignment: center; color: Theme.text-dim; font-size: 12px; }
+                Label { text: "Name one above, add its apps, then open them all with ▶"; horizontal-alignment: center; color: Theme.text-faint; font-size: 10px; wrap: word-wrap; }
+            }
+        }
+    }
+    // right: the selected workspace
+    Card {
+        x: 208px;
+        y: 32px;
+        width: parent.width - 208px;
+        height: parent.height - 32px;
+        if Bridge.ws-selected != "": VerticalLayout {
+            padding: 10px;
+            padding-left: 12px;
+            spacing: 6px;
+            HorizontalLayout {
+                height: 30px;
+                spacing: 6px;
+                Label { text: Bridge.ws-name; font-size: 14px; font-weight: 700; font-family: Theme.font-display; horizontal-stretch: 1; }
+                Button { height: 28px; icon: Icon.play; text: "Open all"; primary: true; tint: Theme.green; clicked => { Bridge.ws-launch(Bridge.ws-selected); } }
+                IconButton {
+                    y: 1px;
+                    icon: Icon.delete;
+                    size: 28px;
+                    icon-size: 11px;
+                    fill: root.armed ? #f8717133 : Theme.surface;
+                    tint: root.armed ? Theme.red : Theme.text-dim;
+                    tip: root.armed ? "Click again to delete this workspace" : "Delete workspace";
+                    clicked => {
+                        if root.armed {
+                            root.armed = false;
+                            Bridge.ws-delete(Bridge.ws-selected);
+                        } else {
+                            root.armed = true;
+                            disarm.running = true;
+                        }
+                    }
+                }
+            }
+            Rectangle {
+                vertical-stretch: 1;
+                Flickable {
+                    content-height: al.preferred-height;
+                    al := VerticalLayout {
+                        for a[i] in Bridge.ws-apps: AppRow { item: a; index: i; }
+                    }
+                }
+                if Bridge.ws-apps.length == 0: Label {
+                    width: parent.width;
+                    height: parent.height;
+                    text: "Empty: add apps that are open now, or browse";
+                    horizontal-alignment: center;
+                    color: Theme.text-faint;
+                    font-size: 11px;
+                }
+            }
+            Label { text: Bridge.ws-running.length > 0 ? "Open now · click to add" : "Nothing else is open right now"; font-size: 9.5px; color: Theme.text-faint; height: 12px; }
+            HorizontalLayout {
+                height: 34px;
+                spacing: 6px;
+                for r[i] in Bridge.ws-running: RunningApp {
+                    item: r;
+                    visible: i < 8;
+                    width: i < 8 ? 34px : 0;
+                }
+                Rectangle { horizontal-stretch: 1; }
+            }
+            HorizontalLayout {
+                height: 28px;
+                spacing: 6px;
+                Button { height: 28px; icon: Icon.folder; text: "Browse…"; tip: "Add programs, shortcuts or files"; clicked => { Bridge.ws-browse(); } }
+                Field {
+                    height: 28px;
+                    placeholder: "or paste a link or folder path";
+                    accepted(t) => { Bridge.ws-add(t); }
+                }
+            }
+        }
+        if Bridge.ws-selected == "": Label {
+            width: parent.width;
+            height: parent.height;
+            text: "Create a workspace on the left";
+            horizontal-alignment: center;
+            color: Theme.text-faint;
+            font-size: 12px;
+        }
+    }
+    disarm := Timer {
+        interval: 3s;
+        running: false;
+        triggered => { root.armed = false; self.running = false; }
+    }
+}

@@ -1,0 +1,135 @@
+// Developer page: stats + tool grid, with Ports and Dash views.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge } from "../bridge.slint";
+import { Glyph, Label, Card, Tip, Segmented } from "../widgets.slint";
+import { PortsView } from "dev-ports.slint";
+import { DashView } from "dev-dash.slint";
+import { WorkspacesView } from "dev-workspaces.slint";
+
+component Meter inherits VerticalLayout {
+    in property <string> title;
+    in property <string> value;
+    in property <float> level;
+    in property <brush> tint;
+    spacing: 6px;
+    HorizontalLayout {
+        Label { text: title; color: Theme.text-dim; font-size: 12px; }
+        Label { text: value; horizontal-alignment: right; font-weight: 600; font-size: 12px; }
+    }
+    Rectangle {
+        height: 6px;
+        border-radius: 3px;
+        background: #ffffff14;
+        Rectangle {
+            x: 0;
+            width: parent.width * max(0.0, min(1.0, level));
+            border-radius: 3px;
+            background: tint;
+            animate width { duration: 700ms; easing: Theme.smooth; }
+        }
+    }
+}
+
+component Tool inherits Rectangle {
+    in property <string> icon;
+    in property <string> text;
+    in property <string> action;
+    /// optional: what right-click does, and the hover hint
+    in property <string> right-action;
+    in property <string> tip;
+    height: 48px;
+    border-radius: 13px;
+    background: ta.has-hover ? Theme.surface-hover : Theme.surface;
+    animate background { duration: 120ms; }
+    VerticalLayout {
+        alignment: center;
+        spacing: 3px;
+        Glyph { text: icon; font-size: 14px; }
+        Label { text: root.text; font-size: 10.5px; horizontal-alignment: center; color: Theme.text-dim; }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { Tip.shown = false; Bridge.dev-action(root.action); }
+        pointer-event(e) => {
+            if root.right-action != "" && e.button == PointerEventButton.right && e.kind == PointerEventKind.up && !Bridge.dragging {
+                Tip.shown = false;
+                Bridge.dev-action(root.right-action);
+            }
+        }
+        changed has-hover => {
+            if self.has-hover && root.tip != "" {
+                Tip.text = root.tip;
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if !self.has-hover && Tip.text == root.tip {
+                Tip.shown = false;
+            }
+        }
+    }
+}
+
+export component DevPage inherits Rectangle {
+    Segmented {
+        x: parent.width - self.width;
+        y: 0;
+        width: 270px;
+        items: ["Tools", "Ports", "Dash", "Workspaces"];
+        value: Bridge.dev-view;
+        picked(i) => { Bridge.dev-view = i; Bridge.dev-view-changed(i); }
+    }
+    if Bridge.dev-view == 1: PortsView { }
+    if Bridge.dev-view == 2: DashView { }
+    if Bridge.dev-view == 3: WorkspacesView { }
+    if Bridge.dev-view == 0: HorizontalLayout {
+        spacing: 14px;
+        Card {
+            width: 210px;
+            VerticalLayout {
+                padding: 14px;
+                spacing: 14px;
+                Meter { title: "CPU"; value: round(Bridge.cpu * 100) + "%"; level: Bridge.cpu; tint: Theme.accent; }
+                Meter { title: "Memory"; value: Bridge.ram-text; level: Bridge.ram; tint: Theme.pink; }
+                HorizontalLayout {
+                    Label { text: "Uptime"; color: Theme.text-dim; font-size: 12px; }
+                    Label { text: Bridge.uptime; horizontal-alignment: right; font-size: 12px; font-weight: 600; }
+                }
+                HorizontalLayout {
+                    Label { text: "Local IP"; color: Theme.text-dim; font-size: 12px; }
+                    Label { text: Bridge.ip-text; horizontal-alignment: right; font-size: 12px; font-weight: 600; }
+                }
+            }
+        }
+        VerticalLayout {
+            spacing: 8px;
+            Rectangle { height: 24px; }
+            GridLayout {
+                spacing: 8px;
+                Row {
+                    Tool {
+                        icon: Icon.split;
+                        text: "4 Terminals";
+                        action: "wt4";
+                        right-action: "wt4-folder";
+                        tip: Bridge.workspace + "  ·  right-click: change folder";
+                    }
+                    Tool { icon: Icon.terminal; text: "Terminal"; action: "terminal"; }
+                    Tool { icon: Icon.task-manager; text: "Task Mgr"; action: "taskmgr"; }
+                }
+                Row {
+                    Tool { icon: Icon.globe; text: "localhost"; action: "localhost"; tip: "Open http://localhost:3000"; }
+                    Tool { icon: Icon.code; text: "Hosts file"; action: "hosts"; }
+                    Tool { icon: Icon.folder; text: "Projects"; action: "projects"; }
+                }
+                Row {
+                    Tool { icon: Icon.settings; text: "Env vars"; action: "envvars"; tip: "Edit environment variables"; }
+                    Tool { icon: Icon.camera; text: "Screenshot"; action: "screenshot"; tip: "Full screen  (Ctrl+Alt+S)"; }
+                    Tool { icon: Icon.snip; text: "Snip area"; action: "snip"; }
+                }
+            }
+        }
+    }
+}

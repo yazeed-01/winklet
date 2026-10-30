@@ -1,0 +1,172 @@
+// Audio: output volume, microphone and per-app volume.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge, AppVolume } from "../bridge.slint";
+import { Glyph, Label, IconButton, Button, Card, VolSlider } from "../widgets.slint";
+
+component AppRow inherits Rectangle {
+    in property <AppVolume> app;
+    height: 40px;
+    HorizontalLayout {
+        spacing: 10px;
+        Rectangle {
+            width: 28px;
+            height: 28px;
+            y: (parent.height - self.height) / 2;
+            border-radius: 9px;
+            background: Theme.accent-grad;
+            opacity: app.muted ? 0.4 : 1;
+            Text {
+                width: 100%;
+                height: 100%;
+                text: app.initial;
+                font-size: 12px;
+                font-weight: 700;
+                color: white;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        Label {
+            width: 96px;
+            text: app.name;
+            font-size: 12px;
+            color: app.muted ? Theme.text-faint : Theme.text;
+        }
+        VolSlider {
+            y: (parent.height - self.height) / 2;
+            horizontal-stretch: 1;
+            value: app.volume;
+            dim: app.muted;
+            moved(v) => { Bridge.app-volume-set(app.name, v); }
+        }
+        Label {
+            width: 32px;
+            text: round(app.volume * 100);
+            font-size: 11px;
+            color: Theme.text-dim;
+            horizontal-alignment: right;
+        }
+        IconButton {
+            y: (parent.height - self.height) / 2;
+            size: 28px;
+            icon-size: 12px;
+            icon: app.muted ? Icon.mute : Icon.volume;
+            tint: app.muted ? Theme.red : Theme.text-dim;
+            tip: app.muted ? "Unmute " + app.name : "Mute " + app.name;
+            clicked => { Bridge.app-mute-toggle(app.name); }
+        }
+    }
+}
+
+export component AudioPage inherits Rectangle {
+    HorizontalLayout {
+        spacing: 14px;
+        VerticalLayout {
+            width: 214px;
+            spacing: 10px;
+            // master
+            Card {
+                VerticalLayout {
+                    padding: 12px;
+                    spacing: 6px;
+                    HorizontalLayout {
+                        Label { text: "Output"; font-weight: 700; font-size: 12.5px; horizontal-stretch: 1; }
+                        Label { text: round(Bridge.master-volume * 100) + "%"; font-size: 12px; color: Theme.text-dim; }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        IconButton {
+                            y: (parent.height - self.height) / 2;
+                            size: 28px;
+                            icon-size: 12px;
+                            icon: Bridge.master-muted ? Icon.mute : Icon.volume;
+                            tint: Bridge.master-muted ? Theme.red : Theme.text;
+                            fill: Theme.surface;
+                            tip: Bridge.master-muted ? "Unmute all sound" : "Mute all sound";
+                            clicked => { Bridge.master-mute-toggle(); }
+                        }
+                        VolSlider {
+                            y: (parent.height - self.height) / 2;
+                            value: Bridge.master-volume;
+                            dim: Bridge.master-muted;
+                            moved(v) => { Bridge.master-set(v); }
+                        }
+                    }
+                }
+            }
+            // microphone
+            Card {
+                vertical-stretch: 1;
+                VerticalLayout {
+                    padding: 12px;
+                    spacing: 8px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            alignment: center;
+                            Label { text: "Microphone"; font-weight: 700; font-size: 12.5px; }
+                            Label { text: Bridge.mic-name; font-size: 10px; color: Theme.text-faint; }
+                        }
+                        Rectangle {
+                            width: 36px;
+                            height: 36px;
+                            border-radius: 18px;
+                            background: Bridge.mic-muted ? #f8717133 : #34d39926;
+                            animate background { duration: 180ms; }
+                            Glyph {
+                                width: 100%;
+                                height: 100%;
+                                text: Bridge.mic-muted ? Icon.mic-off : Icon.mic;
+                                font-size: 15px;
+                                color: Bridge.mic-muted ? Theme.red : Theme.green;
+                            }
+                            TouchArea { mouse-cursor: pointer; clicked => { Bridge.mic-toggle(); } }
+                        }
+                    }
+                    // live level meter (20 segments)
+                    HorizontalLayout {
+                        height: 14px;
+                        spacing: 2px;
+                        for i in 20: Rectangle {
+                            border-radius: 2px;
+                            background: i / 20 < Bridge.mic-level
+                                ? (i < 13 ? Theme.green : i < 17 ? Theme.orange : Theme.red)
+                                : #ffffff14;
+                        }
+                    }
+                    Button {
+                        icon: Bridge.mic-testing ? Icon.close : Icon.mic;
+                        text: Bridge.mic-testing ? "Stop test" : Bridge.mic-muted ? "Muted" : "Test mic";
+                        primary: Bridge.mic-testing;
+                        tint: Theme.green;
+                        clicked => { Bridge.mic-test(); }
+                    }
+                }
+            }
+        }
+        // apps
+        VerticalLayout {
+            spacing: 6px;
+            Label { text: "Apps"; font-weight: 700; font-size: 12.5px; height: 20px; }
+            Rectangle {
+                vertical-stretch: 1;
+                Flickable {
+                    content-height: list.preferred-height;
+                    list := VerticalLayout {
+                        for a in Bridge.app-volumes: AppRow { app: a; }
+                    }
+                }
+                if Bridge.app-volumes.length == 0: Label {
+                    y: 0;
+                    height: 40px;
+                    width: parent.width;
+                    text: "No apps are playing sound";
+                    color: Theme.text-faint;
+                    font-size: 12px;
+                }
+            }
+        }
+    }
+}

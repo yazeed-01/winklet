@@ -1,0 +1,109 @@
+// Water tracker: bottle, quick-add buttons and the week chart.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge } from "../bridge.slint";
+import { Label, Button, Stepper } from "../widgets.slint";
+
+export component WaterPage inherits Rectangle {
+    property <float> pct: min(1.0, Bridge.water-ml / max(1, Bridge.water-goal));
+    HorizontalLayout {
+        spacing: 18px;
+        padding-left: 8px;
+        // Bottle
+        Rectangle {
+            width: 96px;
+            Rectangle {
+                width: 84px;
+                height: 196px;
+                y: (parent.height - self.height) / 2;
+                border-radius: 26px;
+                border-width: 1.5px;
+                border-color: #38bdf855;
+                background: #38bdf80d;
+                clip: true;
+                Rectangle {
+                    y: parent.height - self.height;
+                    height: parent.height * root.pct;
+                    background: @linear-gradient(180deg, #7dd3fc 0%, #3b82f6 100%);
+                    animate height { duration: 900ms; easing: Theme.spring-ease; }
+                    Rectangle {
+                        // shine
+                        x: 10px;
+                        width: 8px;
+                        y: 10px;
+                        height: max(0, parent.height - 20px);
+                        border-radius: 4px;
+                        background: #ffffff33;
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: round(root.pct * 100) + "%";
+                        color: white;
+                        font-family: Theme.font-display;
+                        font-size: 22px;
+                        font-weight: 700;
+                        horizontal-alignment: center;
+                    }
+                }
+            }
+        }
+        VerticalLayout {
+            spacing: 10px;
+            alignment: start;
+            HorizontalLayout {
+                spacing: 6px;
+                Text {
+                    text: Bridge.water-ml;
+                    font-family: Theme.font-display;
+                    font-size: 34px;
+                    font-weight: 600;
+                    color: Theme.text;
+                }
+                Label {
+                    text: "/ " + Bridge.water-goal + " ml";
+                    color: Theme.text-dim;
+                    vertical-alignment: bottom;
+                    font-size: 13px;
+                    horizontal-stretch: 1;
+                }
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                Button { primary: true; tint: Theme.blue; icon: Icon.add; text: Bridge.cup-ml + " ml"; clicked => { Bridge.water-add(Bridge.cup-ml); } }
+                Button { text: "+500"; clicked => { Bridge.water-add(500); } }
+                Button { text: "+100"; clicked => { Bridge.water-add(100); } }
+                Button { icon: Icon.undo; tip: "Undo last drink"; clicked => { Bridge.water-undo(); } }
+            }
+            HorizontalLayout {
+                Label { text: "Daily goal"; color: Theme.text-dim; font-size: 12px; }
+                Stepper { value: Bridge.water-goal + " ml"; step(d) => { Bridge.water-goal-adjust(d); } }
+            }
+            HorizontalLayout {
+                Label { text: "Cup size"; color: Theme.text-dim; font-size: 12px; }
+                Stepper { value: Bridge.cup-ml + " ml"; step(d) => { Bridge.cup-adjust(d); } }
+            }
+            // Week chart
+            HorizontalLayout {
+                height: 56px;
+                spacing: 10px;
+                for b in Bridge.water-week: VerticalLayout {
+                    spacing: 3px;
+                    Rectangle {
+                        vertical-stretch: 1;
+                        Rectangle {
+                            y: parent.height - self.height;
+                            height: max(3px, parent.height * min(1.0, b.value));
+                            width: 14px;
+                            border-radius: 4px;
+                            background: b.today ? Theme.blue : b.value >= 1 ? #38bdf899 : #ffffff22;
+                            animate height { duration: 600ms; easing: Theme.smooth; }
+                        }
+                    }
+                    Label { text: b.label; font-size: 9.5px; color: b.today ? Theme.text : Theme.text-faint; horizontal-alignment: center; }
+                }
+            }
+        }
+    }
+}

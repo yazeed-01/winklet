@@ -1,0 +1,902 @@
+import { Theme, Icon, Cars } from "theme.slint";
+import { Bridge, TodoItem, AlarmItem, DayCell, Bar, ShelfItem, AppVolume } from "bridge.slint";
+import { Glyph, Label, IconButton, Ring, WaterDrop, PageHost, Tip } from "widgets.slint";
+import { HomePage, TodoPage, CalendarPage, FocusPage, WaterPage, AlarmPage, DevPage, SettingsPage, ShelfPage, AudioPage, HealthPage, GearPage, GamePage } from "pages.slint";
+
+export { Bridge, TodoItem, AlarmItem, DayCell, Bar, ShelfItem, AppVolume, Tip }
+
+export component Tray inherits SystemTrayIcon {
+    icon: @image-url("../assets/icon.png");
+    tooltip: "Winklet";
+    callback open-island();
+    callback quit();
+    Menu {
+        MenuItem { title: "Open island"; activated => { root.open-island(); } }
+        MenuItem { title: "Quit"; activated => { root.quit(); } }
+    }
+}
+
+// Two glowing eyes with moods: blink, doze, look around, wink, happy,
+// surprised, love, music (headphones), zzz, and a tiny car they watch drive by.
+// Moods are short one-shot events triggered from Rust, so nothing animates while idle.
+component Eyes inherits Rectangle {
+    in property <bool> sleepy;
+    in property <int> mood;
+    // game mode: eyes up top, a little controller held below; `playing` = thumbs tapping
+    in property <bool> gaming;
+    in property <bool> playing;
+    property <bool> dart;                   // quick glances while playing
+    property <bool> blink;
+    property <bool> beat;                   // music bob
+    property <length> cx: self.width / 2;
+    // eyes follow the little car while it drives past
+    property <length> look-x: gaming ? (playing ? (dart ? 2px : -2px) : 0) : mood == 1 ? -4px : mood == 2 ? 4px
+        : mood == 8 ? max(-4px, min(4px, (car.x + car.width / 2 - cx) / 14)) : 0;
+    property <length> look-y: mood == 6 ? -1px : mood == 7 && beat ? -2px : 0;
+    property <bool> sip;                    // coffee: cup up to the mouth
+    property <bool> arcs: mood == 4 || mood == 7 || (mood == 12 && sip);   // ^ ^ eyes
+    height: 34px;
+
+    // --- regular eyes ---
+    for i in 2: Rectangle {
+        property <bool> closed: root.blink || (root.mood == 5 && i == 1);
+        property <length> w: root.mood == 6 ? 11px : 8px;
+        property <length> h: closed ? 2px : root.gaming ? 10px : root.sleepy ? 4px : root.mood == 11 ? 6px : root.mood == 6 ? 15px : 14px;
+        visible: !root.arcs && root.mood != 10;
+        x: root.cx + (i == 0 ? -13px : 5px) - (w - 8px) / 2 + root.look-x;
+        y: (root.height - h) / 2 + (root.sleepy || root.mood == 11 ? 3px : 0) + root.look-y - (root.gaming ? 7px : 0);
+        width: w;
+        height: h;
+        border-radius: min(w, h) / 2;
+        background: white;
+        drop-shadow-blur: 8px;
+        drop-shadow-color: #7cc8ffcc;
+        animate x, y, width, height { duration: 120ms; easing: ease-in-out; }
+    }
+
+    // --- happy / music: ^ ^ ---
+    for i in 2: Path {
+        visible: root.arcs;
+        x: root.cx + (i == 0 ? -14px : 4px) + root.look-x;
+        y: (root.height - 8px) / 2 + root.look-y;
+        width: 10px;
+        height: 8px;
+        viewbox-width: 10;
+        viewbox-height: 8;
+        commands: "M1 7 Q5 -1 9 7";
+        stroke: white;
+        stroke-width: 2.4px;
+        stroke-line-cap: round;
+        animate y { duration: 180ms; easing: ease-in-out; }
+    }
+
+    // --- love: hearts ---
+    for i in 2: Text {
+        visible: root.mood == 10;
+        x: root.cx + (i == 0 ? -16px : 2px);
+        y: (root.height - self.height) / 2;
+        width: 14px;
+        text: "♥";
+        color: #ff5c8a;
+        font-size: root.mood == 10 ? 14px : 4px;
+        horizontal-alignment: center;
+        animate font-size { duration: 380ms; easing: cubic-bezier(0.3, 1.8, 0.5, 1); }
+    }
+
+    // --- surprised "!" ---
+    Text {
+        visible: root.mood == 6;
+        x: root.cx + 17px;
+        y: 2px;
+        text: "!";
+        color: Theme.orange;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    // --- headphones for music ---
+    if root.mood == 7: Rectangle {
+        x: root.cx - 22px;
+        y: 1px + root.look-y;
+        width: 44px;
+        height: 30px;
+        animate y { duration: 180ms; }
+        Path {
+            width: 44px;
+            height: 22px;
+            viewbox-width: 44;
+            viewbox-height: 22;
+            commands: "M5 21 C5 3 39 3 39 21";
+            stroke: #d4d4ff;
+            stroke-width: 2.2px;
+            stroke-line-cap: round;
+        }
+        for i in 2: Rectangle {
+            x: i == 0 ? 1px : 35px;
+            y: 15px;
+            width: 8px;
+            height: 12px;
+            border-radius: 3px;
+            background: Theme.accent-grad;
+        }
+    }
+    note := Text {
+        visible: root.mood == 7;
+        x: root.cx + 24px;
+        y: root.beat ? 2px : 16px;
+        text: "♪";
+        color: Theme.accent;
+        font-size: 11px;
+        opacity: root.beat ? 0.2 : 1;
+        animate y, opacity { duration: 400ms; easing: ease-out; }
+    }
+
+    // --- zzz ---
+    for i in 3: Text {
+        visible: root.mood == 9;
+        x: root.cx + 16px + i * 6px;
+        y: root.mood == 9 ? 14px - i * 6px : 24px;
+        opacity: root.mood == 9 ? 0.25 + i * 0.25 : 0;
+        text: "z";
+        color: #c7d2fe;
+        font-size: 7px + i * 2px;
+        font-weight: 700;
+        animate y, opacity { duration: 1400ms; delay: i * 350ms; easing: ease-out; }
+    }
+
+    // --- coffee: a little mug that gets sipped, steam curling up ---
+    if root.mood == 12: Rectangle {
+        x: root.cx + (root.sip ? 14px : 21px);
+        y: root.sip ? 15px : 15px;
+        width: 15px;
+        height: 14px;
+        transform-rotation: root.sip ? -32deg : 0deg;
+        animate x, y, transform-rotation { duration: 420ms; easing: ease-in-out; }
+        // handle
+        Rectangle {
+            x: 8px;
+            y: 3px;
+            width: 6px;
+            height: 7px;
+            border-radius: 3px;
+            border-width: 1.8px;
+            border-color: #f5f0e8;
+        }
+        // cup
+        Rectangle {
+            x: 0;
+            y: 1px;
+            width: 10px;
+            height: 12px;
+            border-bottom-left-radius: 3.5px;
+            border-bottom-right-radius: 3.5px;
+            border-top-left-radius: 1px;
+            border-top-right-radius: 1px;
+            background: @linear-gradient(90deg, #ffffff 0%, #e7e1d8 100%);
+            Rectangle { y: 1px; x: 1px; width: 8px; height: 2.5px; border-radius: 1px; background: #6b3f1d; }
+            Rectangle { y: 6px; x: 2px; width: 6px; height: 2px; border-radius: 1px; background: #8b7bff; }
+        }
+        // steam
+        for i in 2: Path {
+            visible: !root.sip;
+            x: 1px + i * 4px;
+            y: root.beat ? -9px : -6px;
+            width: 4px;
+            height: 7px;
+            viewbox-width: 4;
+            viewbox-height: 7;
+            commands: "M2 7 C0 5 4 3.5 2 0";
+            stroke: #ffffff;
+            stroke-width: 1.2px;
+            stroke-line-cap: round;
+            opacity: root.beat ? 0.25 : 0.7;
+            animate y, opacity { duration: 400ms; }
+        }
+    }
+
+    // --- game mode: a controller in hand, buttons blinking while a game runs ---
+    if root.gaming: Rectangle {
+        x: root.cx - 17px;
+        y: 19px;
+        width: 34px;
+        height: 14px;
+        Path {
+            width: 34px;
+            height: 14px;
+            viewbox-width: 34;
+            viewbox-height: 14;
+            commands: "M8 1 H26 C30.5 1 33.2 4.5 33.6 9 C33.9 12.4 31.6 14.2 29.4 13.3 C27.6 12.6 26.4 10.4 24.6 9.4 H9.4 C7.6 10.4 6.4 12.6 4.6 13.3 C2.4 14.2 0.1 12.4 0.4 9 C0.8 4.5 3.5 1 8 1 Z";
+            fill: @linear-gradient(180deg, #ececff 0%, #a9a9cc 100%);
+        }
+        // d-pad
+        Rectangle { x: 5.5px; y: 4.5px; width: 7px; height: 2.2px; border-radius: 1px; background: #2a2a3a; }
+        Rectangle { x: 7.9px; y: 2.1px; width: 2.2px; height: 7px; border-radius: 1px; background: #2a2a3a; }
+        // face buttons
+        for i in 4: Rectangle {
+            x: 24px + (i == 1 ? 3px : i == 3 ? -3px : 0);
+            y: 5px + (i == 0 ? -2.5px : i == 2 ? 2.5px : 0);
+            width: 2.6px;
+            height: 2.6px;
+            border-radius: 1.3px;
+            background: root.playing && (root.beat ? (i == 0 || i == 2) : (i == 1 || i == 3))
+                ? (i == 0 ? #fbbf24 : i == 1 ? #f87171 : i == 2 ? #34d399 : #38bdf8)
+                : #2a2a3a;
+        }
+    }
+
+    // --- tiny car drives past while the eyes watch it ---
+    car := Image {
+        visible: root.mood == 8;
+        x: Bridge.pill-car-x * 1px;
+        y: (root.height - self.height) / 2 + 1px;
+        width: 40px;
+        height: 18px;
+        source: Cars.selected;
+    }
+
+
+    Timer {
+        interval: 6000ms;
+        running: !root.sleepy && root.visible && root.mood == 0;
+        triggered => { root.blink = true; unblink.running = true; }
+    }
+    unblink := Timer {
+        interval: 110ms;
+        running: false;
+        triggered => { root.blink = false; self.running = false; }
+    }
+    Timer {
+        interval: 420ms;
+        running: (root.mood == 7 || root.mood == 12 || (root.gaming && root.playing)) && root.visible;
+        triggered => { root.beat = !root.beat; }
+    }
+    Timer {
+        interval: 1150ms;
+        running: root.gaming && root.playing && root.visible;
+        triggered => { root.dart = !root.dart; }
+    }
+    Timer {
+        interval: 1300ms;
+        running: root.mood == 12 && root.visible;
+        triggered => { root.sip = !root.sip; }
+    }
+}
+
+// Concave "ear" that blends the island into the top screen edge.
+component Ear inherits Path {
+    in property <bool> mirrored;
+    width: 12px;
+    height: 12px;
+    viewbox-width: 12;
+    viewbox-height: 12;
+    fill: Theme.island;
+    commands: mirrored ? "M0 0 L12 0 A12 12 0 0 0 0 12 Z" : "M0 0 L12 0 L12 12 A12 12 0 0 0 0 0 Z";
+}
+
+// Two-line number for the game pill: tiny label over the value.
+component PillStat inherits VerticalLayout {
+    in property <string> label;
+    in property <string> value;
+    in property <color> tint: Theme.text;
+    width: 36px;
+    alignment: center;
+    Text { text: root.label; font-family: Theme.font; font-size: 7.5px; font-weight: 700; letter-spacing: 0.6px; color: Theme.text-faint; horizontal-alignment: center; }
+    Text { text: root.value; font-family: Theme.font-display; font-size: 12px; font-weight: 700; color: root.tint; horizontal-alignment: center; }
+}
+
+component Collapsed inherits Rectangle {
+    // Game mode: time · FPS · CPU · (eyes with a controller) · GPU · RAM · battery
+    if Bridge.game-mode: HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        spacing: 9px;
+        Label { text: Bridge.time-short; font-weight: 600; font-size: 12.5px; font-family: Theme.font-display; width: 38px; }
+        PillStat {
+            label: "FPS";
+            value: Bridge.game-fps;
+            tint: Bridge.game-fps-n < 0 ? Theme.text-dim : Bridge.game-fps-n >= 60 ? Theme.green : Bridge.game-fps-n >= 30 ? Theme.orange : Theme.red;
+        }
+        PillStat { label: "CPU"; value: Bridge.game-cpu-text; tint: Bridge.game-cpu >= 0.9 ? Theme.red : Theme.text; }
+        Rectangle { horizontal-stretch: 1; }
+        PillStat { label: "GPU"; value: Bridge.game-gpu-text; tint: Bridge.game-gpu >= 0.95 ? Theme.orange : Theme.text; }
+        PillStat { label: "RAM"; value: Bridge.game-ram-text; tint: Bridge.game-ram >= 0.9 ? Theme.red : Theme.text; }
+        if Bridge.battery >= 0: PillStat {
+            label: Bridge.charging ? "CHG" : "BAT";
+            value: Bridge.battery + "%";
+            tint: Bridge.charging ? Theme.green : Bridge.battery <= 15 ? Theme.red : Theme.text-dim;
+        }
+        if Bridge.battery < 0: Label { text: Bridge.day-text; font-size: 11.5px; font-weight: 600; color: Theme.text-dim; width: 38px; horizontal-alignment: right; }
+    }
+    // Resting: clock · (focus timer) · eyes · gear · battery
+    if !Bridge.game-mode && (!Bridge.media-playing || Bridge.focus-active || Bridge.eye-mood == 7): Rectangle {
+        HorizontalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+            spacing: 4px;
+            Label {
+                text: Bridge.time-text;
+                font-weight: 600;
+                font-size: 12.5px;
+                font-family: Theme.font-display;
+                opacity: Bridge.user-idle ? 0.35 : 1;
+                animate opacity { duration: 600ms; }
+            }
+            // focus timer next to the clock while a session is running or paused
+            if Bridge.focus-active: HorizontalLayout {
+                padding-left: 8px;
+                spacing: 5px;
+                Ring {
+                    width: 15px;
+                    height: 15px;
+                    y: (parent.height - self.height) / 2;
+                    thickness: 2.2px;
+                    progress: Bridge.focus-progress;
+                    tint: Bridge.focus-break ? Theme.green : Theme.orange;
+                }
+                Label {
+                    text: Bridge.focus-left;
+                    font-size: 12.5px;
+                    font-weight: 600;
+                    font-family: Theme.font-display;
+                    color: Bridge.focus-break ? Theme.green : Theme.orange;
+                    opacity: Bridge.focus-running ? 1 : 0.5;
+                }
+            }
+            Rectangle { horizontal-stretch: 1; }
+            // current gear
+            Rectangle {
+                width: 17px;
+                height: 16px;
+                y: (parent.height - self.height) / 2;
+                border-radius: 5px;
+                background: Theme.gear-tint(Bridge.gear).with-alpha(0.2);
+                border-width: 1px;
+                border-color: Theme.gear-tint(Bridge.gear).with-alpha(0.5);
+                Text {
+                    width: 100%;
+                    height: 100%;
+                    text: Theme.gear-label(Bridge.gear);
+                    color: Theme.gear-tint(Bridge.gear);
+                    font-family: Theme.font-display;
+                    font-size: 10px;
+                    font-weight: 800;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+            if Bridge.has-mic && Bridge.mic-muted: Glyph { text: Icon.mic-off; font-size: 10px; color: Theme.red; }
+            if Bridge.charging: Glyph { text: Icon.bolt; font-size: 10px; color: Theme.green; }
+            Label {
+                text: Bridge.battery >= 0 ? Bridge.battery + "%" : Bridge.day-text;
+                font-size: 12px;
+                font-weight: 600;
+                color: Bridge.battery >= 0 && Bridge.battery <= 15 && !Bridge.charging ? Theme.red : Theme.text-dim;
+            }
+        }
+    }
+    // Live activity: now playing
+    if !Bridge.game-mode && !Bridge.focus-active && Bridge.media-playing && Bridge.eye-mood != 7: HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 16px;
+        spacing: 8px;
+        Rectangle {
+            width: 22px;
+            height: 22px;
+            y: (parent.height - self.height) / 2;
+            border-radius: 7px;
+            background: Theme.accent-grad;
+            Glyph { text: Icon.music; font-size: 10px; }
+        }
+        Label {
+            text: Bridge.media-title;
+            font-size: 12px;
+            font-weight: 600;
+            horizontal-stretch: 1;
+        }
+        // equalizer: bounces while music plays (only while the pill is showing)
+        eq := Rectangle {
+            property <int> beat;
+            width: 18px;
+            for i in 4: Rectangle {
+                x: i * 5px;
+                y: (parent.height + 12px) / 2 - self.height;
+                width: 3px;
+                height: 12px * (Bridge.media-playing ? 0.3 + 0.7 * abs(sin((eq.beat * 67 + i * 113) * 1deg)) : 0.3);
+                border-radius: 1.5px;
+                background: Theme.accent;
+                animate height { duration: 170ms; easing: ease-in-out; }
+            }
+            Timer {
+                interval: 180ms;
+                running: Bridge.media-playing && !Bridge.expanded && !Bridge.peeking;
+                triggered => { eq.beat += 1; }
+            }
+        }
+    }
+}
+
+component Peek inherits Rectangle {
+    property <color> tint: Bridge.peek-kind == 1 ? Theme.green
+        : Bridge.peek-kind == 2 ? Theme.orange
+        : Bridge.peek-kind == 3 ? Theme.blue
+        : Bridge.peek-kind == 4 ? Theme.orange
+        : Bridge.peek-kind == 5 ? Theme.red
+        : Bridge.peek-kind == 6 ? Theme.accent
+        : Bridge.peek-kind == 7 ? Theme.pink
+        : Bridge.peek-kind == 8 ? Theme.blue
+        : Bridge.peek-kind == 9 ? (Bridge.mic-muted ? Theme.red : Theme.green)
+        : Bridge.peek-kind == 10 ? #fbbf24
+        : Bridge.peek-kind == 11 ? Theme.orange
+        : Bridge.peek-kind == 12 ? Theme.green
+        : Bridge.peek-kind == 13 ? Theme.blue
+        : Bridge.peek-kind == 14 ? Theme.green
+        : Bridge.peek-kind == 15 ? Theme.gear-tint(Bridge.gear)
+        : Bridge.peek-kind == 16 ? Theme.pink
+        : Bridge.peek-kind == 17 ? Theme.accent
+        : Theme.accent;
+    property <string> glyph: Bridge.peek-kind == 1 || Bridge.peek-kind == 2 ? Icon.bolt
+        : Bridge.peek-kind == 4 ? Icon.timer
+        : Bridge.peek-kind == 5 ? Icon.alarm
+        : Bridge.peek-kind == 6 ? Icon.todo
+        : Bridge.peek-kind == 7 ? Icon.music
+        : Bridge.peek-kind == 8 ? Icon.camera
+        : Bridge.peek-kind == 9 ? (Bridge.mic-muted ? Icon.mic-off : Icon.mic)
+        : Bridge.peek-kind == 10 ? Icon.shelf
+        : Bridge.peek-kind == 11 ? Icon.walk
+        : Bridge.peek-kind == 13 ? Icon.eye
+        : Bridge.peek-kind == 14 ? Icon.heart
+        : Bridge.peek-kind == 16 ? Icon.game
+        : Bridge.peek-kind == 17 ? Icon.chart
+        : Icon.bell;
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 12px;
+        padding-top: 8px;
+        spacing: 12px;
+        Rectangle {
+            width: 40px;
+            height: 40px;
+            y: (parent.height - self.height) / 2;
+            border-radius: 20px;
+            background: root.tint.with-alpha(0.18);
+            if Bridge.peek-kind == 3: WaterDrop { width: 20px; height: 20px; }
+            if Bridge.peek-kind == 15: Text { width: 100%; height: 100%; text: Theme.gear-label(Bridge.gear); color: root.tint; font-family: Theme.font-display; font-size: 20px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
+            if Bridge.peek-kind != 3 && Bridge.peek-kind != 12 && Bridge.peek-kind != 15: Glyph { width: 100%; height: 100%; text: root.glyph; font-size: 16px; color: root.tint; }
+            if Bridge.peek-kind == 12: Ring { width: 100%; height: 100%; progress: Bridge.guide-progress; thickness: 4px; tint: Theme.green; animate progress { duration: 950ms; easing: linear; } }
+            if Bridge.peek-kind == 12: Text { width: 100%; height: 100%; text: Bridge.guide-secs; color: Theme.text; font-size: 13px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+        }
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 1;
+            Label { text: Bridge.peek-title; font-weight: 700; font-size: 14px; font-family: Theme.font-display; }
+            Label { text: Bridge.peek-sub; font-size: 12px; color: Theme.text-dim; }
+        }
+        if Bridge.peek-kind == 3: IconButton {
+            y: (parent.height - self.height) / 2;
+            icon: Icon.add;
+            size: 34px;
+            fill: #38bdf833;
+            tint: Theme.blue;
+            tip: "Log a cup of water";
+            clicked => { Bridge.water-add(Bridge.cup-ml); Bridge.dismiss-peek(); }
+        }
+        if Bridge.peek-kind == 11: HorizontalLayout {
+            spacing: 4px;
+            IconButton { y: (parent.height - self.height) / 2; icon: Icon.check; size: 34px; fill: #34d39933; tint: Theme.green; tip: "Done, I took a break"; clicked => { Bridge.stand-done(); } }
+            IconButton { y: (parent.height - self.height) / 2; icon: Icon.snooze; size: 34px; fill: Theme.surface; tint: Theme.text-dim; tip: "Snooze"; clicked => { Bridge.stand-snooze(); } }
+            IconButton { y: (parent.height - self.height) / 2; icon: Icon.play; size: 34px; fill: #fb923c33; tint: Theme.orange; tip: "Guide me: 60-second stretch"; clicked => { Bridge.stand-guide(); } }
+        }
+        if Bridge.peek-kind == 17: IconButton {
+            y: (parent.height - self.height) / 2;
+            icon: Icon.chart;
+            size: 34px;
+            fill: #8b7bff33;
+            tint: Theme.accent;
+            tip: "Open the day summary";
+            clicked => { Bridge.open-summary(); }
+        }
+        if Bridge.peek-kind == 8: IconButton {
+            y: (parent.height - self.height) / 2;
+            icon: Icon.open-folder;
+            size: 34px;
+            fill: #38bdf833;
+            tint: Theme.blue;
+            tip: "Open screenshot";
+            clicked => { Bridge.open-last-shot(); Bridge.dismiss-peek(); }
+        }
+        IconButton {
+            y: (parent.height - self.height) / 2;
+            icon: Icon.close;
+            size: 30px;
+            icon-size: 10px;
+            tint: Theme.text-faint;
+            tip: "Dismiss";
+            clicked => { Bridge.dismiss-peek(); }
+        }
+    }
+}
+
+// Where a tab sits in the bar. Drive (index 11) is drawn right after Focus;
+// it got the last index so the older tabs keep theirs.
+global TabOrder {
+    public pure function pos(i: int) -> int {
+        return i == 11 ? 4 : i == 12 ? 11 : i == 10 ? 12 : i >= 4 ? i + 1 : i;
+    }
+}
+
+component TabButton inherits Rectangle {
+    in property <int> index;
+    in property <string> icon;
+    in property <bool> drop;
+    in property <string> tip;
+    in property <bool> lit;   // glows while its mode is on (Game)
+    property <bool> active: Bridge.tab == index;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    background: !active && ta.has-hover ? Theme.surface : transparent;
+    animate background { duration: 150ms; }
+    if !drop: Glyph {
+        width: 100%;
+        height: 100%;
+        text: icon;
+        font-size: 13px;
+        color: lit ? Theme.green : active ? Theme.text : Theme.text-dim;
+        animate color { duration: 200ms; }
+        // the picked tab's icon pops a little
+        transform-scale: active ? 1.15 : 1;
+        animate transform-scale { duration: 380ms; easing: Theme.spring-ease; }
+    }
+    if drop: WaterDrop {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 15px;
+        height: 15px;
+        fill: active ? Theme.blue : Theme.text-dim;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        changed has-hover => {
+            if self.has-hover && root.tip != "" {
+                Tip.text = root.tip;
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if !self.has-hover && Tip.text == root.tip {
+                Tip.shown = false;
+            }
+        }
+        clicked => {
+            Tip.shown = false;
+            if Bridge.tab != index {
+                Bridge.tab-dir = TabOrder.pos(index) > TabOrder.pos(Bridge.tab) ? 1 : -1;
+                Bridge.tab = index;
+                Bridge.tab-changed(index);
+            }
+        }
+    }
+}
+
+component HeaderButton inherits Rectangle {
+    in property <string> icon;
+    in property <color> tint: Theme.text-dim;
+    in property <string> tip;
+    callback clicked();
+    callback right-clicked();
+    width: 28px;
+    height: 28px;
+    y: 1px;
+    border-radius: 14px;
+    background: ta.has-hover ? Theme.surface-hover : transparent;
+    animate background { duration: 120ms; }
+    Glyph { width: 100%; height: 100%; text: icon; font-size: 12px; color: tint; }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        changed has-hover => {
+            if self.has-hover && root.tip != "" {
+                Tip.text = root.tip;
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if !self.has-hover && Tip.text == root.tip {
+                Tip.shown = false;
+            }
+        }
+        clicked => { Tip.shown = false; root.clicked(); }
+        pointer-event(e) => {
+            if e.button == PointerEventButton.right && e.kind == PointerEventKind.up && !Bridge.dragging {
+                root.right-clicked();
+            }
+        }
+    }
+}
+
+component Expanded inherits Rectangle {
+    // tabs + sliding highlight
+    Rectangle {
+        x: 14px;
+        y: 34px;
+        width: 13 * 31px;
+        height: 30px;
+        Rectangle {
+            x: TabOrder.pos(Bridge.tab) * 31px;
+            width: 30px;
+            height: 30px;
+            border-radius: 10px;
+            background: #ffffff1f;
+            animate x { duration: 380ms; easing: Theme.spring-ease; }
+        }
+        HorizontalLayout {
+            spacing: 1px;
+            TabButton { index: 0; tip: "Home"; icon: Icon.home; }
+            TabButton { index: 1; tip: "To-do"; icon: Icon.todo; }
+            TabButton { index: 2; tip: "Calendar"; icon: Icon.calendar; }
+            TabButton { index: 3; tip: "Focus timer"; icon: Icon.timer; }
+            TabButton { index: 11; tip: "Drive modes (gear shifter)"; icon: Icon.car; }
+            TabButton { index: 4; tip: "Health & activity"; icon: Icon.heart; }
+            TabButton { index: 5; tip: "Water"; drop: true; }
+            TabButton { index: 6; tip: "Alarms"; icon: Icon.alarm; }
+            TabButton { index: 7; tip: "Shelf"; icon: Icon.shelf; }
+            TabButton { index: 8; tip: "Audio & mic"; icon: Icon.volume; }
+            TabButton { index: 9; tip: "Developer tools"; icon: Icon.code; }
+            TabButton { index: 12; tip: "Game mode (Ctrl+Alt+G)"; icon: Icon.game; lit: Bridge.game-mode; }
+            TabButton { index: 10; tip: "Settings"; icon: Icon.settings; }
+        }
+    }
+    HorizontalLayout {
+        width: self.preferred-width;
+        x: parent.width - self.width - 16px;
+        y: 34px;
+        height: 30px;
+        spacing: 6px;
+        if Bridge.toast != "": Label {
+            text: Bridge.toast;
+            color: Theme.green;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+        if Bridge.toast == "" && Bridge.has-mic: HeaderButton {
+            icon: Bridge.mic-muted ? Icon.mic-off : Icon.mic;
+            tint: Bridge.mic-muted ? Theme.red : Theme.text-dim;
+            tip: Bridge.mic-muted ? "Unmute mic  (Ctrl+Alt+M)" : "Mute mic  (Ctrl+Alt+M)";
+            clicked => { Bridge.mic-toggle(); }
+        }
+        if Bridge.toast == "": HeaderButton {
+            icon: Icon.camera;
+            tip: "Screenshot (Ctrl+Alt+S) · right-click: snip area";
+            clicked => { Bridge.screenshot(); }
+            right-clicked => { Bridge.snip(); }
+        }
+        if Bridge.toast == "" && Bridge.charging: Glyph { text: Icon.bolt; font-size: 11px; color: Theme.green; }
+        Label { text: Bridge.time-text; font-weight: 700; font-size: 13px; font-family: Theme.font-display; }
+    }
+    Rectangle {
+        x: 16px;
+        y: 76px;
+        width: parent.width - 32px;
+        height: parent.height - 76px - 14px;
+        if Bridge.tab == 0: PageHost { dir: Bridge.tab-dir; HomePage { } }
+        if Bridge.tab == 1: PageHost { dir: Bridge.tab-dir; TodoPage { } }
+        if Bridge.tab == 2: PageHost { dir: Bridge.tab-dir; CalendarPage { } }
+        if Bridge.tab == 3: PageHost { dir: Bridge.tab-dir; FocusPage { } }
+        if Bridge.tab == 4: PageHost { dir: Bridge.tab-dir; HealthPage { } }
+        if Bridge.tab == 5: PageHost { dir: Bridge.tab-dir; WaterPage { } }
+        if Bridge.tab == 6: PageHost { dir: Bridge.tab-dir; AlarmPage { } }
+        if Bridge.tab == 7: PageHost { dir: Bridge.tab-dir; ShelfPage { } }
+        if Bridge.tab == 8: PageHost { dir: Bridge.tab-dir; AudioPage { } }
+        if Bridge.tab == 9: PageHost { dir: Bridge.tab-dir; DevPage { } }
+        if Bridge.tab == 10: PageHost { dir: Bridge.tab-dir; SettingsPage { } }
+        if Bridge.tab == 11: PageHost { dir: Bridge.tab-dir; GearPage { } }
+        if Bridge.tab == 12: PageHost { dir: Bridge.tab-dir; GamePage { } }
+    }
+}
+
+// The stage under the expanded island where the car drives in, drifts and leaves.
+component CarStage inherits Rectangle {
+    property <float> fade: Bridge.skid-fade;
+    animate fade { duration: 900ms; easing: ease-out; }
+    for s in Bridge.skids: Rectangle {
+        visible: s.alpha > 0;
+        x: s.x * 1px - 3.5px;
+        y: s.y * 1px - 1.6px;
+        width: 7px;
+        height: 3.2px;
+        border-radius: 1.6px;
+        background: #0a0a0a;
+        opacity: s.alpha * root.fade;
+        transform-rotation: s.angle * 1deg;
+    }
+    if Bridge.car-visible: Image {
+        x: Bridge.car-x * 1px - 46px;
+        y: Bridge.car-y * 1px - 21px;
+        width: 92px;
+        height: 42px;
+        source: Cars.selected;
+        transform-rotation: Bridge.car-angle * 1deg;
+    }
+    for p in Bridge.puffs: Rectangle {
+        visible: p.alpha > 0.01;
+        x: p.x * 1px - p.size * 0.5px;
+        y: p.y * 1px - p.size * 0.5px;
+        width: p.size * 1px;
+        height: p.size * 1px;
+        border-radius: p.size * 0.5px;
+        background: @radial-gradient(circle, #f4f4f5ee 0%, #e4e4e7aa 35%, #d4d4d800 70%);
+        opacity: p.alpha;
+    }
+}
+
+export component AppWindow inherits Window {
+    title: "Winklet";
+    no-frame: true;
+    always-on-top: true;
+    background: transparent;
+    default-font-family: Theme.font;
+    // The real window size is driven from Rust (it shrinks to the pill so it never blocks clicks).
+    preferred-width: 340px;
+    preferred-height: 44px;
+
+    property <length> pill-w: Bridge.game-mode ? 404px : Bridge.focus-active ? 320px : Bridge.media-playing ? 300px : 226px;
+    property <length> peek-w: Bridge.peek-kind == 11 || Bridge.peek-kind == 17 ? 460px : 400px;
+    property <length> island-w: Bridge.expanded ? 580px : Bridge.peeking ? peek-w : pill-w;
+    property <length> island-h: Bridge.expanded ? 336px : Bridge.peeking ? 64px : 34px;
+    property <length> radius: Bridge.expanded ? 32px : Bridge.peeking ? 26px : 17px;
+
+    Ear {
+        visible: Bridge.docked;
+        x: island.x - self.width + 0.5px;
+        y: 0;
+    }
+    Ear {
+        visible: Bridge.docked;
+        mirrored: true;
+        x: island.x + island.width - 0.5px;
+        y: 0;
+    }
+
+    island := Rectangle {
+        y: 0;
+        x: (parent.width - self.width) / 2;
+        width: island-w;
+        height: island-h;
+        background: Theme.island;
+        border-bottom-left-radius: radius;
+        border-bottom-right-radius: radius;
+        // away from the top edge it floats, so round every corner
+        border-top-left-radius: Bridge.docked ? 0 : radius;
+        border-top-right-radius: Bridge.docked ? 0 : radius;
+        drop-shadow-blur: Bridge.expanded ? 24px : 8px;
+        drop-shadow-offset-y: 4px;
+        drop-shadow-color: #00000080;
+        clip: true;
+        animate width { duration: Theme.spring; easing: Theme.spring-ease; }
+        animate height { duration: Theme.spring; easing: Theme.spring-ease; }
+        animate border-bottom-left-radius, border-bottom-right-radius, border-top-left-radius, border-top-right-radius { duration: 300ms; }
+
+        // faint accent rim
+        Rectangle {
+            y: parent.height - 1px;
+            height: 1px;
+            x: parent.width * 0.2;
+            width: parent.width * 0.6;
+            background: @linear-gradient(90deg, #8b7bff00 0%, #8b7bff55 50%, #8b7bff00 100%);
+            opacity: Bridge.expanded ? 1 : 0;
+            animate opacity { duration: 300ms; }
+        }
+
+        hover := TouchArea {
+            mouse-cursor: Bridge.dragging ? MouseCursor.move : MouseCursor.default;
+            changed has-hover => { Bridge.hover(self.has-hover); }
+            clicked => { Bridge.clicked(); }
+
+            collapsed := Collapsed {
+                width: pill-w;
+                height: 34px;
+                x: (island.width - self.width) / 2;
+                opacity: 1;
+            }
+            peek := Peek {
+                width: peek-w;
+                height: 64px;
+                x: (island.width - self.width) / 2;
+                opacity: 0;
+                visible: self.opacity > 0.01;
+            }
+            expanded := Expanded {
+                visible: self.opacity > 0.01;
+                width: 580px;
+                height: 336px;
+                x: (island.width - self.width) / 2;
+                y: -8px;
+                opacity: 0;
+            }
+            // one pair of eyes for pill and panel, so they stay put while the island opens
+            if Bridge.show-eyes && (Bridge.expanded || Bridge.game-mode || !Bridge.media-playing || Bridge.focus-active || Bridge.eye-mood == 7): Eyes {
+                width: pill-w;
+                x: (island.width - self.width) / 2;
+                y: 0;
+                sleepy: Bridge.user-idle && Bridge.eye-mood == 0 && !Bridge.expanded && !Bridge.game-mode;
+                gaming: Bridge.game-mode;
+                playing: Bridge.game-running;
+                mood: Bridge.eye-mood;
+                opacity: Bridge.peeking ? 0 : 1;
+                animate opacity { duration: 160ms; }
+            }
+        }
+
+        states [
+            open when Bridge.expanded: {
+                expanded.opacity: 1;
+                expanded.y: 0;
+                collapsed.opacity: 0;
+                peek.opacity: 0;
+                in {
+                    animate expanded.opacity { duration: 260ms; delay: 120ms; }
+                    animate expanded.y { duration: 380ms; delay: 80ms; easing: Theme.smooth; }
+                    animate collapsed.opacity { duration: 90ms; }
+                }
+                out {
+                    animate expanded.opacity { duration: 110ms; }
+                    animate collapsed.opacity { duration: 220ms; delay: 180ms; }
+                }
+            }
+            peeking when Bridge.peeking: {
+                peek.opacity: 1;
+                collapsed.opacity: 0;
+                in {
+                    animate peek.opacity { duration: 240ms; delay: 120ms; }
+                    animate collapsed.opacity { duration: 90ms; }
+                }
+                out {
+                    animate peek.opacity { duration: 110ms; }
+                    animate collapsed.opacity { duration: 220ms; delay: 180ms; }
+                }
+            }
+        ]
+    }
+
+    if Bridge.car-active: CarStage {
+        x: 0;
+        y: 320px;
+        width: parent.width;
+        height: 160px;
+    }
+
+    // hover tooltip, drawn above everything (never clipped by the island)
+    tip-box := Rectangle {
+        property <length> w: tip-text.preferred-width + 18px;
+        width: w;
+        height: 24px;
+        x: max(4px, min(root.width - w - 4px, Tip.ax + Tip.aw / 2 - w / 2));
+        // above what you're pointing at, so the cursor never covers it (below only at the very top)
+        y: Tip.ay - 30px < 0 ? Tip.ay + Tip.ah + 6px : Tip.ay - 30px;
+        border-radius: 8px;
+        background: #26262dF2;
+        border-width: 1px;
+        border-color: #ffffff1f;
+        drop-shadow-blur: 10px;
+        drop-shadow-color: #0009;
+        opacity: 0;
+        visible: self.opacity > 0.01;
+        tip-text := Text {
+            x: 9px;
+            height: 100%;
+            text: Tip.text;
+            color: Theme.text;
+            font-family: Theme.font;
+            font-size: 11px;
+            vertical-alignment: center;
+        }
+        states [
+            showing when Tip.shown: {
+                opacity: 1;
+                in { animate opacity { duration: 140ms; delay: 350ms; } }
+                out { animate opacity { duration: 80ms; } }
+            }
+        ]
+    }
+}

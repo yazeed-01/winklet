@@ -1,0 +1,75 @@
+// Task row + scrolling list, shared by the To-do and Calendar pages.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge, TodoItem } from "../bridge.slint";
+import { Glyph, Label, IconButton, Chip } from "../widgets.slint";
+
+component TodoRow inherits Rectangle {
+    in property <TodoItem> item;
+    height: 34px;
+    border-radius: 10px;
+    background: ta.has-hover ? Theme.surface : transparent;
+    animate background { duration: 120ms; }
+    // the row's hover area wraps its children, so hovering the delete button keeps the row hovered
+    ta := TouchArea {
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 4px;
+        spacing: 10px;
+        alignment: stretch;
+        Rectangle {
+            width: 18px;
+            height: 18px;
+            y: (parent.height - self.height) / 2;
+            border-radius: 9px;
+            border-width: item.done ? 0 : 1.5px;
+            border-color: item.overdue ? Theme.red : Theme.text-faint;
+            background: item.done ? Theme.accent : transparent;
+            animate background { duration: 180ms; }
+            Glyph { text: Icon.check; font-size: 9px; color: #0b0b12; visible: item.done; }
+            TouchArea { mouse-cursor: pointer; clicked => { Bridge.todo-toggle(item.id); } }
+        }
+        Label {
+            text: item.text;
+            horizontal-stretch: 1;
+            color: item.done ? Theme.text-faint : Theme.text;
+        }
+        if item.due != "": Chip {
+            y: (parent.height - self.height) / 2;
+            text: item.due;
+            tint: item.overdue && !item.done ? Theme.red : Theme.accent;
+        }
+        IconButton {
+            y: (parent.height - self.height) / 2;
+            icon: Icon.delete;
+            size: 26px;
+            icon-size: 11px;
+            tint: Theme.text-faint;
+            opacity: ta.has-hover || self.active ? 1 : 0;
+            tip: "Delete task";
+            clicked => { Bridge.todo-delete(item.id); }
+        }
+    }
+    }
+}
+
+export component TodoList inherits Rectangle {
+    in property <[TodoItem]> items;
+    in property <string> empty: "Nothing here yet";
+    Flickable {
+        content-height: col.preferred-height;
+        col := VerticalLayout {
+            spacing: 2px;
+            for it in items: TodoRow { item: it; }
+        }
+    }
+    if items.length == 0: Label {
+        y: 0;
+        width: root.width;
+        height: 60px;
+        text: empty;
+        horizontal-alignment: center;
+        color: Theme.text-faint;
+        font-size: 12px;
+    }
+}

@@ -1,0 +1,97 @@
+import { Bridge } from "bridge.slint";
+
+// Design tokens shared by every page.
+export global Theme {
+    out property <color> island: #000000;
+    out property <color> surface: #ffffff0d;
+    out property <color> surface-hover: #ffffff18;
+    out property <color> stroke: #ffffff14;
+    out property <color> text: #f5f5f7;
+    out property <color> text-dim: #a1a1aa;
+    out property <color> text-faint: #6b6b76;
+    out property <color> accent: #8b7bff;
+    out property <color> accent-2: #4f8dff;
+    out property <brush> accent-grad: @linear-gradient(135deg, #a78bfa 0%, #6366f1 50%, #3b82f6 100%);
+    out property <color> green: #34d399;
+    out property <color> orange: #fb923c;
+    out property <color> red: #f87171;
+    out property <color> blue: #38bdf8;
+    out property <color> pink: #f472b6;
+    out property <string> font: "Segoe UI Variable Text";
+    out property <string> font-display: "Segoe UI Variable Display";
+    out property <string> icons: "Segoe Fluent Icons";
+    out property <duration> spring: 460ms;
+    out property <easing> spring-ease: cubic-bezier(0.32, 1.28, 0.5, 1);
+    out property <easing> smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+    // gear colors: N gray, 1 green, 2 blue, 3 silver, 4 yellow, 5 orange, 6 red
+    public pure function gear-tint(g: int) -> color {
+        return g == 1 ? #34d399 : g == 2 ? #38bdf8 : g == 3 ? #c4c4ce : g == 4 ? #fbbf24 : g == 5 ? #fb923c : g == 6 ? #ff4d4d : #8b8b96;
+    }
+    public pure function gear-label(g: int) -> string {
+        return g == 0 ? "N" : "\{g}";
+    }
+}
+
+// Segoe Fluent Icons code points.
+export global Icon {
+    out property <string> home: "\u{E80F}";
+    out property <string> todo: "\u{E9D5}";
+    out property <string> calendar: "\u{E787}";
+    out property <string> timer: "\u{E916}";
+    out property <string> alarm: "\u{EA8F}";
+    out property <string> code: "\u{E943}";
+    out property <string> settings: "\u{E713}";
+    out property <string> play: "\u{E768}";
+    out property <string> pause: "\u{E769}";
+    out property <string> prev: "\u{E892}";
+    out property <string> next: "\u{E893}";
+    out property <string> add: "\u{E710}";
+    out property <string> delete: "\u{E74D}";
+    out property <string> check: "\u{E73E}";
+    out property <string> left: "\u{E76B}";
+    out property <string> right: "\u{E76C}";
+    out property <string> copy: "\u{E8C8}";
+    out property <string> power: "\u{E7E8}";
+    out property <string> reset: "\u{E72C}";
+    out property <string> music: "\u{E8D6}";
+    out property <string> bolt: "\u{E945}";
+    out property <string> undo: "\u{E7A7}";
+    out property <string> close: "\u{E711}";
+    out property <string> terminal: "\u{E756}";
+    out property <string> folder: "\u{E8B7}";
+    out property <string> globe: "\u{E774}";
+    out property <string> chip: "\u{E950}";
+    out property <string> bell: "\u{EA8F}";
+    out property <string> skip: "\u{E893}";
+    out property <string> clock: "\u{E917}";
+    out property <string> task-manager: "\u{E9D9}";
+    out property <string> key: "\u{E8D7}";
+    out property <string> headphones: "\u{E7F6}";
+    out property <string> camera: "\u{E722}";
+    out property <string> mic: "\u{E720}";
+    out property <string> mic-off: "\u{EC54}";
+    out property <string> volume: "\u{E767}";
+    out property <string> mute: "\u{E74F}";
+    out property <string> shelf: "\u{E7B8}";
+    out property <string> file: "\u{E8A5}";
+    out property <string> open-folder: "\u{E838}";
+    out property <string> snip: "\u{E7A8}";
+    out property <string> split: "\u{E8A1}";
+    out property <string> heart: "\u{EB51}";
+    out property <string> walk: "\u{E805}";
+    out property <string> eye: "\u{E7B3}";
+    out property <string> snooze: "\u{E916}";
+    out property <string> car: "\u{E804}";
+    out property <string> game: "\u{E7FC}";
+    out property <string> chart: "\u{E9D2}";
+    out property <string> monitor: "\u{E7F4}";
+}
+
+// Car artwork. JDM/Muscle/German are original vector art; the F1 car is CC0 by looneybits (OpenGameArt "2D Race Cars").
+export global Cars {
+    out property <image> jdm: @image-url("../assets/cars/jdm.svg");
+    out property <image> muscle: @image-url("../assets/cars/muscle.svg");
+    out property <image> german: @image-url("../assets/cars/german.svg");
+    out property <image> f1: @image-url("../assets/cars/f1.png");
+    out property <image> selected: Bridge.car-model == 1 ? muscle : Bridge.car-model == 2 ? german : Bridge.car-model == 3 ? f1 : jdm;
+}

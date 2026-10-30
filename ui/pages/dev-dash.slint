@@ -1,0 +1,189 @@
+// Developer > Dash: car-style gauges. CPU, GPU (big centre dial) and RAM,
+// with two small network dials (down / up) tucked under the GPU.
+
+import { Theme } from "../theme.slint";
+import { Bridge } from "../bridge.slint";
+import { Gauge } from "../widgets.slint";
+
+export component DashView inherits Rectangle {
+    property <color> tint: Bridge.perf-mode == 1 ? #3b9cff : Bridge.perf-mode == 3 ? #ff3b3b : #b4b4c0;
+    property <string> mode-name: Bridge.perf-mode == 1 ? "QUIET" : Bridge.perf-mode == 3 ? "PERFORMANCE" : "AUTO";
+    property <bool> sweep: Bridge.dash-sweep;
+    animate tint { duration: 500ms; }
+
+    // mode badge
+    HorizontalLayout {
+        x: 0;
+        y: 0;
+        height: 24px;
+        spacing: 6px;
+        Rectangle {
+            width: 10px;
+            height: 10px;
+            y: 7px;
+            border-radius: 5px;
+            background: root.tint;
+            drop-shadow-blur: 8px;
+            drop-shadow-color: root.tint;
+        }
+        Text {
+            text: root.mode-name + " MODE";
+            font-family: Theme.font-display;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            color: root.tint;
+            vertical-alignment: center;
+        }
+        Text {
+            text: Bridge.has-perf-mode ? "· Fn+Q" : "· press Fn+Q to sync";
+            font-family: Theme.font;
+            font-size: 10px;
+            color: Theme.text-faint;
+            vertical-alignment: center;
+        }
+    }
+
+    Gauge {
+        x: 0;
+        y: 40px;
+        width: 140px;
+        value: root.sweep ? 1 : Bridge.dash-cpu;
+        marks: ["0", "1", "2", "3", "4", "5", "6", "7", "8"];
+        red-from: 0.85;
+        minor: 1;
+        tint: root.tint;
+        label: "CPU";
+        readout: Bridge.dash-cpu-text;
+        unit: "x1000 rpm";
+    }
+    Gauge {
+        x: (parent.width - self.width) / 2;
+        y: 22px;
+        width: 176px;
+        value: root.sweep ? 1 : Bridge.dash-gpu;
+        marks: ["0", "20", "40", "60", "80", "100"];
+        red-from: 0.85;
+        minor: 3;
+        tint: root.tint;
+        label: "GPU";
+        readout: Bridge.dash-gpu-text;
+        unit: Bridge.dash-gpu-mem;
+    }
+    Gauge {
+        x: parent.width - self.width;
+        y: 40px;
+        width: 140px;
+        value: root.sweep ? 1 : Bridge.dash-ram;
+        marks: ["C", "", "", "", "H"];
+        red-from: 0.85;
+        minor: 3;
+        tint: root.tint;
+        label: "RAM";
+        readout: Bridge.dash-ram-text;
+        unit: Bridge.dash-ram-gb;
+    }
+    // network: two small dials under the GPU, Mbps on a 0 / 1 / 10 / 100 / 1G scale
+    Gauge {
+        x: parent.width / 2 - 120px;
+        y: 170px;
+        width: 72px;
+        value: root.sweep ? 1 : Bridge.dash-net;
+        marks: ["0", "1", "10", "100", "1G"];
+        minor: 1;
+        tint: root.tint;
+        label: "DOWN";
+        readout: Bridge.dash-net-text;
+        unit: "Mbps";
+    }
+    Gauge {
+        x: parent.width / 2 + 48px;
+        y: 170px;
+        width: 72px;
+        value: root.sweep ? 1 : Bridge.dash-up;
+        marks: ["0", "1", "10", "100", "1G"];
+        minor: 1;
+        tint: root.tint;
+        label: "UP";
+        readout: Bridge.dash-up-text;
+        unit: "Mbps";
+    }
+
+    // fuel = battery
+    HorizontalLayout {
+        x: 4px;
+        y: 222px;
+        width: 140px;
+        height: 18px;
+        spacing: 3px;
+        Text { text: "E"; font-size: 10px; font-weight: 700; color: #ff6b6b; vertical-alignment: center; font-family: Theme.font-display; }
+        for i in 8: Rectangle {
+            property <bool> on: Bridge.battery >= 0 && i < ceil(Bridge.battery / 12.5);
+            width: 7px;
+            height: 10px;
+            y: 4px;
+            border-radius: 2px;
+            background: !on ? #ffffff14 : Bridge.battery <= 20 ? Theme.orange : root.tint;
+        }
+        Text { text: "F"; font-size: 10px; font-weight: 700; color: Theme.text-dim; vertical-alignment: center; font-family: Theme.font-display; }
+        Text {
+            text: (Bridge.charging ? "⚡" : "⛽") + (Bridge.battery >= 0 ? Bridge.battery + "%" : "AC");
+            font-size: 10px;
+            color: Theme.text-dim;
+            vertical-alignment: center;
+        }
+    }
+
+    // odometer = screen time today
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: 224px;
+        width: 96px;
+        height: 20px;
+        border-radius: 5px;
+        background: #000;
+        border-width: 1px;
+        border-color: #ffffff22;
+        Text {
+            width: 100%;
+            height: 100%;
+            text: "ODO " + Bridge.dash-odo;
+            font-family: "Cascadia Mono";
+            font-size: 11px;
+            font-weight: 700;
+            color: root.tint;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            letter-spacing: 1px;
+        }
+    }
+
+    // gear selector = performance mode
+    HorizontalLayout {
+        x: parent.width - 116px;
+        y: 220px;
+        width: 110px;
+        height: 22px;
+        spacing: 4px;
+        alignment: center;
+        for g[i] in ["Q", "A", "P"]: Rectangle {
+            property <bool> on: Bridge.perf-mode == i + 1;
+            width: 26px;
+            border-radius: 6px;
+            background: on ? root.tint : #ffffff10;
+            drop-shadow-blur: on ? 10px : 0;
+            drop-shadow-color: root.tint;
+            Text {
+                width: 100%;
+                height: 100%;
+                text: g;
+                font-family: Theme.font-display;
+                font-size: 12px;
+                font-weight: 800;
+                color: on ? #0b0b10 : Theme.text-faint;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+}

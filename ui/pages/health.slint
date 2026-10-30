@@ -1,0 +1,129 @@
+// Health > Today: sitting ring, stats and reminder toggles.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge } from "../bridge.slint";
+import { Label, Button, Ring, Stepper, Segmented, ChipToggle } from "../widgets.slint";
+import { Stat } from "stat.slint";
+import { HistoryView } from "health-history.slint";
+import { AppsView, DayView } from "health-apps.slint";
+
+export component HealthPage inherits Rectangle {
+    Segmented {
+        x: parent.width - self.width;
+        y: 0;
+        width: 256px;
+        items: ["Now", "Summary", "Apps", "History"];
+        value: Bridge.health-view;
+        picked(i) => { Bridge.health-view = i; Bridge.health-view-changed(i); }
+    }
+    if Bridge.health-view == 1: DayView { width: parent.width; }
+    if Bridge.health-view == 2: AppsView { width: parent.width; }
+    if Bridge.health-view == 3: HistoryView { width: parent.width - 0px; }
+    if Bridge.health-view == 0: HorizontalLayout {
+        spacing: 14px;
+        // sitting ring
+        VerticalLayout {
+            width: 150px;
+            spacing: 8px;
+            Rectangle {
+                height: 142px;
+                Ring {
+                    width: 136px;
+                    height: 136px;
+                    progress: min(1.0, Bridge.sit-progress);
+                    thickness: 8px;
+                    tint: Bridge.sit-progress >= 1.5 ? Theme.red : Bridge.sit-progress >= 1 ? Theme.orange : Theme.green;
+                    animate progress { duration: 800ms; easing: Theme.smooth; }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: Bridge.sit-min >= 60 ? floor(Bridge.sit-min / 60) + "h " + mod(Bridge.sit-min, 60) + "m" : Bridge.sit-min + " min";
+                        font-family: Theme.font-display;
+                        font-size: 24px;
+                        font-weight: 300;
+                        color: Theme.text;
+                        horizontal-alignment: center;
+                    }
+                    Label { text: "sitting now"; font-size: 10.5px; color: Theme.text-faint; horizontal-alignment: center; }
+                }
+            }
+            Button { icon: Icon.check; text: "I took a break"; primary: true; tint: Theme.green; clicked => { Bridge.stand-done(); } }
+            Button { icon: Icon.play; text: "Guide me (60s)"; clicked => { Bridge.stand-guide(); } }
+        }
+        VerticalLayout {
+            spacing: 8px;
+            Rectangle { height: 22px; }
+            HorizontalLayout {
+                spacing: 8px;
+                Stat { title: "Active today"; value: Bridge.active-text; }
+                Stat { title: "Breaks"; value: Bridge.breaks-today; tint: Theme.green; }
+                Stat { title: "Longest sit"; value: Bridge.longest-text; tint: Theme.orange; }
+            }
+            HorizontalLayout {
+                spacing: 12px;
+                height: 70px;
+                // today by hour
+                VerticalLayout {
+                    spacing: 3px;
+                    horizontal-stretch: 2;
+                    Label { text: "Today by hour"; font-size: 10px; color: Theme.text-faint; height: 12px; }
+                    HorizontalLayout {
+                        spacing: 2px;
+                        for v[i] in Bridge.hour-bars: Rectangle {
+                            Rectangle {
+                                y: parent.height - self.height;
+                                height: max(2px, parent.height * v);
+                                border-radius: 2px;
+                                background: v > 0.83 ? Theme.orange : v > 0 ? Theme.accent : #ffffff14;
+                                animate height { duration: 500ms; }
+                            }
+                        }
+                    }
+                    HorizontalLayout {
+                        Label { text: "0"; font-size: 8.5px; color: Theme.text-faint; }
+                        Label { text: "12"; font-size: 8.5px; color: Theme.text-faint; horizontal-alignment: center; }
+                        Label { text: "23"; font-size: 8.5px; color: Theme.text-faint; horizontal-alignment: right; }
+                    }
+                }
+                // last 7 days
+                VerticalLayout {
+                    spacing: 3px;
+                    horizontal-stretch: 1;
+                    Label { text: "7 days"; font-size: 10px; color: Theme.text-faint; height: 12px; }
+                    HorizontalLayout {
+                        spacing: 4px;
+                        for b in Bridge.health-week: Rectangle {
+                            Rectangle {
+                                y: parent.height - self.height;
+                                height: max(2px, parent.height * min(1.0, b.value));
+                                border-radius: 2px;
+                                background: b.today ? Theme.green : #34d39966;
+                            }
+                        }
+                    }
+                    HorizontalLayout {
+                        for b in Bridge.health-week: Label { text: b.label; font-size: 8.5px; color: Theme.text-faint; horizontal-alignment: center; }
+                    }
+                }
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                height: 26px;
+                ChipToggle { text: "Stand reminders"; key: "stand"; on: Bridge.stand-enabled; }
+                Label { text: "every"; font-size: 10.5px; color: Theme.text-faint; }
+                Stepper { value: Bridge.stand-interval + " min"; step(d) => { Bridge.stand-interval-adjust(d); } }
+                Rectangle { }
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                height: 26px;
+                ChipToggle { text: "Eye rest"; key: "eyerest"; on: Bridge.eye-rest; }
+                ChipToggle { text: "Wait for pause"; key: "waitpause"; on: Bridge.wait-pause; }
+                ChipToggle { text: "Hold in calls"; key: "pausecalls"; on: Bridge.pause-calls; }
+                ChipToggle { text: Bridge.work-hours-text; key: "workhours"; on: Bridge.work-hours; }
+                Rectangle { }
+            }
+        }
+    }
+}

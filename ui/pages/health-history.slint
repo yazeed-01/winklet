@@ -1,0 +1,101 @@
+// Health > History: the activity heatmap.
+
+import { Theme } from "../theme.slint";
+import { Bridge, HeatCell } from "../bridge.slint";
+import { Label, Tip, Segmented } from "../widgets.slint";
+import { Stat } from "stat.slint";
+
+component HeatSquare inherits Rectangle {
+    in property <HeatCell> cell;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    visible: !cell.future;
+    background: cell.level == 0 ? #ffffff10
+        : cell.level == 1 ? #0e4429
+        : cell.level == 2 ? #006d32
+        : cell.level == 3 ? #26a641
+        : #39d353;
+    border-width: ta.has-hover ? 1px : 0;
+    border-color: #ffffffaa;
+    ta := TouchArea {
+        changed has-hover => {
+            if self.has-hover {
+                Tip.text = root.cell.tip;
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if Tip.text == root.cell.tip {
+                Tip.shown = false;
+            }
+        }
+    }
+}
+
+export component HistoryView inherits Rectangle {
+    VerticalLayout {
+        spacing: 8px;
+        HorizontalLayout {
+            height: 24px;
+            spacing: 10px;
+            padding-right: 266px;   // room for the view switch
+            Segmented {
+                width: 170px;
+                items: ["PC on", "You active"];
+                value: Bridge.history-mode;
+                picked(i) => { Bridge.history-mode = i; Bridge.history-mode-changed(i); }
+            }
+            Label { text: Bridge.hist-note; font-size: 10px; color: Theme.text-faint; horizontal-stretch: 1; }
+        }
+        Rectangle {
+            height: 14px + 7 * 17px;
+            // month labels
+            for m[w] in Bridge.heat-months: Text {
+                x: 26px + w * 17px;
+                y: 0;
+                text: m;
+                font-family: Theme.font;
+                font-size: 9.5px;
+                color: Theme.text-faint;
+            }
+            for d[i] in ["Mon", "", "Wed", "", "Fri", "", ""]: Text {
+                x: 0;
+                y: 14px + i * 17px;
+                height: 14px;
+                text: d;
+                font-family: Theme.font;
+                font-size: 9px;
+                color: Theme.text-faint;
+                vertical-alignment: center;
+            }
+            for c[i] in Bridge.heat: HeatSquare {
+                x: 26px + floor(i / 7) * 17px;
+                y: 14px + mod(i, 7) * 17px;
+                cell: c;
+            }
+        }
+        HorizontalLayout {
+            height: 14px;
+            spacing: 3px;
+            Rectangle { horizontal-stretch: 1; }
+            Label { text: "Less"; font-size: 9.5px; color: Theme.text-faint; }
+            for c in [#ffffff10, #0e4429, #006d32, #26a641, #39d353]: Rectangle {
+                width: 11px;
+                height: 11px;
+                y: 1.5px;
+                border-radius: 2.5px;
+                background: c;
+            }
+            Label { text: "More"; font-size: 9.5px; color: Theme.text-faint; }
+        }
+        HorizontalLayout {
+            spacing: 8px;
+            Stat { title: "Total (30 weeks)"; value: Bridge.hist-total; }
+            Stat { title: "Daily average"; value: Bridge.hist-avg; }
+            Stat { title: "Streak"; value: Bridge.hist-streak; tint: Theme.green; }
+            Stat { title: "Busiest day"; value: Bridge.hist-best; tint: Theme.orange; }
+        }
+    }
+}

@@ -1,0 +1,188 @@
+// Health > Apps (screen time per app, each time it was used) and Health > Summary (your day).
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge, AppUseItem, SpanItem } from "../bridge.slint";
+import { Label, IconButton, Card, Stepper, ChipToggle, AppIcon } from "../widgets.slint";
+import { Stat } from "stat.slint";
+
+// ◀ Today ▶  note   (leaves room on the right for the view switch)
+export component DayBar inherits HorizontalLayout {
+    in property <string> note;
+    height: 24px;
+    spacing: 6px;
+    padding-right: 270px;
+    IconButton { icon: Icon.left; size: 24px; icon-size: 10px; fill: Theme.surface; tip: "Previous day"; clicked => { Bridge.screen-shift(-1); } }
+    Label { text: Bridge.screen-day-label; font-size: 12px; font-weight: 700; min-width: 64px; horizontal-alignment: center; }
+    IconButton {
+        icon: Icon.right;
+        size: 24px;
+        icon-size: 10px;
+        fill: Theme.surface;
+        opacity: Bridge.screen-can-next ? 1 : 0.3;
+        tip: "Next day";
+        clicked => { if Bridge.screen-can-next { Bridge.screen-shift(1); } }
+    }
+    Label { text: note; font-size: 10.5px; color: Theme.text-faint; horizontal-stretch: 1; }
+}
+
+component AppRow inherits Rectangle {
+    in property <AppUseItem> item;
+    property <bool> sel: Bridge.screen-selected == item.key;
+    height: 30px;
+    border-radius: 8px;
+    background: sel ? #8b7bff24 : ta.has-hover ? Theme.surface : transparent;
+    animate background { duration: 120ms; }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.screen-pick(root.item.key); } }
+    HorizontalLayout {
+        padding-left: 6px;
+        padding-right: 8px;
+        spacing: 8px;
+        AppIcon { y: (parent.height - self.height) / 2; width: 18px; height: 18px; img: root.item.icon; }
+        Label { text: root.item.name; font-size: 11.5px; horizontal-stretch: 1; }
+        Rectangle {
+            width: 64px;
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                height: 5px;
+                border-radius: 2.5px;
+                background: #ffffff12;
+                Rectangle {
+                    x: 0;
+                    width: max(3px, parent.width * root.item.frac);
+                    border-radius: 2.5px;
+                    background: root.sel ? Theme.accent : #8b7bff88;
+                }
+            }
+        }
+        Label { text: root.item.time; font-size: 11px; font-weight: 600; width: 48px; horizontal-alignment: right; }
+    }
+}
+
+export component AppsView inherits Rectangle {
+    VerticalLayout {
+        spacing: 8px;
+        DayBar { note: Bridge.screen-total; }
+        HorizontalLayout {
+            spacing: 12px;
+            vertical-stretch: 1;
+            Rectangle {
+                horizontal-stretch: 1;
+                Flickable {
+                    content-height: list.preferred-height;
+                    list := VerticalLayout {
+                        spacing: 1px;
+                        for a in Bridge.screen-apps: AppRow { item: a; }
+                    }
+                }
+                if Bridge.screen-apps.length == 0: VerticalLayout {
+                    alignment: center;
+                    spacing: 4px;
+                    Label { text: "No screen time yet"; horizontal-alignment: center; color: Theme.text-dim; font-size: 12px; }
+                    Label { text: "Apps you use show up here, with each time you used them"; horizontal-alignment: center; color: Theme.text-faint; font-size: 10.5px; }
+                }
+            }
+            // the selected app: when, and for how long
+            if Bridge.screen-apps.length > 0: Card {
+                width: 226px;
+                VerticalLayout {
+                    padding: 10px;
+                    spacing: 6px;
+                    HorizontalLayout {
+                        height: 30px;
+                        spacing: 8px;
+                        AppIcon { y: 1px; width: 28px; height: 28px; img: Bridge.screen-sel.icon; }
+                        VerticalLayout {
+                            alignment: center;
+                            Label { text: Bridge.screen-sel.name; font-size: 12.5px; font-weight: 700; }
+                            Label {
+                                text: Bridge.screen-sel.time + " · used " + Bridge.screen-sel.sessions + (Bridge.screen-sel.sessions == 1 ? " time" : " times");
+                                font-size: 10px;
+                                color: Theme.text-dim;
+                            }
+                        }
+                    }
+                    // 24 h timeline
+                    Rectangle {
+                        height: 12px;
+                        border-radius: 4px;
+                        background: #ffffff10;
+                        clip: true;
+                        for sp in Bridge.screen-spans: Rectangle {
+                            x: parent.width * sp.start;
+                            width: max(2px, parent.width * (sp.end - sp.start));
+                            height: 100%;
+                            background: Theme.accent;
+                        }
+                    }
+                    HorizontalLayout {
+                        alignment: space-between;
+                        for t in ["0", "6", "12", "18", "24"]: Label { text: t; font-size: 8.5px; color: Theme.text-faint; }
+                    }
+                    Rectangle {
+                        vertical-stretch: 1;
+                        Flickable {
+                            content-height: spans.preferred-height;
+                            spans := VerticalLayout {
+                                for sp in Bridge.screen-spans: HorizontalLayout {
+                                    height: 18px;
+                                    Label { text: sp.text; font-size: 10.5px; color: Theme.text-dim; horizontal-stretch: 1; }
+                                    Label { text: sp.len; font-size: 10.5px; font-weight: 600; }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+component TopApp inherits Card {
+    in property <AppUseItem> item;
+    height: 34px;
+    border-radius: 11px;
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 10px;
+        spacing: 7px;
+        AppIcon { y: (parent.height - self.height) / 2; width: 18px; height: 18px; img: root.item.icon; }
+        Label { text: root.item.name; font-size: 11px; horizontal-stretch: 1; }
+        Label { text: root.item.time; font-size: 11px; font-weight: 700; }
+    }
+}
+
+export component DayView inherits Rectangle {
+    VerticalLayout {
+        spacing: 8px;
+        DayBar { note: Bridge.sum-title; }
+        HorizontalLayout {
+            spacing: 8px;
+            Stat { title: "Active"; value: Bridge.sum-active; }
+            Stat { title: "Focus sessions"; value: Bridge.sum-focus; tint: Theme.orange; }
+            Stat { title: "Tasks done"; value: Bridge.sum-tasks; tint: Theme.accent; }
+            Stat { title: "Breaks"; value: Bridge.sum-breaks; tint: Theme.green; }
+        }
+        HorizontalLayout {
+            spacing: 8px;
+            Stat { title: "Longest sit"; value: Bridge.sum-longest; tint: Theme.orange; }
+            Stat { title: "Water"; value: Bridge.sum-water; tint: Theme.blue; }
+            Stat { title: "Gaming"; value: Bridge.sum-games; tint: Theme.pink; }
+            Stat { title: "Screen time"; value: Bridge.sum-screen; }
+        }
+        HorizontalLayout {
+            height: 34px;
+            spacing: 8px;
+            Label { text: "Most used"; font-size: 10px; color: Theme.text-faint; width: 56px; }
+            for a in Bridge.sum-top: TopApp { item: a; horizontal-stretch: 1; }
+            if Bridge.sum-top.length == 0: Label { text: "No apps tracked on this day"; font-size: 10.5px; color: Theme.text-faint; horizontal-stretch: 1; }
+        }
+        HorizontalLayout {
+            height: 26px;
+            spacing: 6px;
+            ChipToggle { text: "Evening summary"; key: "summary"; on: Bridge.summary-on; }
+            Label { text: "pops up at"; font-size: 10.5px; color: Theme.text-faint; }
+            Stepper { value: Bridge.summary-hour-text; step(d) => { Bridge.summary-hour-adjust(d); } }
+            Rectangle { }
+        }
+    }
+}

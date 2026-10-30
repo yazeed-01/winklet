@@ -1,0 +1,557 @@
+import { Theme, Icon } from "theme.slint";
+import { Bridge } from "bridge.slint";
+
+// Shared hover tooltip. Buttons write here; one layer in AppWindow draws it above everything.
+export global Tip {
+    in-out property <string> text;
+    in-out property <bool> shown;
+    in-out property <length> ax;
+    in-out property <length> ay;
+    in-out property <length> aw;
+    in-out property <length> ah;
+}
+export component Glyph inherits Text {
+    font-family: Theme.icons;
+    font-size: 14px;
+    color: Theme.text;
+    horizontal-alignment: center;
+    vertical-alignment: center;
+}
+
+export component Label inherits Text {
+    font-family: Theme.font;
+    font-size: 13px;
+    color: Theme.text;
+    vertical-alignment: center;
+    overflow: elide;
+}
+
+export component IconButton inherits Rectangle {
+    in property <string> icon;
+    in property <length> size: 30px;
+    in property <length> icon-size: 13px;
+    in property <brush> tint: Theme.text;
+    in property <brush> fill: transparent;
+    in property <bool> active;
+    in property <string> tip;
+    callback clicked();
+    width: size;
+    height: size;
+    border-radius: self.height / 2;
+    background: active ? Theme.surface-hover : ta.has-hover ? Theme.surface : fill;
+    animate background { duration: 140ms; }
+    Glyph {
+        width: 100%;
+        height: 100%;
+        text: icon;
+        font-size: icon-size;
+        color: tint;
+        opacity: ta.pressed ? 0.6 : 1;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { Tip.shown = false; root.clicked(); }
+        changed has-hover => {
+            if self.has-hover && root.tip != "" {
+                Tip.text = root.tip;
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if !self.has-hover && Tip.text == root.tip {
+                Tip.shown = false;
+            }
+        }
+    }
+}
+
+export component Button inherits Rectangle {
+    in property <string> text;
+    in property <string> icon;
+    in property <bool> primary;
+    in property <brush> tint: Theme.accent;
+    in property <string> tip;
+    callback clicked();
+    height: 32px;
+    min-width: lay.preferred-width;
+    border-radius: 10px;
+    background: primary ? tint : ta.has-hover ? Theme.surface-hover : Theme.surface;
+    opacity: ta.pressed ? 0.75 : 1;
+    animate background, opacity { duration: 120ms; }
+    lay := HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 6px;
+        alignment: center;
+        if icon != "": Glyph {
+            text: icon;
+            font-size: 12px;
+            color: primary ? #0b0b12 : Theme.text;
+        }
+        if text != "": Label {
+            text: root.text;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: primary ? #0b0b12 : Theme.text;
+            horizontal-alignment: center;
+        }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { Tip.shown = false; root.clicked(); }
+        changed has-hover => {
+            if self.has-hover && root.tip != "" {
+                Tip.text = root.tip;
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if !self.has-hover && Tip.text == root.tip {
+                Tip.shown = false;
+            }
+        }
+    }
+}
+
+export component Card inherits Rectangle {
+    background: Theme.surface;
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: Theme.stroke;
+}
+
+export component Field inherits Rectangle {
+    in property <string> placeholder;
+    in-out property <string> text <=> input.text;
+    callback accepted(string);
+    height: 34px;
+    border-radius: 11px;
+    background: input.has-focus ? #ffffff14 : Theme.surface;
+    border-width: 1px;
+    border-color: input.has-focus ? Theme.accent : Theme.stroke;
+    animate border-color, background { duration: 160ms; }
+
+    changed has-focus => { Bridge.editing = self.has-focus; }
+    out property <bool> has-focus: input.has-focus;
+
+    Text {
+        x: 12px;
+        width: parent.width - 24px;
+        height: 100%;
+        visible: input.text == "";
+        text: root.placeholder;
+        color: Theme.text-faint;
+        font-family: Theme.font;
+        font-size: 12.5px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    input := TextInput {
+        x: 12px;
+        width: parent.width - 24px;
+        height: 100%;
+        color: Theme.text;
+        font-family: Theme.font;
+        font-size: 12.5px;
+        vertical-alignment: center;
+        single-line: true;
+        selection-background-color: Theme.accent.with-alpha(0.5);
+        accepted => {
+            if self.text != "" {
+                root.accepted(self.text);
+                self.text = "";
+            }
+        }
+    }
+}
+
+export component Toggle inherits Rectangle {
+    in-out property <bool> checked;
+    callback toggled(bool);
+    width: 38px;
+    height: 22px;
+    border-radius: 11px;
+    background: checked ? Theme.accent : #ffffff22;
+    animate background { duration: 180ms; }
+    Rectangle {
+        width: 16px;
+        height: 16px;
+        y: 3px;
+        x: root.checked ? root.width - self.width - 3px : 3px;
+        border-radius: 8px;
+        background: white;
+        drop-shadow-blur: 4px;
+        drop-shadow-color: #0006;
+        animate x { duration: 260ms; easing: Theme.spring-ease; }
+    }
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.checked = !root.checked;
+            root.toggled(root.checked);
+        }
+    }
+}
+
+// Circular progress ring drawn with two arcs.
+export component Ring inherits Rectangle {
+    in property <float> progress;
+    in property <length> thickness: 6px;
+    in property <brush> tint: Theme.accent;
+    in property <brush> track: #ffffff14;
+    property <float> p: max(0.0001, min(progress, 0.9999));
+    property <float> r: 50 - thickness / 1px;
+
+    Path {
+        width: 100%;
+        height: 100%;
+        viewbox-width: 100;
+        viewbox-height: 100;
+        stroke: root.track;
+        stroke-width: root.thickness;
+        MoveTo { x: 50; y: 50 - root.r; }
+        ArcTo { radius-x: root.r; radius-y: root.r; x: 50; y: 50 + root.r; sweep: true; }
+        ArcTo { radius-x: root.r; radius-y: root.r; x: 50; y: 50 - root.r; sweep: true; }
+    }
+    if root.progress > 0.0005: Path {
+        width: 100%;
+        height: 100%;
+        viewbox-width: 100;
+        viewbox-height: 100;
+        stroke: root.tint;
+        stroke-width: root.thickness;
+        stroke-line-cap: round;
+        MoveTo { x: 50; y: 50 - root.r; }
+        ArcTo {
+            radius-x: root.r;
+            radius-y: root.r;
+            x: 50 + root.r * sin(root.p * 360deg);
+            y: 50 - root.r * cos(root.p * 360deg);
+            sweep: true;
+            large-arc: root.p > 0.5;
+        }
+    }
+}
+
+export component WaterDrop inherits Path {
+    viewbox-width: 24;
+    viewbox-height: 24;
+    commands: "M12 2.5C12 2.5 4.5 10.6 4.5 15.2a7.5 7.5 0 0 0 15 0C19.5 10.6 12 2.5 12 2.5z";
+    fill: Theme.blue;
+}
+
+export component Chip inherits Rectangle {
+    in property <string> text;
+    in property <color> tint: Theme.accent;
+    height: 18px;
+    width: t.preferred-width + 12px;
+    border-radius: 9px;
+    background: tint.with-alpha(0.16);
+    t := Text {
+        text: root.text;
+        font-family: Theme.font;
+        font-size: 10.5px;
+        font-weight: 600;
+        color: tint;
+        vertical-alignment: center;
+    }
+}
+
+export component Stepper inherits HorizontalLayout {
+    in property <string> value;
+    callback step(int);
+    spacing: 4px;
+    alignment: end;
+    IconButton { icon: "\u{E738}"; size: 24px; icon-size: 10px; fill: Theme.surface; tip: "Less"; clicked => { root.step(-1); } }
+    Label { text: value; min-width: 58px; horizontal-alignment: center; font-weight: 600; font-size: 12.5px; }
+    IconButton { icon: Icon.add; size: 24px; icon-size: 10px; fill: Theme.surface; tip: "More"; clicked => { root.step(1); } }
+}
+
+// Draggable volume slider. Stateless: shows `value` unless the user is dragging.
+export component VolSlider inherits Rectangle {
+    in property <float> value;
+    in property <brush> tint: Theme.text;
+    in property <bool> dim;
+    callback moved(float);
+    property <float> drag-v;
+    property <float> shown: ta.pressed ? drag-v : value;
+    height: 22px;
+    Rectangle {
+        y: (parent.height - self.height) / 2;
+        height: 5px;
+        border-radius: 2.5px;
+        background: #ffffff1a;
+        Rectangle {
+            x: 0;
+            width: parent.width * max(0, min(1, root.shown));
+            border-radius: 2.5px;
+            background: root.dim ? Theme.text-faint : root.tint;
+        }
+    }
+    Rectangle {
+        x: (root.width - self.width) * max(0, min(1, root.shown));
+        y: (parent.height - self.height) / 2;
+        width: ta.has-hover || ta.pressed ? 14px : 10px;
+        height: self.width;
+        border-radius: self.width / 2;
+        background: white;
+        drop-shadow-blur: 4px;
+        drop-shadow-color: #0008;
+        animate width { duration: 120ms; }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                root.drag-v = max(0, min(1, self.mouse-x / root.width));
+                root.moved(root.drag-v);
+            }
+        }
+        moved => {
+            if self.pressed {
+                root.drag-v = max(0, min(1, self.mouse-x / root.width));
+                root.moved(root.drag-v);
+            }
+        }
+    }
+}
+
+// Fades + slides its content in when created (used for tab switches).
+export component PageHost inherits Rectangle {
+    in property <int> dir: 1;
+    property <bool> shown;
+    // slides in from the side you're moving towards, with a little spring and zoom
+    opacity: shown ? 1 : 0;
+    x: shown ? 0 : dir * 40px;
+    transform-scale: shown ? 1 : 0.955;
+    animate opacity { duration: 260ms; easing: Theme.smooth; }
+    animate x { duration: 480ms; easing: Theme.spring-ease; }
+    animate transform-scale { duration: 420ms; easing: Theme.spring-ease; }
+    init => { shown = true; }
+}
+
+// Segmented switch with a sliding thumb (2 or more options).
+export component Segmented inherits Rectangle {
+    in property <[string]> items;
+    in property <int> value;
+    callback picked(int);
+    property <length> cell: self.width / max(1, items.length);
+    height: 24px;
+    border-radius: 12px;
+    background: Theme.surface;
+    Rectangle {
+        x: root.value * root.cell + 2px;
+        y: 2px;
+        width: root.cell - 4px;
+        height: root.height - 4px;
+        border-radius: 10px;
+        background: #ffffff24;
+        animate x { duration: 280ms; easing: Theme.spring-ease; }
+    }
+    for label[i] in root.items: Text {
+        x: i * root.cell;
+        width: root.cell;
+        height: root.height;
+        text: label;
+        font-family: Theme.font;
+        font-size: 10.5px;
+        font-weight: 600;
+        color: root.value == i ? Theme.text : Theme.text-faint;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        TouchArea { mouse-cursor: pointer; clicked => { root.picked(i); } }
+    }
+}
+
+// A racing instrument dial: 270° sweep, glowing value arc, red zone, sprung needle.
+export component Gauge inherits Rectangle {
+    in property <float> value;            // 0..1
+    in property <[string]> marks;         // numbers spread evenly around the dial
+    in property <float> red-from: 2;      // fraction where the red zone starts (>1 = none)
+    in property <color> tint: #38bdf8;
+    in property <string> label;
+    in property <string> readout;
+    in property <string> unit;
+    in property <int> minor: 4;           // minor ticks between numbers
+    property <length> r: self.width / 2;
+    property <float> v: max(0, min(1, value));
+    property <angle> start: 135deg;
+    property <angle> needle: start + 270deg * v;
+    property <int> ticks: max(1, (marks.length - 1) * (minor + 1));
+    height: self.width;
+
+    // face
+    Rectangle {
+        border-radius: root.r;
+        background: @radial-gradient(circle, #15151d 0%, #0b0b10 70%, #050507 100%);
+        border-width: 1.5px;
+        border-color: root.tint.with-alpha(0.35);
+        drop-shadow-blur: 18px;
+        drop-shadow-color: root.tint.with-alpha(0.25);
+    }
+    // track, red zone and lit value arc (viewbox 100 = full dial)
+    Path {
+        viewbox-width: 100;
+        viewbox-height: 100;
+        stroke: #ffffff12;
+        stroke-width: 3px;
+        MoveTo { x: 50 + 44 * cos(135deg); y: 50 + 44 * sin(135deg); }
+        ArcTo { radius-x: 44; radius-y: 44; x: 50 + 44 * cos(45deg); y: 50 + 44 * sin(45deg); sweep: true; large-arc: true; }
+    }
+    if root.red-from <= 1: Path {
+        viewbox-width: 100;
+        viewbox-height: 100;
+        stroke: #ef4444;
+        stroke-width: 3px;
+        MoveTo { x: 50 + 44 * cos(135deg + 270deg * root.red-from); y: 50 + 44 * sin(135deg + 270deg * root.red-from); }
+        ArcTo { radius-x: 44; radius-y: 44; x: 50 + 44 * cos(45deg); y: 50 + 44 * sin(45deg); sweep: true; large-arc: root.red-from < 0.333; }
+    }
+    lit := Path {
+        property <float> shown: max(0.002, root.v);
+        viewbox-width: 100;
+        viewbox-height: 100;
+        stroke: root.tint;
+        stroke-width: 3px;
+        stroke-line-cap: round;
+        MoveTo { x: 50 + 44 * cos(135deg); y: 50 + 44 * sin(135deg); }
+        ArcTo {
+            radius-x: 44;
+            radius-y: 44;
+            x: 50 + 44 * cos(135deg + 270deg * lit.shown);
+            y: 50 + 44 * sin(135deg + 270deg * lit.shown);
+            sweep: true;
+            large-arc: lit.shown > 0.6667;
+        }
+    }
+    // ticks
+    for i in root.ticks + 1: Rectangle {
+        property <bool> major: mod(i, root.minor + 1) == 0;
+        property <float> f: i / root.ticks;
+        x: 0;
+        y: root.r - 1px;
+        width: root.width;
+        height: 2px;
+        transform-rotation: 135deg + 270deg * f;
+        Rectangle {
+            x: parent.width - root.r * 0.2 - self.width;
+            y: (parent.height - self.height) / 2;
+            width: major ? root.r * 0.13 : root.r * 0.07;
+            height: major ? 2px : 1px;
+            border-radius: 1px;
+            background: f >= root.red-from ? #ef4444 : major ? #ffffffdd : #ffffff66;
+        }
+    }
+    // numbers
+    for m[i] in root.marks: Text {
+        property <angle> a: 135deg + 270deg * i / max(1, root.marks.length - 1);
+        width: 24px;
+        height: 12px;
+        x: root.r + root.r * 0.6 * cos(a) - 12px;
+        y: root.r + root.r * 0.6 * sin(a) - 6px;
+        text: m;
+        font-family: Theme.font-display;
+        font-size: max(8px, root.r * 0.11);
+        font-weight: 600;
+        color: i / max(1, root.marks.length - 1) >= root.red-from ? #ff6b6b : #e4e4e7;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    // label + digital readout in the lower gap
+    Text {
+        y: root.r + root.r * 0.28;
+        width: root.width;
+        text: root.readout;
+        font-family: "Cascadia Mono";
+        font-size: max(10px, root.r * 0.2);
+        font-weight: 700;
+        color: white;
+        horizontal-alignment: center;
+    }
+    Text {
+        y: root.r + root.r * 0.52;
+        width: root.width;
+        text: root.unit;
+        font-family: Theme.font;
+        font-size: max(8px, root.r * 0.1);
+        color: root.tint;
+        horizontal-alignment: center;
+    }
+    Text {
+        y: root.r - root.r * 0.42;
+        width: root.width;
+        text: root.label;
+        font-family: Theme.font;
+        font-size: max(8px, root.r * 0.1);
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: #ffffff88;
+        horizontal-alignment: center;
+    }
+    // needle: rotates around the centre with a little overshoot, like a real one
+    Rectangle {
+        x: 0;
+        y: root.r - 2px;
+        width: root.width;
+        height: 4px;
+        transform-rotation: root.needle;
+        animate transform-rotation { duration: 650ms; easing: cubic-bezier(0.3, 1.45, 0.55, 1); }
+        Rectangle {
+            x: root.r - root.r * 0.12;
+            width: root.r * 0.86;
+            height: 100%;
+            border-radius: 2px;
+            background: @linear-gradient(90deg, #ffffff 0%, root.tint 55%, #ef4444 100%);
+            drop-shadow-blur: 6px;
+            drop-shadow-color: root.tint.with-alpha(0.8);
+        }
+    }
+    // centre cap
+    Rectangle {
+        x: root.r - self.width / 2;
+        y: root.r - self.height / 2;
+        width: root.r * 0.2;
+        height: self.width;
+        border-radius: self.width / 2;
+        background: @radial-gradient(circle, #3f3f46 0%, #18181b 100%);
+        border-width: 1.5px;
+        border-color: root.tint;
+    }
+}
+
+// Small on/off pill that writes a setting (Bridge.set-setting(key, !on)).
+export component ChipToggle inherits Rectangle {
+    in property <string> text;
+    in property <bool> on;
+    in property <string> key;
+    height: 24px;
+    width: t.preferred-width + 16px;
+    border-radius: 12px;
+    background: on ? #34d39926 : ta.has-hover ? Theme.surface-hover : Theme.surface;
+    border-width: 1px;
+    border-color: on ? #34d39966 : Theme.stroke;
+    animate background, border-color { duration: 150ms; }
+    t := Text {
+        x: 8px;
+        text: (root.on ? "✓ " : "") + root.text;
+        font-family: Theme.font;
+        font-size: 10.5px;
+        font-weight: 600;
+        color: root.on ? Theme.green : Theme.text-dim;
+        vertical-alignment: center;
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.set-setting(root.key, !root.on); } }
+}
+
+// An app's icon, or a generic window glyph when it has none.
+export component AppIcon inherits Rectangle {
+    in property <image> img;
+    in property <string> fallback: Icon.monitor;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    background: img.width > 0 ? transparent : Theme.surface-hover;
+    if img.width > 0: Image { width: 100%; height: 100%; source: img; image-fit: contain; }
+    if img.width == 0: Glyph { width: 100%; height: 100%; text: root.fallback; font-size: root.height * 0.5; color: Theme.text-dim; }
+}

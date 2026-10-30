@@ -1,0 +1,311 @@
+// Game mode: live stats for the game you're playing, and the library of games played.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge, GameItem } from "../bridge.slint";
+import { Glyph, Label, Button, Card, Ring, Segmented, Tip, IconButton, ChipToggle, AppIcon } from "../widgets.slint";
+import { Stat } from "stat.slint";
+
+// Stateless switch: shows Bridge state, asks Rust to flip it (game mode can also change by hotkey or auto).
+component Switch inherits Rectangle {
+    in property <bool> on;
+    callback flip();
+    width: 38px;
+    height: 22px;
+    border-radius: 11px;
+    background: on ? Theme.green : #ffffff22;
+    animate background { duration: 180ms; }
+    Rectangle {
+        width: 16px;
+        height: 16px;
+        y: 3px;
+        x: root.on ? root.width - self.width - 3px : 3px;
+        border-radius: 8px;
+        background: white;
+        drop-shadow-blur: 4px;
+        drop-shadow-color: #0006;
+        animate x { duration: 260ms; easing: Theme.spring-ease; }
+    }
+    TouchArea { mouse-cursor: pointer; clicked => { root.flip(); } }
+}
+
+component RingTile inherits Card {
+    in property <string> title;
+    in property <string> value;
+    in property <string> sub;
+    in property <float> level;
+    in property <color> tint: Theme.accent;
+    in property <bool> warn-high: true;
+    // equal widths whatever the text (the GPU name is long)
+    preferred-width: 80px;
+    horizontal-stretch: 1;
+    property <color> shade: warn-high && level >= 0.9 ? Theme.red : warn-high && level >= 0.75 ? Theme.orange : tint;
+    VerticalLayout {
+        padding-top: 9px;
+        padding-bottom: 7px;
+        padding-left: 4px;
+        padding-right: 4px;
+        spacing: 3px;
+        Rectangle {
+            height: 52px;
+            Ring {
+                x: (parent.width - self.width) / 2;
+                width: 52px;
+                height: 52px;
+                progress: max(0, min(1, root.level));
+                thickness: 7px;
+                tint: root.shade;
+                animate progress { duration: 700ms; easing: Theme.smooth; }
+            }
+            Text {
+                width: 100%;
+                height: 100%;
+                text: root.value;
+                font-family: Theme.font-display;
+                font-size: 12.5px;
+                font-weight: 700;
+                color: Theme.text;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        Label { text: root.title; font-size: 10.5px; font-weight: 600; color: Theme.text-dim; horizontal-alignment: center; }
+        Label { text: root.sub; font-size: 9px; color: Theme.text-faint; horizontal-alignment: center; }
+    }
+}
+
+component LiveView inherits Rectangle {
+    property <color> fps-tint: Bridge.game-fps-n < 0 ? Theme.text-dim : Bridge.game-fps-n >= 60 ? Theme.green : Bridge.game-fps-n >= 30 ? Theme.orange : Theme.red;
+    VerticalLayout {
+        spacing: 8px;
+        HorizontalLayout {
+            height: 64px;
+            spacing: 8px;
+            // what's playing
+            Card {
+                horizontal-stretch: 1;
+                HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 10px;
+                    spacing: 10px;
+                    Rectangle {
+                        width: 40px;
+                        if Bridge.game-running: AppIcon { y: 12px; width: 40px; height: 40px; border-radius: 10px; img: Bridge.game-icon; fallback: Icon.game; }
+                        if !Bridge.game-running: Rectangle {
+                            y: 12px;
+                            width: 40px;
+                            height: 40px;
+                            border-radius: 12px;
+                            background: Theme.surface-hover;
+                            Glyph { text: Icon.game; font-size: 18px; color: Theme.text-faint; }
+                        }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        horizontal-stretch: 1;
+                        Label { text: Bridge.game-name; font-size: 14.5px; font-weight: 700; font-family: Theme.font-display; }
+                        Label { text: Bridge.game-sub; font-size: 10.5px; color: Bridge.game-front ? Theme.green : Theme.text-dim; }
+                    }
+                    if Bridge.game-running: Button {
+                        y: (parent.height - self.height) / 2;
+                        height: 26px;
+                        text: "Not a game";
+                        tip: "Stop tracking this program as a game";
+                        clicked => { Bridge.game-not-game(); }
+                    }
+                }
+            }
+            // FPS + sparkline
+            Card {
+                width: 188px;
+                HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 10px;
+                    spacing: 8px;
+                    VerticalLayout {
+                        alignment: center;
+                        width: 60px;
+                        Text { text: Bridge.game-fps; font-family: Theme.font-display; font-size: 26px; font-weight: 800; color: root.fps-tint; }
+                        Label { text: Bridge.game-fps-src == "" ? "FPS" : "FPS · " + Bridge.game-fps-src; font-size: 9px; color: Theme.text-faint; }
+                    }
+                    if Bridge.game-fps-locked: Button {
+                        y: (parent.height - self.height) / 2;
+                        height: 26px;
+                        text: "Allow FPS";
+                        tip: "Reading FPS needs one admin approval (adds you to Performance Log Users), then sign out once";
+                        clicked => { Bridge.game-allow-fps(); }
+                    }
+                    if !Bridge.game-fps-locked: Rectangle {
+                        horizontal-stretch: 1;
+                        Path {
+                            y: (parent.height - self.height) / 2;
+                            height: 34px;
+                            viewbox-width: 100;
+                            viewbox-height: 30;
+                            commands: Bridge.game-fps-path == "" ? "M0 29 L100 29" : Bridge.game-fps-path;
+                            stroke: Bridge.game-fps-path == "" ? #ffffff1a : root.fps-tint;
+                            stroke-width: 1.6px;
+                            stroke-line-cap: round;
+                        }
+                    }
+                }
+            }
+        }
+        HorizontalLayout {
+            height: 100px;
+            spacing: 8px;
+            RingTile { title: "CPU"; value: Bridge.game-cpu-text; sub: "processor"; level: Bridge.game-cpu; tint: Theme.blue; }
+            RingTile { title: "GPU"; value: Bridge.game-gpu-text; sub: Bridge.game-gpu-name == "" ? "graphics" : Bridge.game-gpu-name; level: Bridge.game-gpu; tint: Theme.green; }
+            RingTile { title: "RAM"; value: Bridge.game-ram-text; sub: Bridge.game-ram-gb; level: Bridge.game-ram; tint: Theme.accent; }
+            RingTile { title: "VRAM"; value: Bridge.game-vram-text; sub: Bridge.game-vram-gb; level: Bridge.game-vram; tint: Theme.pink; }
+            RingTile {
+                title: "Battery";
+                value: Bridge.battery >= 0 ? Bridge.battery + "%" : "AC";
+                sub: Bridge.game-battery-text;
+                level: Bridge.battery >= 0 ? Bridge.battery / 100 : 1;
+                tint: Bridge.charging ? Theme.green : Bridge.battery >= 0 && Bridge.battery <= 20 ? Theme.red : Theme.green;
+                warn-high: false;
+            }
+            RingTile {
+                title: "Controller";
+                value: Bridge.game-pad == 4 ? "Wired" : Bridge.game-pad == 5 ? "On" : Bridge.game-pad == 3 ? "Full" : Bridge.game-pad == 2 ? "Mid" : Bridge.game-pad == 1 ? "Low" : Bridge.game-pad == 0 ? "Empty" : "–";
+                sub: Bridge.game-pad < 0 ? "not connected" : "battery";
+                level: Bridge.game-pad >= 4 ? 1 : Bridge.game-pad < 0 ? 0 : Bridge.game-pad / 3;
+                tint: Bridge.game-pad == 1 || Bridge.game-pad == 0 ? Theme.red : Theme.blue;
+                warn-high: false;
+            }
+        }
+        HorizontalLayout {
+            height: 26px;
+            spacing: 6px;
+            ChipToggle { text: "Auto on when a game starts"; key: "gameauto"; on: Bridge.game-auto; }
+            ChipToggle { text: "Best performance power"; key: "gamepower"; on: Bridge.game-power; }
+            ChipToggle { text: "Break nudge after 2h"; key: "gamebreak"; on: Bridge.game-break; }
+            Rectangle { }
+        }
+    }
+}
+
+component GameRow inherits Rectangle {
+    in property <GameItem> item;
+    property <bool> armed;
+    height: 40px;
+    border-radius: 10px;
+    background: ta.has-hover ? Theme.surface : transparent;
+    animate background { duration: 120ms; }
+    ta := TouchArea { }
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 4px;
+        spacing: 10px;
+        AppIcon { y: (parent.height - self.height) / 2; width: 26px; height: 26px; border-radius: 7px; img: root.item.icon; fallback: Icon.game; }
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 1;
+            HorizontalLayout {
+                spacing: 6px;
+                Label { text: root.item.name; font-size: 12.5px; font-weight: 700; }
+                if root.item.running: Label { text: "● playing"; font-size: 10px; color: Theme.green; }
+                Rectangle { horizontal-stretch: 1; }
+            }
+            Label { text: root.item.sub; font-size: 10px; color: Theme.text-faint; }
+        }
+        Rectangle {
+            width: 80px;
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                height: 5px;
+                border-radius: 2.5px;
+                background: #ffffff12;
+                Rectangle { x: 0; width: max(3px, parent.width * root.item.frac); border-radius: 2.5px; background: Theme.pink; }
+            }
+        }
+        Label { text: root.item.total; font-size: 12px; font-weight: 700; width: 62px; horizontal-alignment: right; }
+        IconButton { y: (parent.height - self.height) / 2; icon: Icon.play; size: 28px; icon-size: 11px; tint: Theme.green; tip: "Launch"; clicked => { Bridge.game-launch(root.item.key); } }
+        IconButton {
+            y: (parent.height - self.height) / 2;
+            icon: Icon.close;
+            size: 28px;
+            icon-size: 9px;
+            fill: root.armed ? #f8717133 : transparent;
+            tint: root.armed ? Theme.red : Theme.text-faint;
+            tip: root.armed ? "Click again to remove it and stop detecting it" : "Remove from library";
+            clicked => {
+                if root.armed {
+                    root.armed = false;
+                    Bridge.game-forget(root.item.key);
+                } else {
+                    root.armed = true;
+                    disarm.running = true;
+                }
+            }
+        }
+    }
+    disarm := Timer {
+        interval: 3s;
+        running: false;
+        triggered => { root.armed = false; self.running = false; }
+    }
+}
+
+component LibraryView inherits Rectangle {
+    VerticalLayout {
+        spacing: 8px;
+        HorizontalLayout {
+            spacing: 8px;
+            Stat { title: "Total played"; value: Bridge.games-total; tint: Theme.pink; }
+            Stat { title: "This week"; value: Bridge.games-week; }
+            Stat { title: "Games"; value: Bridge.games-count; }
+            Stat { title: "Most played"; value: Bridge.games-top; tint: Theme.green; }
+        }
+        Rectangle {
+            vertical-stretch: 1;
+            Flickable {
+                content-height: list.preferred-height;
+                list := VerticalLayout {
+                    spacing: 1px;
+                    for g in Bridge.games: GameRow { item: g; }
+                }
+            }
+            if Bridge.games.length == 0: VerticalLayout {
+                alignment: center;
+                spacing: 4px;
+                Glyph { text: Icon.game; font-size: 22px; color: Theme.text-faint; }
+                Label { text: "No games yet"; horizontal-alignment: center; color: Theme.text-dim; font-size: 12px; }
+                Label { text: "Play something; Winklet notices games by itself and counts your hours"; horizontal-alignment: center; color: Theme.text-faint; font-size: 10.5px; }
+            }
+        }
+    }
+}
+
+export component GamePage inherits Rectangle {
+    HorizontalLayout {
+        x: 0;
+        y: 0;
+        width: parent.width - 160px;
+        height: 24px;
+        spacing: 8px;
+        Switch { y: 1px; on: Bridge.game-mode; flip => { Bridge.game-toggle(); } }
+        Label {
+            text: Bridge.game-mode ? "Game mode on" : "Game mode off";
+            font-size: 12px;
+            font-weight: 700;
+            color: Bridge.game-mode ? Theme.green : Theme.text-dim;
+        }
+        Label {
+            text: Bridge.game-mode ? "Stats pill · stays over fullscreen games · Ctrl+Alt+G" : "Turn on for the stats pill · Ctrl+Alt+G";
+            font-size: 10px;
+            color: Theme.text-faint;
+            horizontal-stretch: 1;
+        }
+    }
+    Segmented {
+        x: parent.width - self.width;
+        y: 0;
+        width: 150px;
+        items: ["Live", "Library"];
+        value: Bridge.game-view;
+        picked(i) => { Bridge.game-view = i; Bridge.game-view-changed(i); }
+    }
+    if Bridge.game-view == 0: LiveView { y: 32px; width: parent.width; height: parent.height - 32px; }
+    if Bridge.game-view == 1: LibraryView { y: 32px; width: parent.width; height: parent.height - 32px; }
+}

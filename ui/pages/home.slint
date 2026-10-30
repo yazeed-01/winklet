@@ -1,0 +1,406 @@
+// Home: now playing, the big clock and today at a glance.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge, PlaylistItem } from "../bridge.slint";
+import { Glyph, Label, IconButton, Card, WaterDrop, Field, Tip } from "../widgets.slint";
+
+// A playlist cover: the service's colours, a soft sheen and a note.
+// `small` = the mini row on the player (name in a tooltip, no label).
+component Cover inherits Rectangle {
+    in property <PlaylistItem> item;
+    in property <bool> small;
+    in property <bool> interactive: true;  // false when a parent handles clicks (the grid)
+    border-radius: small ? 10px : 14px;
+    background: @linear-gradient(135deg, item.from 0%, item.to 100%);
+    drop-shadow-blur: ta.has-hover ? 14px : 6px;
+    drop-shadow-color: item.from.with-alpha(0.45);
+    clip: true;
+    animate drop-shadow-blur { duration: 160ms; }
+    // sheen
+    Rectangle {
+        x: -root.width * 0.3;
+        y: -root.height * 0.55;
+        width: root.width * 1.2;
+        height: root.height;
+        border-radius: root.width / 2;
+        background: @linear-gradient(180deg, #ffffff38 0%, #ffffff00 100%);
+    }
+    Glyph {
+        text: Icon.music;
+        font-size: root.small ? 14px : 22px;
+        color: #ffffffee;
+        y: root.small ? (root.height - self.height) / 2 : root.height * 0.18;
+        height: root.small ? root.height : 30px;
+        width: root.width;
+        opacity: ta.pressed ? 0.6 : 1;
+    }
+    if !root.small: Text {
+        x: 8px;
+        y: root.height - 20px;
+        width: root.width - 16px;
+        text: root.item.service;
+        font-family: Theme.font;
+        font-size: 8.5px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        color: #ffffffcc;
+        overflow: elide;
+    }
+    ta := TouchArea {
+        enabled: root.interactive;
+        mouse-cursor: pointer;
+        clicked => { Tip.shown = false; Bridge.playlist-open(root.item.id); }
+        changed has-hover => {
+            if self.has-hover {
+                Tip.text = "Play " + root.item.name + " (" + root.item.service + ")";
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if Tip.text == "Play " + root.item.name + " (" + root.item.service + ")" {
+                Tip.shown = false;
+            }
+        }
+    }
+}
+
+// Click to play; drag onto another spot to reorder; × twice to remove.
+component PlaylistTile inherits Rectangle {
+    in property <PlaylistItem> item;
+    in property <int> index;
+    in property <int> cols;
+    in property <length> pitch-x;     // distance between tiles
+    in property <length> pitch-y;
+    in property <int> count;
+    property <bool> armed;
+    property <bool> dragging;
+    property <length> dx;
+    property <length> dy;
+    z: dragging ? 10 : 0;
+    // where the tile would land if dropped now
+    pure function target() -> int {
+        let col = max(0, min(root.cols - 1, round((root.x + root.dx) / root.pitch-x)));
+        let row = max(0, round((root.y + root.dy) / root.pitch-y));
+        return max(0, min(root.count - 1, row * root.cols + col));
+    }
+    content := Rectangle {
+        x: root.dx;
+        y: root.dy;
+        width: root.width;
+        height: root.height;
+        transform-scale: root.dragging ? 1.08 : 1;
+        animate transform-scale { duration: 220ms; easing: Theme.spring-ease; }
+        Cover { x: 0; y: 0; width: root.width; height: root.width; item: root.item; interactive: false; }
+        Label {
+            y: root.width + 5px;
+            width: root.width;
+            height: 14px;
+            text: root.item.name;
+            font-size: 10.5px;
+            font-weight: 600;
+            horizontal-alignment: center;
+        }
+    }
+    drag := TouchArea {
+        mouse-cursor: root.dragging ? MouseCursor.grabbing : MouseCursor.pointer;
+        pointer-event(e) => {
+            if e.button == PointerEventButton.left && e.kind == PointerEventKind.up && root.dragging {
+                Bridge.playlist-move(root.index, root.target());
+                root.dragging = false;
+                root.dx = 0;
+                root.dy = 0;
+            }
+        }
+        moved => {
+            if self.pressed {
+                if root.dragging || abs(self.mouse-x - self.pressed-x) + abs(self.mouse-y - self.pressed-y) > 6px {
+                    root.dragging = true;
+                    root.dx = self.mouse-x - self.pressed-x;
+                    root.dy = self.mouse-y - self.pressed-y;
+                }
+            }
+        }
+        clicked => {
+            if !root.dragging && root.dx == 0 && root.dy == 0 {
+                Bridge.playlist-open(root.item.id);
+            }
+        }
+    }
+    // remove: two clicks, like the port killer
+    if !root.dragging: Rectangle {
+        x: root.width - 22px;
+        y: 4px;
+        width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        background: root.armed ? Theme.red : xa.has-hover ? #000000cc : #00000088;
+        opacity: xa.has-hover || root.armed ? 1 : 0.55;
+        animate opacity, background { duration: 120ms; }
+        Glyph { text: Icon.close; font-size: 7px; color: white; }
+        xa := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                if root.armed {
+                    root.armed = false;
+                    Bridge.playlist-remove(root.item.id);
+                } else {
+                    root.armed = true;
+                    disarm.running = true;
+                }
+            }
+        }
+    }
+    disarm := Timer {
+        interval: 3s;
+        running: false;
+        triggered => { root.armed = false; self.running = false; }
+    }
+}
+
+// The media card's other side: paste a link, scroll your playlists.
+component PlaylistGrid inherits VerticalLayout {
+    property <int> cols: 3;
+    property <length> gap: 10px;
+    padding: 14px;
+    padding-bottom: 10px;
+    spacing: 10px;
+    HorizontalLayout {
+        height: 30px;
+        spacing: 8px;
+        IconButton { y: 1px; icon: Icon.left; size: 28px; icon-size: 10px; fill: Theme.surface; tip: "Back to the player"; clicked => { Bridge.show-playlists = false; } }
+        Field {
+            height: 30px;
+            placeholder: "Paste a playlist link…";
+            accepted(t) => { Bridge.playlist-add(t); }
+        }
+    }
+    grid := Rectangle {
+        vertical-stretch: 1;
+        property <length> tile: (self.width - (root.cols - 1) * root.gap) / root.cols;
+        Flickable {
+            interactive: false; // dragging moves tiles; the wheel still scrolls
+            content-height: ceil(Bridge.playlists.length / root.cols) * (grid.tile + 24px + root.gap);
+            for p[i] in Bridge.playlists: PlaylistTile {
+                x: mod(i, root.cols) * (grid.tile + root.gap);
+                y: floor(i / root.cols) * (grid.tile + 24px + root.gap);
+                width: grid.tile;
+                height: grid.tile + 22px;
+                item: p;
+                index: i;
+                cols: root.cols;
+                count: Bridge.playlists.length;
+                pitch-x: grid.tile + root.gap;
+                pitch-y: grid.tile + 24px + root.gap;
+            }
+        }
+        if Bridge.playlists.length == 0: VerticalLayout {
+            alignment: center;
+            spacing: 6px;
+            HorizontalLayout {
+                alignment: center;
+                spacing: 6px;
+                for c in [#1ed760, #ff4e45, #fc5c7d, #b57bff, #ffa142]: Rectangle {
+                    width: 22px;
+                    height: 22px;
+                    border-radius: 7px;
+                    background: @linear-gradient(135deg, c 0%, c.darker(0.5) 100%);
+                    Glyph { text: Icon.music; font-size: 9px; color: #ffffffdd; }
+                }
+            }
+            Label { text: "No playlists yet"; horizontal-alignment: center; color: Theme.text-dim; font-size: 12px; }
+            Label {
+                text: "Paste a Spotify, YouTube Music, Apple Music, Anghami or SoundCloud link above. Put a name first to name it: Gym https://…";
+                horizontal-alignment: center;
+                color: Theme.text-faint;
+                font-size: 10px;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+export component HomePage inherits Rectangle {
+    HorizontalLayout {
+        spacing: 12px;
+        // Media card: now playing, or the saved playlists
+        Card {
+            width: 304px;
+            clip: true;
+            Rectangle {
+                // soft accent glow behind album art
+                x: -40px;
+                y: -40px;
+                width: 200px;
+                height: 200px;
+                border-radius: 100px;
+                background: @radial-gradient(circle, #7c6cff40 0%, #7c6cff00 70%);
+            }
+            if !Bridge.show-playlists: VerticalLayout {
+                padding: 16px;
+                spacing: 10px;
+                HorizontalLayout {
+                    spacing: 12px;
+                    Rectangle {
+                        width: 64px;
+                        height: 64px;
+                        border-radius: 14px;
+                        background: Theme.accent-grad;
+                        drop-shadow-blur: 18px;
+                        drop-shadow-color: #6366f166;
+                        Glyph { text: Icon.music; font-size: 24px; color: #ffffffe6; }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        spacing: 2px;
+                        padding-right: 22px; // room for the playlists button
+                        Label {
+                            text: Bridge.has-media ? Bridge.media-title : "Nothing playing";
+                            font-size: 15px;
+                            font-weight: 700;
+                            font-family: Theme.font-display;
+                        }
+                        Label {
+                            text: Bridge.has-media ? Bridge.media-artist : Bridge.playlists.length > 0 ? "Pick a playlist below" : "Play something in any app";
+                            color: Theme.text-dim;
+                            font-size: 12px;
+                        }
+                        if Bridge.media-app != "": Label {
+                            text: Bridge.media-app;
+                            color: Theme.text-faint;
+                            font-size: 10.5px;
+                        }
+                    }
+                }
+                // nothing playing: your playlists, one click away
+                if !Bridge.has-media && Bridge.playlists.length > 0: HorizontalLayout {
+                    height: 40px;
+                    spacing: 7px;
+                    for p[i] in Bridge.playlists: Cover {
+                        visible: i < 5;
+                        width: i < 5 ? 40px : 0;
+                        height: 40px;
+                        item: p;
+                        small: true;
+                    }
+                    Rectangle { horizontal-stretch: 1; }
+                }
+                // progress
+                if Bridge.has-media || Bridge.playlists.length == 0: VerticalLayout {
+                    spacing: 4px;
+                    Rectangle {
+                        height: 4px;
+                        border-radius: 2px;
+                        background: #ffffff1a;
+                        Rectangle {
+                            x: 0;
+                            width: parent.width * Bridge.media-progress;
+                            border-radius: 2px;
+                            background: Theme.text;
+                            animate width { duration: 600ms; }
+                        }
+                    }
+                    HorizontalLayout {
+                        Label { text: Bridge.media-pos; font-size: 10px; color: Theme.text-faint; }
+                        Label { text: Bridge.media-len; font-size: 10px; color: Theme.text-faint; horizontal-alignment: right; }
+                    }
+                }
+                HorizontalLayout {
+                    alignment: center;
+                    spacing: 14px;
+                    IconButton { icon: Icon.prev; size: 34px; icon-size: 14px; tip: "Previous track"; clicked => { Bridge.media-prev(); } }
+                    IconButton {
+                        icon: Bridge.media-playing ? Icon.pause : Icon.play;
+                        size: 42px;
+                        icon-size: 16px;
+                        fill: #ffffff1f;
+                        tip: Bridge.media-playing ? "Pause" : "Play";
+                        clicked => { Bridge.media-toggle(); }
+                    }
+                    IconButton { icon: Icon.next; size: 34px; icon-size: 14px; tip: "Next track"; clicked => { Bridge.media-next(); } }
+                }
+            }
+            if Bridge.show-playlists: PlaylistGrid { }
+            // opens the playlist grid
+            if !Bridge.show-playlists: IconButton {
+                x: parent.width - self.width - 10px;
+                y: 10px;
+                icon: Icon.todo;
+                size: 28px;
+                icon-size: 11px;
+                fill: Theme.surface;
+                tint: Theme.accent;
+                tip: Bridge.playlists.length > 0 ? "Your playlists (" + Bridge.playlists.length + ")" : "Save your playlists";
+                clicked => { Bridge.show-playlists = true; }
+            }
+        }
+        // Glance column
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 10px;
+            Card {
+                VerticalLayout {
+                    padding: 14px;
+                    spacing: 0;
+                    HorizontalLayout {
+                        spacing: 3px;
+                        alignment: start;
+                        Text {
+                            text: Bridge.clock-main;
+                            font-family: Theme.font-display;
+                            font-size: 40px;
+                            font-weight: 300;
+                            color: Theme.text;
+                        }
+                        VerticalLayout {
+                            alignment: end;
+                            padding-bottom: 7px;
+                            Text {
+                                text: ":" + Bridge.clock-sec;
+                                font-family: Theme.font-display;
+                                font-size: 22px;
+                                font-weight: 300;
+                                color: Theme.accent;
+                            }
+                        }
+                        if Bridge.clock-ampm != "": VerticalLayout {
+                            alignment: end;
+                            padding-bottom: 9px;
+                            padding-left: 4px;
+                            Text {
+                                text: Bridge.clock-ampm;
+                                font-family: Theme.font;
+                                font-size: 13px;
+                                font-weight: 600;
+                                color: Theme.text-dim;
+                            }
+                        }
+                    }
+                    Label { text: Bridge.date-text; color: Theme.text-dim; font-size: 12px; }
+                }
+            }
+            Card {
+                vertical-stretch: 1;
+                VerticalLayout {
+                    padding: 12px;
+                    spacing: 8px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Glyph { text: Icon.todo; font-size: 12px; color: Theme.accent; width: 16px; }
+                        Label { text: Bridge.next-todo != "" ? Bridge.next-todo : "All tasks done"; font-size: 12px; }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        WaterDrop { width: 16px; height: 14px; }
+                        Label { text: Bridge.water-ml + " / " + Bridge.water-goal + " ml"; font-size: 12px; }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Glyph { text: Icon.alarm; font-size: 12px; color: Theme.orange; width: 16px; }
+                        Label { text: Bridge.next-alarm != "" ? Bridge.next-alarm : "No alarms"; font-size: 12px; }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,459 @@
+// Everything Rust reads/writes lives here, so pages stay dumb views.
+
+export struct TodoItem {
+    id: string,
+    text: string,
+    done: bool,
+    due: string,     // "Today 18:30", "Tomorrow", "" ...
+    overdue: bool,
+}
+
+export struct AlarmItem {
+    id: string,
+    time: string,
+    label: string,
+    enabled: bool,
+}
+
+export struct DayCell {
+    day: int,
+    date: string,    // yyyy-mm-dd
+    in-month: bool,
+    today: bool,
+    selected: bool,
+    has-items: bool,
+}
+
+export struct Bar {
+    label: string,
+    value: float,    // 0..1
+    today: bool,
+}
+
+export struct ShelfItem {
+    id: string,
+    name: string,
+    path: string,
+    icon: string,      // Segoe Fluent glyph
+    ext: string,
+    is-dir: bool,
+    missing: bool,
+}
+
+export struct AppVolume {
+    name: string,
+    initial: string,
+    volume: float,
+    muted: bool,
+}
+
+export struct Puff {
+    x: float,
+    y: float,
+    size: float,
+    alpha: float,
+}
+
+export struct Skid {
+    x: float,
+    y: float,
+    angle: float,
+    alpha: float,
+}
+
+export struct HeatCell {
+    level: int,        // 0..4, like GitHub
+    tip: string,
+    future: bool,
+}
+
+export struct AppUseItem {
+    key: string,       // "chrome.exe"
+    name: string,      // "Google Chrome"
+    time: string,      // "2h 10m"
+    sessions: int,
+    frac: float,       // share of the most used app
+    range: string,     // "9:02 AM – 6:40 PM"
+    icon: image,
+}
+
+export struct SpanItem {
+    start: float,      // 0..1 of the day
+    end: float,
+    text: string,      // "9:02 – 9:45 AM"
+    len: string,       // "43m"
+}
+
+export struct WsItem {
+    id: string,
+    name: string,
+    count: int,
+    icons: [image],    // first few apps
+}
+
+export struct WsApp {
+    name: string,
+    path: string,
+    icon: image,
+}
+
+export struct PlaylistItem {
+    id: string,
+    name: string,
+    service: string,   // "Spotify", "YouTube Music", ...
+    from: color,       // cover gradient
+    to: color,
+    url: string,
+}
+
+export struct GameItem {
+    key: string,
+    name: string,
+    total: string,
+    sub: string,       // "Last played today · 14 sessions"
+    frac: float,       // vs the most played game
+    icon: image,
+    running: bool,
+}
+
+export struct PortItem {
+    port: int,
+    label: string,     // "Metro (React Native)", "" if unknown
+    name: string,      // process exe
+    pid: int,
+    addr: string,
+    system: bool,
+}
+
+export global Bridge {
+    // ---- screen time per app + day summary ----
+    in property <string> screen-day-label: "Today";
+    in property <bool> screen-can-next;
+    in property <string> screen-total;
+    in property <[AppUseItem]> screen-apps;
+    in property <string> screen-selected;      // key of the app shown on the right
+    in property <AppUseItem> screen-sel;
+    in property <[SpanItem]> screen-spans;     // each time it was used, newest first
+    callback screen-shift(int);                // -1 previous day, 1 next
+    callback screen-pick(string);
+    in property <string> sum-title;
+    in property <string> sum-active;
+    in property <string> sum-focus;
+    in property <string> sum-tasks;
+    in property <string> sum-breaks;
+    in property <string> sum-longest;
+    in property <string> sum-water;
+    in property <string> sum-games;
+    in property <string> sum-screen;
+    in property <[AppUseItem]> sum-top;
+    in property <bool> summary-on: true;
+    in property <int> summary-hour: 18;
+    in property <string> summary-hour-text: "6:00 PM";
+    callback summary-hour-adjust(int);
+    callback open-summary();
+
+    // ---- game mode ----
+    in property <bool> game-mode;
+    in-out property <int> game-view;           // 0 live, 1 library
+    in property <bool> game-running;
+    in property <bool> game-front;             // the game is the window in front
+    in property <string> game-name: "No game running";
+    in property <image> game-icon;
+    in property <string> game-sub;
+    in property <string> game-fps: "–";
+    in property <int> game-fps-n: -1;          // -1 = unknown
+    in property <string> game-fps-src;         // "RTSS" / "Windows"
+    in property <bool> game-fps-locked;        // FPS needs a one-time permission
+    in property <string> game-fps-path;        // sparkline, viewbox 100 x 30
+    in property <float> game-cpu;
+    in property <float> game-gpu;
+    in property <float> game-ram;
+    in property <float> game-vram;
+    in property <string> game-cpu-text: "–";
+    in property <string> game-gpu-text: "–";
+    in property <string> game-ram-text: "–";
+    in property <string> game-vram-text: "–";
+    in property <string> game-ram-gb;
+    in property <string> game-vram-gb;
+    in property <string> game-gpu-name;
+    in property <string> game-battery-text;
+    in property <int> game-pad: -1;            // -1 none, 0..3 battery, 4 wired, 5 connected
+    in property <bool> game-auto;
+    in property <bool> game-power: true;
+    in property <bool> game-break: true;
+    in property <[GameItem]> games;
+    in property <string> games-total;
+    in property <string> games-week;
+    in property <string> games-count;
+    in property <string> games-top;
+    in property <string> time-short;           // clock without AM/PM (game pill)
+    callback game-toggle();
+    callback game-view-changed(int);
+    callback game-launch(string);
+    callback game-forget(string);
+    callback game-not-game();
+    callback game-allow-fps();
+    // ---- gear shifter (drive modes) ----
+    in property <int> gear: 3;               // 0 = N, 1 rest … 6 redline
+    in property <int> gear-prev: 3;          // where R goes back to
+    in property <string> gear-name: "Normal";
+    in property <[string]> gear-rules;
+    in property <bool> gear-power: true;     // shifting changes the Windows power mode
+    in property <[Bar]> gear-time;           // today per gear, N..6 (label = "1h20", today = current gear)
+    callback gear-shift(int);
+    callback gear-reverse();
+
+    // ---- dash (car-style instrument cluster) ----
+    in property <int> perf-mode: 2;          // Lenovo Fn+Q: 1 quiet (blue), 2 auto (gray), 3 performance (red)
+    in property <bool> has-perf-mode;        // a Lenovo mode event has been seen
+    in property <bool> dash-sweep;           // ignition sweep on open
+    in property <float> dash-cpu;
+    in property <float> dash-ram;
+    in property <float> dash-gpu;            // 0..1, the big centre dial
+    in property <string> dash-gpu-text;
+    in property <string> dash-gpu-mem;       // "2.1 GB VRAM"
+    in property <float> dash-net;            // 0..1 on the small dial's scale (download)
+    in property <float> dash-up;             // 0..1, upload
+    in property <string> dash-cpu-text;
+    in property <string> dash-ram-text;
+    in property <string> dash-ram-gb;
+    in property <string> dash-net-text;
+    in property <string> dash-up-text;
+    in property <string> dash-odo;
+
+    // ---- port killer ----
+    in-out property <int> dev-view;          // 0 tools, 1 ports, 2 dash, 3 workspaces
+    in property <[PortItem]> ports;
+    in property <bool> ports-system;         // also show Windows/system listeners
+    in property <int> ports-hidden;          // how many system ones are hidden
+    callback dev-view-changed(int);
+    callback port-kill(int, int);            // pid, port
+    callback ports-refresh();
+    callback ports-toggle-system();
+
+    // ---- activity history (heatmap) ----
+    in-out property <int> health-view;          // 0 today, 1 history
+    in-out property <int> history-mode;         // 0 PC on, 1 you active
+    in property <[HeatCell]> heat;              // 30 weeks x 7 days, column-major (Mon..Sun)
+    in property <[string]> heat-months;         // label per week column ("" if none)
+    in property <string> hist-total;
+    in property <string> hist-avg;
+    in property <string> hist-streak;
+    in property <string> hist-best;
+    in property <string> hist-note;
+    callback health-view-changed(int);
+    callback history-mode-changed(int);
+
+    // ---- wellbeing ----
+    in property <int> sit-min;                 // current sitting session, minutes
+    in property <float> sit-progress;          // session / reminder interval
+    in property <string> active-text;          // today's active time
+    in property <int> breaks-today;
+    in property <string> longest-text;
+    in property <[float]> hour-bars;           // 24 values 0..1
+    in property <[Bar]> health-week;
+    in property <bool> stand-enabled: true;
+    in property <int> stand-interval: 50;
+    in property <bool> eye-rest;
+    in property <bool> wait-pause: true;
+    in property <bool> pause-calls: true;
+    in property <bool> work-hours: true;
+    in property <string> work-hours-text: "08–22";
+    in property <float> guide-progress;
+    in property <int> guide-secs;
+    callback stand-done();
+    callback stand-snooze();
+    callback stand-guide();
+    callback stand-interval-adjust(int);
+
+    // ---- car show + eyes ----
+    in property <bool> car-enabled: true;
+    in property <int> car-model;          // 0 JDM, 1 Muscle, 2 German, 3 F1
+    in property <bool> eyes-lively: true;
+    in property <bool> car-active;        // stage under the island is in use
+    in property <bool> car-visible;
+    in property <float> car-x;
+    in property <float> car-y;
+    in property <float> car-angle;        // degrees, 0 = facing right
+    in property <[Puff]> puffs;
+    in property <[Skid]> skids;
+    in property <float> skid-fade: 1;
+    in property <float> pill-car-x: -60;       // tiny car in the 'drive' eye event
+    in property <int> eye-mood;           // 0 normal, 1 look left, 2 look right, 4 happy, 5 wink, 6 surprised, 7 music, 8 drive, 9 zzz, 10 love
+    callback set-car-model(int);
+    callback car-preview();
+
+    // ---- shelf ----
+    in property <[ShelfItem]> shelf;
+    in property <bool> drop-hover;
+    callback shelf-add(bool);          // true = folders
+    callback shelf-open(string);
+    callback shelf-copy(string);
+    callback shelf-reveal(string);
+    callback shelf-remove(string);
+    callback shelf-clear();
+
+    // ---- audio ----
+    in property <float> master-volume;
+    in property <bool> master-muted;
+    in property <[AppVolume]> app-volumes;
+    in property <bool> has-mic;
+    in property <bool> mic-muted;
+    in property <string> mic-name;
+    in property <bool> mic-testing;
+    in property <float> mic-level;
+    callback master-set(float);
+    callback master-mute-toggle();
+    callback app-volume-set(string, float);
+    callback app-mute-toggle(string);
+    callback mic-toggle();
+    callback mic-test();
+
+    // ---- capture / dev ----
+    callback screenshot();
+    callback snip();
+    callback open-last-shot();
+    in property <string> workspace;
+    callback pick-workspace();
+
+    // direction of the last tab switch (-1 left, 1 right) for the slide animation
+    in-out property <int> tab-dir: 1;
+    // ---- island state ----
+    in-out property <bool> expanded;
+    in-out property <bool> peeking;
+    in property <int> peek-kind;          // 0 info, 1 charging, 2 unplugged, 3 water, 4 focus, 5 alarm, 6 reminder, 7 music, 8 shot, 9 mic, 11 stand, 12 guide, 13 eyes, 14 cheer, 15 gear, 16 game, 17 day summary
+    in property <string> peek-title;
+    in property <string> peek-sub;
+    in-out property <int> tab;
+    in-out property <bool> editing;
+    in property <string> toast;
+
+    // ---- clock / system ----
+    in property <string> time-text: "--:--";
+    // big Home clock (updated every second only while it's visible)
+    in property <string> clock-main: "--:--";
+    in property <string> clock-sec: "00";
+    in property <string> clock-ampm;
+    in property <string> date-text;
+    in property <string> day-text;
+    in property <bool> user-idle;
+    in property <bool> show-eyes: true;
+    // island touches the top screen edge (notch look); false after it's dragged elsewhere
+    in property <bool> docked: true;
+    // a right-drag is moving the island; right-click actions are ignored meanwhile
+    in property <bool> dragging;
+    in property <int> battery: -1;        // -1 = no battery
+    in property <bool> charging;
+
+    // ---- workspaces (Developer tab) ----
+    in property <[WsItem]> workspaces;
+    in property <string> ws-selected;
+    in property <string> ws-name;
+    in property <[WsApp]> ws-apps;             // in the selected workspace
+    in property <[WsApp]> ws-running;          // open right now, not added yet
+    callback ws-create(string);
+    callback ws-select(string);
+    callback ws-launch(string);
+    callback ws-delete(string);
+    callback ws-add(string);                   // path or link
+    callback ws-remove-app(int);
+    callback ws-browse();
+
+    // ---- playlists (Home media card) ----
+    in property <[PlaylistItem]> playlists;
+    in-out property <bool> show-playlists;     // the media card shows the playlist grid
+    callback playlist-add(string);             // "Name https://…" (name optional)
+    callback playlist-open(string);
+    callback playlist-remove(string);
+    callback playlist-move(int, int);          // from index, to index (drag to reorder)
+
+    // ---- media ----
+    in property <bool> has-media;
+    in property <bool> media-playing;
+    in property <string> media-title;
+    in property <string> media-artist;
+    in property <string> media-app;
+    in property <float> media-progress;
+    in property <string> media-pos;
+    in property <string> media-len;
+
+    // ---- focus ----
+    in property <bool> focus-running;
+    in property <bool> focus-active;      // running or paused mid-session
+    in property <bool> focus-break;
+    in property <string> focus-left: "25:00";
+    in property <float> focus-progress;
+    in property <int> focus-minutes: 25;
+    in property <int> break-minutes: 5;
+    in property <int> focus-sessions;
+
+    // ---- water ----
+    in property <int> water-ml;
+    in property <int> water-goal: 2500;
+    in property <int> cup-ml: 250;
+    in property <[Bar]> water-week;
+
+    // ---- todo / calendar / alarms ----
+    in property <[TodoItem]> todos;
+    in property <int> todo-open;
+    in property <string> next-todo;
+    in property <string> cal-title;
+    in property <[DayCell]> cal-days;
+    in property <string> cal-selected-label;
+    in property <[TodoItem]> cal-items;
+    in property <[AlarmItem]> alarms;
+    in property <string> next-alarm;
+
+    // ---- developer ----
+    in property <float> cpu;
+    in property <float> ram;
+    in property <string> ram-text;
+    in property <string> uptime;
+    in property <string> ip-text;
+
+    // ---- settings ----
+    in property <bool> autostart;
+    in property <bool> clock-24h: true;
+    in property <bool> water-reminders: true;
+    in property <int> water-interval: 60;
+    in property <bool> hide-fullscreen: true;
+
+    callback hover(bool);
+    callback clicked();
+    callback tab-changed(int);
+    callback dismiss-peek();
+
+    callback media-prev();
+    callback media-toggle();
+    callback media-next();
+
+    callback focus-toggle();
+    callback focus-reset();
+    callback focus-skip();
+    callback focus-adjust(int);
+    callback break-adjust(int);
+
+    callback water-add(int);
+    callback water-undo();
+    callback water-goal-adjust(int);
+    callback cup-adjust(int);
+
+    callback todo-add(string);
+    callback todo-toggle(string);
+    callback todo-delete(string);
+    callback todo-clear-done();
+
+    callback cal-shift(int);
+    callback cal-select(string);
+    callback cal-add(string);
+
+    callback alarm-add(string);
+    callback alarm-toggle(string);
+    callback alarm-delete(string);
+
+    callback dev-action(string);
+
+    callback set-setting(string, bool);
+    callback water-interval-adjust(int);
+    callback quit();
+}

@@ -1,0 +1,97 @@
+// Settings page.
+
+import { Theme, Icon, Cars } from "../theme.slint";
+import { Bridge } from "../bridge.slint";
+import { Label, Button, Toggle, Stepper } from "../widgets.slint";
+
+component SettingRow inherits HorizontalLayout {
+    in property <string> title;
+    in property <string> sub;
+    in property <bool> value;
+    in property <string> key;
+    height: 34px;
+    VerticalLayout {
+        alignment: center;
+        horizontal-stretch: 1;
+        Label { text: title; font-size: 12px; }
+        if sub != "": Label { text: sub; font-size: 10px; color: Theme.text-faint; }
+    }
+    Toggle {
+        y: (parent.height - self.height) / 2;
+        checked: value;
+        toggled(v) => { Bridge.set-setting(key, v); }
+    }
+}
+
+component CarPick inherits Rectangle {
+    in property <int> model;
+    in property <image> art;
+    in property <string> name;
+    property <bool> active: Bridge.car-model == model;
+    height: 50px;
+    border-radius: 12px;
+    background: active ? #8b7bff2a : ta.has-hover ? Theme.surface-hover : Theme.surface;
+    border-width: active ? 1.5px : 0;
+    border-color: Theme.accent;
+    animate background { duration: 140ms; }
+    Image {
+        x: (parent.width - self.width) / 2;
+        y: 4px;
+        width: parent.width - 10px;
+        height: 28px;
+        source: art;
+        image-fit: contain;
+    }
+    Label {
+        y: parent.height - 16px;
+        width: parent.width;
+        height: 14px;
+        text: name;
+        font-size: 9.5px;
+        horizontal-alignment: center;
+        color: active ? Theme.text : Theme.text-faint;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { Bridge.set-car-model(model); }
+    }
+}
+
+export component SettingsPage inherits Rectangle {
+    HorizontalLayout {
+        spacing: 18px;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            SettingRow { title: "Launch at startup"; key: "autostart"; value: Bridge.autostart; }
+            SettingRow { title: "24-hour clock"; key: "clock24"; value: Bridge.clock-24h; }
+            SettingRow { title: "Hide in fullscreen"; sub: "Games, videos, slides"; key: "fullscreen"; value: Bridge.hide-fullscreen; }
+            SettingRow { title: "Game mode"; sub: "Stats pill, stays over fullscreen games"; key: "gamemode"; value: Bridge.game-mode; }
+            SettingRow { title: "Water reminders"; sub: "08:00 to 22:00"; key: "water"; value: Bridge.water-reminders; }
+            HorizontalLayout {
+                height: 34px;
+                Label { text: "Remind every"; font-size: 12px; }
+                Stepper { value: Bridge.water-interval + " min"; step(d) => { Bridge.water-interval-adjust(d); } }
+            }
+            Rectangle { }
+            Label { text: "Ctrl+Alt+ S shot · M mic · Space open · G game mode"; font-size: 9.5px; color: Theme.text-faint; }
+        }
+        VerticalLayout {
+            width: 262px;
+            spacing: 6px;
+            SettingRow { title: "Lively eyes"; sub: "Look around, wink, music, zzz…"; key: "eyes"; value: Bridge.eyes-lively; }
+            SettingRow { title: "Car show on open"; sub: "Drives in and drifts under the island"; key: "car"; value: Bridge.car-enabled; }
+            HorizontalLayout {
+                spacing: 6px;
+                CarPick { model: 0; art: Cars.jdm; name: "JDM"; }
+                CarPick { model: 1; art: Cars.muscle; name: "Muscle"; }
+                CarPick { model: 2; art: Cars.german; name: "German"; }
+                CarPick { model: 3; art: Cars.f1; name: "F1"; }
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                Button { icon: Icon.play; text: "Test drive"; horizontal-stretch: 1; clicked => { Bridge.car-preview(); } }
+                Button { icon: Icon.power; text: "Quit"; primary: true; tint: Theme.red; clicked => { Bridge.quit(); } }
+            }
+        }
+    }
+}

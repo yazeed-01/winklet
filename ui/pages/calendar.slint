@@ -1,0 +1,75 @@
+// Calendar: month grid plus the selected day's tasks.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge } from "../bridge.slint";
+import { Label, IconButton, Field } from "../widgets.slint";
+import { TodoList } from "todo-list.slint";
+
+export component CalendarPage inherits Rectangle {
+    HorizontalLayout {
+        spacing: 14px;
+        VerticalLayout {
+            width: 250px;
+            spacing: 6px;
+            HorizontalLayout {
+                spacing: 4px;
+                Label { text: Bridge.cal-title; font-weight: 700; font-size: 14px; font-family: Theme.font-display; horizontal-stretch: 1; }
+                IconButton { icon: Icon.left; size: 26px; icon-size: 10px; tip: "Previous month"; clicked => { Bridge.cal-shift(-1); } }
+                IconButton { icon: Icon.right; size: 26px; icon-size: 10px; tip: "Next month"; clicked => { Bridge.cal-shift(1); } }
+            }
+            HorizontalLayout {
+                for d in ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]: Label {
+                    text: d;
+                    width: 250px / 7;
+                    horizontal-alignment: center;
+                    font-size: 10.5px;
+                    color: Theme.text-faint;
+                    font-weight: 600;
+                }
+            }
+            Rectangle {
+                height: 6 * 28px;
+                for c[i] in Bridge.cal-days: Rectangle {
+                    x: mod(i, 7) * (250px / 7) + (250px / 7 - 28px) / 2;
+                    y: floor(i / 7) * 28px;
+                    width: 28px;
+                    height: 26px;
+                    border-radius: 9px;
+                    background: c.selected ? Theme.accent : c.today ? #ffffff1f : cta.has-hover ? Theme.surface : transparent;
+                    animate background { duration: 120ms; }
+                    Text {
+                        text: c.day;
+                        font-family: Theme.font;
+                        font-size: 11.5px;
+                        font-weight: c.today || c.selected ? 700 : 400;
+                        color: c.selected ? #0b0b12 : c.in-month ? Theme.text : Theme.text-faint;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                    if c.has-items: Rectangle {
+                        y: parent.height - 5px;
+                        width: 4px;
+                        height: 4px;
+                        border-radius: 2px;
+                        background: c.selected ? #0b0b12 : Theme.accent;
+                    }
+                    cta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.cal-select(c.date); } }
+                }
+            }
+        }
+        Rectangle { width: 1px; background: Theme.stroke; }
+        VerticalLayout {
+            spacing: 8px;
+            Label { height: 26px; text: Bridge.cal-selected-label; font-weight: 700; font-size: 14px; font-family: Theme.font-display; }
+            Field {
+                placeholder: "Add to this day…  (@09:00 for a time)";
+                accepted(t) => { Bridge.cal-add(t); }
+            }
+            TodoList {
+                vertical-stretch: 1;
+                items: Bridge.cal-items;
+                empty: "Free day";
+            }
+        }
+    }
+}

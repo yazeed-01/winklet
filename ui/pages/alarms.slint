@@ -1,0 +1,64 @@
+// Alarms list.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge } from "../bridge.slint";
+import { Label, IconButton, Field, Toggle } from "../widgets.slint";
+
+export component AlarmPage inherits Rectangle {
+    VerticalLayout {
+        spacing: 10px;
+        Field {
+            placeholder: "New alarm — e.g. \"07:30 Wake up\" or \"14:00 Stand-up\"";
+            accepted(t) => { Bridge.alarm-add(t); }
+        }
+        Flickable {
+            vertical-stretch: 1;
+            content-height: list.preferred-height;
+            list := VerticalLayout {
+                spacing: 6px;
+                for a in Bridge.alarms: Rectangle {
+                    height: 50px;
+                    border-radius: 14px;
+                    background: Theme.surface;
+                    HorizontalLayout {
+                        padding-left: 14px;
+                        padding-right: 8px;
+                        spacing: 12px;
+                        Text {
+                            text: a.time;
+                            font-family: Theme.font-display;
+                            font-size: 24px;
+                            font-weight: 300;
+                            color: a.enabled ? Theme.text : Theme.text-faint;
+                            vertical-alignment: center;
+                        }
+                        Label { text: a.label; color: Theme.text-dim; horizontal-stretch: 1; }
+                        Toggle {
+                            y: (parent.height - self.height) / 2;
+                            checked: a.enabled;
+                            toggled => { Bridge.alarm-toggle(a.id); }
+                        }
+                        IconButton {
+                            y: (parent.height - self.height) / 2;
+                            icon: Icon.delete;
+                            size: 28px;
+                            icon-size: 11px;
+                            tint: Theme.text-faint;
+                            tip: "Delete alarm";
+                            clicked => { Bridge.alarm-delete(a.id); }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if Bridge.alarms.length == 0: Label {
+        y: 54px;
+        width: parent.width;
+        height: 60px;
+        text: "No alarms yet. Try \"07:30 Wake up\"";
+        horizontal-alignment: center;
+        color: Theme.text-faint;
+        font-size: 12px;
+    }
+}
