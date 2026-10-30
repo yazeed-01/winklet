@@ -186,6 +186,7 @@ export global Bridge {
     in property <string> games-week;
     in property <string> games-count;
     in property <string> games-top;
+    in property <bool> games-scanning;         // looking for installed games
     in property <string> time-short;           // clock without AM/PM (game pill)
     callback game-toggle();
     callback game-view-changed(int);
@@ -193,6 +194,9 @@ export global Bridge {
     callback game-forget(string);
     callback game-not-game();
     callback game-allow-fps();
+    callback game-scan();
+    callback game-add();
+    callback game-search(string);
     // ---- gear shifter (drive modes) ----
     in property <int> gear: 3;               // 0 = N, 1 rest … 6 redline
     in property <int> gear-prev: 3;          // where R goes back to

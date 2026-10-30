@@ -3,7 +3,8 @@
 
 use super::screen::fmt_dur;
 use super::{App, defer, gear, s, schedule_shrink};
-use crate::{Bridge, GameItem, fg, fps, gpu, gpu_info, pad, sys};
+use super::{schedule_collapse, with_app};
+use crate::{Bridge, GameItem, fg, fps, games_scan, gpu, gpu_info, pad, sys};
 use chrono::{Datelike, Duration as CDuration, Local};
 use slint::{ComponentHandle, ModelRc, VecModel};
 use std::collections::{HashSet, VecDeque};
@@ -46,6 +47,11 @@ pub struct Play {
     pub gpu_name: String,
     pub vram_total: f64,
     pub unsaved_s: u32,
+    /// installed games were looked for this run (done once when the library opens)
+    pub scanned: bool,
+    pub scanning: bool,
+    /// library search text
+    pub query: String,
 }
 
 /// Sets a Bridge property only when it changed (each change can cost a redraw).
@@ -108,7 +114,7 @@ impl App {
             return;
         }
         self.play.checked = (f.pid, f.fullscreen);
-        let Some(hit) = fg::classify(f, &self.play.known) else { return };
+        let Some(hit) = self.library_hit(f).or_else(|| fg::classify(f, &self.play.known)) else { return };
         if self.data.settings.game_ignore.contains(&hit.key) {
             return;
         }
@@ -127,12 +133,27 @@ impl App {
         self.start_run(f, hit);
     }
 
+    /// The program in front belongs to a game already in the library (found by a scan or added by hand).
+    fn library_hit(&self, f: &fg::Fg) -> Option<fg::GameHit> {
+        if fg::is_not_game(&f.exe) || f.is_lock() {
+            return None;
+        }
+        let lower = f.path.to_lowercase();
+        let (key, g) = self
+            .data
+            .games
+            .iter()
+            .find(|(k, _)| lower == **k || lower.strip_prefix(k.as_str()).is_some_and(|r| r.starts_with('\\')))?;
+        let launch = if g.launch.is_empty() { f.path.clone() } else { g.launch.clone() };
+        Some(fg::GameHit { key: key.clone(), name: g.name.clone(), launch })
+    }
+
     fn start_run(&mut self, f: &fg::Fg, hit: fg::GameHit) {
         let g = self.data.games.entry(hit.key.clone()).or_default();
         if g.name.is_empty() {
             g.name = hit.name;
         }
-        if g.launch.is_empty() || hit.launch.starts_with("steam://") {
+        if g.launch.is_empty() || hit.launch.starts_with("steam://") && !g.launch.contains("://") {
             g.launch = hit.launch;
         }
         g.exe = f.path.clone();
@@ -397,18 +418,25 @@ impl App {
 
     /// The library: every game played, most recent first.
     pub fn refresh_games(&mut self) {
+        if !self.play.scanned {
+            self.game_scan(false);
+        }
         let now = Local::now();
         let today = now.date_naive();
         let week_start = today - CDuration::days(today.weekday().num_days_from_monday() as i64);
         let mut games: Vec<_> = self.data.games.iter().map(|(k, g)| (k.clone(), g.clone())).collect();
-        games.sort_by(|a, b| b.1.last.cmp(&a.1.last));
+        games.sort_by(|a, b| b.1.last.cmp(&a.1.last).then_with(|| a.1.name.to_lowercase().cmp(&b.1.name.to_lowercase())));
         let max = games.iter().map(|g| g.1.total_s).max().unwrap_or(1).max(1);
         let running = self.play.run.as_ref().map(|r| r.key.clone());
         let mut items = Vec::new();
         let (mut total, mut week) = (0u32, 0u32);
+        let query = self.play.query.trim().to_lowercase();
         for (key, g) in &games {
             total += g.total_s;
             week += g.days.iter().filter(|(d, _)| **d >= week_start).map(|(_, v)| v).sum::<u32>();
+            if !query.is_empty() && !g.name.to_lowercase().contains(&query) {
+                continue;
+            }
             let last = match g.last {
                 Some(l) if l.date() == today => "today".to_string(),
                 Some(l) if l.date() == today - CDuration::days(1) => "yesterday".to_string(),
@@ -416,20 +444,27 @@ impl App {
                 None => "never".to_string(),
             };
             let sessions = if g.sessions == 1 { "1 session".to_string() } else { format!("{} sessions", g.sessions) };
+            let sub = match (g.sessions, g.source.as_str()) {
+                (0, "") => "Not played yet".to_string(),
+                (0, "Added") => "Added by you · not played yet".to_string(),
+                (0, src) => format!("Installed · {src} · not played yet"),
+                _ => format!("Last played {last} · {sessions}"),
+            };
             items.push(GameItem {
                 key: s(key.clone()),
                 name: s(g.name.clone()),
                 total: s(fmt_dur(g.total_s)),
-                sub: s(format!("Last played {last} · {sessions}")),
+                sub: s(sub),
                 frac: g.total_s as f32 / max as f32,
                 icon: self.icon_for(&g.exe),
                 running: running.as_deref() == Some(key.as_str()),
             });
         }
-        let top = games.iter().max_by_key(|g| g.1.total_s).map(|g| g.1.name.clone()).unwrap_or_else(|| "–".into());
+        let top = games.iter().filter(|g| g.1.total_s > 0).max_by_key(|g| g.1.total_s).map(|g| g.1.name.clone()).unwrap_or_else(|| "–".into());
         let ui = self.ui();
         let b = ui.global::<Bridge>();
         b.set_games(ModelRc::new(VecModel::from(items)));
+        b.set_games_scanning(self.play.scanning);
         b.set_games_total(s(fmt_dur(total)));
         b.set_games_week(s(fmt_dur(week)));
         b.set_games_count(s(games.len().to_string()));
@@ -445,6 +480,87 @@ impl App {
         } else {
             self.toast("Couldn't start it");
         }
+    }
+
+    /// Looks for installed games off the UI thread and adds new ones to the library.
+    /// `manual` = the Scan button (always reports the result).
+    pub fn game_scan(&mut self, manual: bool) {
+        if self.play.scanning {
+            return;
+        }
+        self.play.scanned = true;
+        self.play.scanning = true;
+        self.ui().global::<Bridge>().set_games_scanning(true);
+        std::thread::spawn(move || {
+            let found = games_scan::installed();
+            let _ = slint::invoke_from_event_loop(move || {
+                with_app(|s| {
+                    let mut a = s.borrow_mut();
+                    a.play.scanning = false;
+                    let n = a.games_merge(found);
+                    if n > 0 {
+                        a.toast(&format!("Found {n} new game{}", if n == 1 { "" } else { "s" }));
+                    } else if manual {
+                        a.toast("No new games found");
+                    }
+                    a.refresh_games();
+                })
+            });
+        });
+    }
+
+    /// Adds scanned games that aren't in the library yet. Returns how many are new.
+    fn games_merge(&mut self, found: Vec<games_scan::Found>) -> usize {
+        let mut added = 0;
+        for f in found {
+            if self.data.settings.game_ignore.contains(&f.key) {
+                continue;
+            }
+            match self.data.games.get_mut(&f.key) {
+                Some(g) => {
+                    if g.exe.is_empty() {
+                        g.exe = f.exe;
+                    }
+                    if g.launch.is_empty() || !g.launch.contains("://") && f.launch.contains("://") {
+                        g.launch = f.launch;
+                    }
+                }
+                None => {
+                    let g = crate::store::Game { name: f.name, exe: f.exe, launch: f.launch, source: f.source.into(), ..Default::default() };
+                    self.data.games.insert(f.key, g);
+                    added += 1;
+                }
+            }
+        }
+        self.data.save();
+        added
+    }
+
+    /// Adds games picked by hand (programs or shortcuts). Returns how many are new.
+    pub fn games_add(&mut self, paths: Vec<std::path::PathBuf>) -> usize {
+        let mut added = 0;
+        for p in paths {
+            let path = p.to_string_lossy().to_string();
+            let key = fg::game_key(&path);
+            self.data.settings.game_ignore.retain(|k| *k != key);
+            if self.data.games.contains_key(&key) {
+                continue;
+            }
+            let is_exe = path.to_lowercase().ends_with(".exe");
+            let name = if is_exe { fg::app_name(&path) } else { fg::clean(&fg::stem_name(&path)) };
+            let exe = if is_exe { path.clone() } else { String::new() };
+            let g = crate::store::Game { name, exe, launch: path, source: "Added".into(), ..Default::default() };
+            self.data.games.insert(key, g);
+            added += 1;
+        }
+        self.data.save();
+        self.refresh_games();
+        added
+    }
+
+    pub fn games_search(&mut self, q: &str) {
+        self.play.query = q.to_string();
+        self.refresh_games();
     }
 
     /// Removes a game from the library and stops detecting it.
@@ -481,4 +597,22 @@ impl App {
             self.toast("Permission not granted");
         }
     }
+}
+
+/// "Add game": pick programs. The dialog is modal, so the app isn't borrowed meanwhile.
+pub fn games_pick(shared: &super::Shared) {
+    let hwnd = {
+        let mut a = shared.borrow_mut();
+        a.hovering = true;
+        a.collapse_timer.stop();
+        a.hwnd
+    };
+    let picked = sys::pick_paths_titled(hwnd, false, "Add games (pick the game's program or shortcut)");
+    let mut a = shared.borrow_mut();
+    let n = if picked.is_empty() { 0 } else { a.games_add(picked) };
+    if n > 0 {
+        a.toast(&format!("Added {n} game{}", if n == 1 { "" } else { "s" }));
+    }
+    a.hovering = false;
+    schedule_collapse(shared, &mut a, 3000);
 }

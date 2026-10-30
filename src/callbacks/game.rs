@@ -18,4 +18,8 @@ pub fn wire(b: &Bridge, app: &Shared) {
     // may switch game mode off, which re-reads the tab: let the click finish first
     b.on_game_not_game(|| defer(|s| s.borrow_mut().game_not_game()));
     on!(b, app, on_game_allow_fps, |a| { a.game_allow_fps(); });
+    on!(b, app, on_game_scan, |a| { a.game_scan(true); });
+    on!(b, app, on_game_search, |a, q| { a.games_search(&q); });
+    // the file dialog is modal and pumps messages: open it after the click, unborrowed
+    b.on_game_add(|| defer(crate::app::games_pick));
 }

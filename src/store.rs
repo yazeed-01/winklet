@@ -194,6 +194,8 @@ pub struct Game {
     pub last: Option<NaiveDateTime>,
     /// seconds played per day (last 60 days)
     pub days: BTreeMap<NaiveDate, u32>,
+    /// where it came from when found before being played: "Steam", "Epic", "GOG", "Added"
+    pub source: String,
 }
 
 #[derive(Serialize, Deserialize, Default)]

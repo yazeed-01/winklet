@@ -6,6 +6,7 @@ mod callbacks;
 mod capture;
 mod fg;
 mod fps;
+mod games_scan;
 mod gpu;
 mod gpu_info;
 mod lenovo;

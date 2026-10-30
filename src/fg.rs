@@ -397,6 +397,20 @@ pub fn classify(f: &Fg, known: &HashSet<String>) -> Option<GameHit> {
     None
 }
 
+/// Library key for a game folder or program: the game's folder when it sits in a
+/// known game library (same key `classify` uses), otherwise the lowercased path.
+pub fn game_key(path: &str) -> String {
+    let lower = path.replace('/', "\\").trim_end_matches('\\').to_lowercase();
+    for &marker in LIBRARIES {
+        let Some(i) = lower.find(marker) else { continue };
+        let folder = lower[i + marker.len()..].split('\\').next().unwrap_or("");
+        if !folder.is_empty() {
+            return lower[..i + marker.len() + folder.len()].to_string();
+        }
+    }
+    lower
+}
+
 /// (name, appid) from the Steam library's appmanifest_*.acf whose installdir is `folder`.
 fn steam_manifest(steamapps: &str, folder: &str) -> Option<(String, String)> {
     for entry in std::fs::read_dir(steamapps).ok()?.flatten() {

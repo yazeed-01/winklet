@@ -24,7 +24,7 @@ mod workspaces;
 
 pub use car::{CAR_PUFFS, CAR_SKIDS};
 pub use focus::Focus;
-pub use game::{Play, TAB_GAME};
+pub use game::{Play, TAB_GAME, games_pick};
 pub use screen::ScreenTrack;
 pub use tools::{pick_workspace, take_screenshot};
 pub use wellbeing::Wellbeing;

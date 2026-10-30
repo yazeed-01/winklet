@@ -2,7 +2,7 @@
 
 import { Theme, Icon } from "../theme.slint";
 import { Bridge, GameItem } from "../bridge.slint";
-import { Glyph, Label, Button, Card, Ring, Segmented, Tip, IconButton, ChipToggle, AppIcon } from "../widgets.slint";
+import { Glyph, Label, Button, Card, Ring, Segmented, Tip, IconButton, ChipToggle, AppIcon, Field } from "../widgets.slint";
 import { Stat } from "stat.slint";
 
 // Stateless switch: shows Bridge state, asks Rust to flip it (game mode can also change by hotkey or auto).
@@ -257,6 +257,31 @@ component LibraryView inherits Rectangle {
             Stat { title: "Games"; value: Bridge.games-count; }
             Stat { title: "Most played"; value: Bridge.games-top; tint: Theme.green; }
         }
+        // search · scan · add
+        HorizontalLayout {
+            height: 32px;
+            spacing: 6px;
+            search := Field {
+                height: 32px;
+                horizontal-stretch: 1;
+                placeholder: "Search games";
+                changed text => { Bridge.game-search(self.text); }
+            }
+            Button {
+                icon: Icon.refresh;
+                text: Bridge.games-scanning ? "Scanning…" : "Scan";
+                tip: "Find games installed with Steam, Epic and GOG";
+                clicked => { if !Bridge.games-scanning { Bridge.game-scan(); } }
+            }
+            Button {
+                primary: true;
+                tint: Theme.green;
+                icon: Icon.add;
+                text: "Add game";
+                tip: "Pick a game's program or shortcut yourself";
+                clicked => { Bridge.game-add(); }
+            }
+        }
         Rectangle {
             vertical-stretch: 1;
             Flickable {
@@ -269,9 +294,19 @@ component LibraryView inherits Rectangle {
             if Bridge.games.length == 0: VerticalLayout {
                 alignment: center;
                 spacing: 4px;
-                Glyph { text: Icon.game; font-size: 22px; color: Theme.text-faint; }
-                Label { text: "No games yet"; horizontal-alignment: center; color: Theme.text-dim; font-size: 12px; }
-                Label { text: "Play something; Winklet notices games by itself and counts your hours"; horizontal-alignment: center; color: Theme.text-faint; font-size: 10.5px; }
+                Glyph { text: search.text != "" ? Icon.search : Icon.game; font-size: 22px; color: Theme.text-faint; }
+                Label {
+                    text: search.text != "" ? "No games match \"" + search.text + "\"" : Bridge.games-scanning ? "Looking for installed games…" : "No games yet";
+                    horizontal-alignment: center;
+                    color: Theme.text-dim;
+                    font-size: 12px;
+                }
+                if search.text == "": Label {
+                    text: "Scan finds games from Steam, Epic and GOG · Add game picks one yourself";
+                    horizontal-alignment: center;
+                    color: Theme.text-faint;
+                    font-size: 10.5px;
+                }
             }
         }
     }
