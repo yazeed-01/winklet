@@ -307,7 +307,7 @@ component Collapsed inherits Rectangle {
         }
         if Bridge.battery < 0: Label { text: Bridge.day-text; font-size: 11.5px; font-weight: 600; color: Theme.text-dim; width: 38px; horizontal-alignment: right; }
     }
-    // Resting: clock · (focus timer) · eyes · gear · battery
+    // Resting: clock · (focus timer) · eyes · battery
     if !Bridge.game-mode && (!Bridge.media-playing || Bridge.focus-active || Bridge.eye-mood == 7): Rectangle {
         HorizontalLayout {
             padding-left: 16px;
@@ -343,27 +343,6 @@ component Collapsed inherits Rectangle {
                 }
             }
             Rectangle { horizontal-stretch: 1; }
-            // current gear
-            Rectangle {
-                width: 17px;
-                height: 16px;
-                y: (parent.height - self.height) / 2;
-                border-radius: 5px;
-                background: Theme.gear-tint(Bridge.gear).with-alpha(0.2);
-                border-width: 1px;
-                border-color: Theme.gear-tint(Bridge.gear).with-alpha(0.5);
-                Text {
-                    width: 100%;
-                    height: 100%;
-                    text: Theme.gear-label(Bridge.gear);
-                    color: Theme.gear-tint(Bridge.gear);
-                    font-family: Theme.font-display;
-                    font-size: 10px;
-                    font-weight: 800;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                }
-            }
             if Bridge.has-mic && Bridge.mic-muted: Glyph { text: Icon.mic-off; font-size: 10px; color: Theme.red; }
             if Bridge.charging: Glyph { text: Icon.bolt; font-size: 10px; color: Theme.green; }
             Label {
@@ -615,6 +594,38 @@ component HeaderButton inherits Rectangle {
     }
 }
 
+// Current drive gear, shown in the panel header next to the clock.
+component GearBadge inherits Rectangle {
+    width: 18px;
+    height: 17px;
+    border-radius: 5px;
+    background: Theme.gear-tint(Bridge.gear).with-alpha(ta.has-hover ? 0.32 : 0.2);
+    border-width: 1px;
+    border-color: Theme.gear-tint(Bridge.gear).with-alpha(0.5);
+    animate background { duration: 150ms; }
+    Text {
+        width: 100%;
+        height: 100%;
+        text: Theme.gear-label(Bridge.gear);
+        color: Theme.gear-tint(Bridge.gear);
+        font-family: Theme.font-display;
+        font-size: 10px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            if Bridge.tab != 11 {
+                Bridge.tab-dir = TabOrder.pos(11) > TabOrder.pos(Bridge.tab) ? 1 : -1;
+                Bridge.tab = 11;
+                Bridge.tab-changed(11);
+            }
+        }
+    }
+}
+
 component Expanded inherits Rectangle {
     // tabs + sliding highlight
     Rectangle {
@@ -671,6 +682,7 @@ component Expanded inherits Rectangle {
             clicked => { Bridge.screenshot(); }
             right-clicked => { Bridge.snip(); }
         }
+        if Bridge.toast == "": GearBadge { y: (parent.height - self.height) / 2; }
         if Bridge.toast == "" && Bridge.charging: Glyph { text: Icon.bolt; font-size: 11px; color: Theme.green; }
         Label { text: Bridge.time-text; font-weight: 700; font-size: 13px; font-family: Theme.font-display; }
     }
