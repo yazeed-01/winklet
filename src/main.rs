@@ -46,7 +46,10 @@ fn main() {
     }
 
     let ui = AppWindow::new().expect("create window");
-    let data = Data::load();
+    let mut data = Data::load();
+    if data.settings.island_home_on_start {
+        data.settings.island_pos = None;
+    }
 
     // Start off-screen; the real placement happens once the native window exists.
     ui.window().set_size(slint::LogicalSize::new(SMALL.0, SMALL.1));
@@ -118,6 +121,8 @@ fn main() {
         dash_swept: false,
         drag_from: None,
         drag_timer: Timer::default(),
+        moving: false,
+        move_pressed: false,
         prev_gear: data.settings.gear,
         gear_muted_mic: false,
         dev_ws_sel: String::new(),

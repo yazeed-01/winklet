@@ -54,8 +54,10 @@ pub struct Settings {
     pub car_model: i32,
     /// random eye events (look around, wink, music, ...) instead of blink-only
     pub eyes_lively: bool,
-    /// where the island's top centre sits (physical px), after a right-drag; None = top centre
+    /// where the island's centre sits (physical px) after it was moved; None = top centre
     pub island_pos: Option<(i32, i32)>,
+    /// every launch puts the island back at the top centre
+    pub island_home_on_start: bool,
     // ---- wellbeing ----
     pub stand_reminders: bool,
     pub stand_interval_min: i32,
@@ -112,6 +114,7 @@ impl Default for Settings {
             car_model: 0,
             eyes_lively: true,
             island_pos: None,
+            island_home_on_start: true,
             stand_reminders: true,
             stand_interval_min: 50,
             eye_rest: false,

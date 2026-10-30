@@ -18,6 +18,7 @@ pub fn wire(b: &Bridge, app: &Shared) {
             "fullscreen" => a.data.settings.hide_fullscreen = value,
             "water" => a.data.settings.water_reminders = value,
             "car" => a.data.settings.car_show = value,
+            "homestart" => a.data.settings.island_home_on_start = value,
             "stand" => a.data.settings.stand_reminders = value,
             "eyerest" => a.data.settings.eye_rest = value,
             "waitpause" => a.data.settings.wait_for_pause = value,
@@ -62,6 +63,9 @@ pub fn wire(b: &Bridge, app: &Shared) {
         a.data.save();
         a.refresh_settings();
     });
+    on!(b, app, on_island_home, |a| { a.island_home(); });
+    // collapses the panel it was clicked in: let the click finish first
+    b.on_island_move(|| defer(App::start_move));
     b.on_car_preview(|| {
         defer(|s| {
             s.borrow_mut().stop_car_show();

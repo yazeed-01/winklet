@@ -47,6 +47,8 @@ pub const SMALL: (f32, f32) = (340.0, 44.0);
 /// game mode's pill is wider (time, FPS, CPU, eyes, GPU, RAM, battery)
 const SMALL_GAME: (f32, f32) = (444.0, 44.0);
 const BIG: (f32, f32) = (620.0, 364.0);
+/// the pill docked on the left or right edge stands upright
+const VERT: (f32, f32) = (52.0, 180.0);
 const BIG_CAR: (f32, f32) = (620.0, 484.0);
 
 pub const TAB_HEALTH: i32 = 4;
@@ -111,6 +113,9 @@ pub struct App {
     /// right-drag in progress: (cursor, island anchor) when the button went down
     pub drag_from: Option<((i32, i32), (i32, i32))>,
     pub drag_timer: Timer,
+    /// "Move" from settings: the island follows the pointer until a click drops it
+    pub moving: bool,
+    pub move_pressed: bool,
     /// gear before the last shift (R goes back to it)
     pub prev_gear: i32,
     /// gear 6 muted the mic, so shifting out unmutes it
@@ -201,15 +206,24 @@ impl App {
     }
 
     pub fn place(&mut self) {
-        let scale = self.ui().window().scale_factor();
-        let (w, h) = self.cur_size;
-        let docked = sys::place_island(
-            self.hwnd,
-            (w * scale).round() as i32,
-            (h * scale).round() as i32,
-            self.data.settings.island_pos,
-        );
-        self.ui().global::<Bridge>().set_docked(docked);
+        let ui = self.ui();
+        let scale = ui.window().scale_factor();
+        let anchor = self.data.settings.island_pos;
+        let edge = sys::island_edge(anchor, scale);
+        let pill = self.cur_size == SMALL || self.cur_size == SMALL_GAME;
+        let (w, h) = if pill && (edge == sys::EDGE_LEFT || edge == sys::EDGE_RIGHT) { VERT } else { self.cur_size };
+        sys::place_island(self.hwnd, (w * scale).round() as i32, (h * scale).round() as i32, anchor, edge, scale);
+        let b = ui.global::<Bridge>();
+        b.set_edge(edge);
+        b.set_docked(edge == sys::EDGE_TOP);
+    }
+
+    /// "Top centre" in settings: back to where it started.
+    pub fn island_home(&mut self) {
+        self.data.settings.island_pos = None;
+        self.data.save();
+        self.place();
+        self.toast("Back at the top centre");
     }
 
     pub fn rand(&mut self) -> f32 {

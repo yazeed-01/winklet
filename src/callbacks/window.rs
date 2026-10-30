@@ -23,6 +23,9 @@ pub fn wire(b: &Bridge, app: &Shared) {
                 }
                 return;
             }
+            if a.drag_from.is_some() {
+                return; // being moved: don't open
+            }
             if inside {
                 a.collapse_timer.stop();
                 if !a.ui().global::<Bridge>().get_expanded() {
@@ -50,7 +53,9 @@ pub fn wire(b: &Bridge, app: &Shared) {
         });
     }
     on!(b, app, on_clicked, |a| {
-        if !a.ui().global::<Bridge>().get_expanded() {
+        let ui = a.ui();
+        let b = ui.global::<Bridge>();
+        if !b.get_expanded() && !b.get_dragging() && a.drag_from.is_none() {
             a.expand();
         }
     });

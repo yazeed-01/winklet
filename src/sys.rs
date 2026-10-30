@@ -22,7 +22,7 @@ use windows::Win32::UI::Shell::{
     QUNS_BUSY, QUNS_PRESENTATION_MODE, QUNS_RUNNING_D3D_FULL_SCREEN, SHQueryUserNotificationState, ShellExecuteW,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    GWL_EXSTYLE, GetCursorPos, GetWindowLongPtrW, GetWindowRect, HWND_TOPMOST, SW_HIDE, SW_SHOWNOACTIVATE, SW_SHOWNORMAL, SWP_NOACTIVATE,
+    GWL_EXSTYLE, GetCursorPos, GetWindowLongPtrW, HWND_TOPMOST, SW_HIDE, SW_SHOWNOACTIVATE, SW_SHOWNORMAL, SWP_NOACTIVATE,
     SetWindowLongPtrW, SetWindowPos, ShowWindow, WS_EX_APPWINDOW, WS_EX_TOOLWINDOW,
 };
 use windows::core::{HSTRING, PCWSTR, w};
@@ -48,46 +48,83 @@ pub fn make_tool_window(hwnd: HWND) {
     }
 }
 
-/// Moves/resizes the window so it is centered on the top edge of the primary monitor.
-/// Size is in physical pixels.
-/// Places the island window so the island's top centre sits at `anchor` (physical px);
-/// `None` = top centre of the primary screen. The window stays on the anchor's monitor and
-/// snaps to the top edge (and the centre line there) when close. Returns true when docked
-/// to the top edge, where it reads as a notch.
-pub fn place_island(hwnd: HWND, w: i32, h: i32, anchor: Option<(i32, i32)>) -> bool {
-    const SNAP: i32 = 28;
+/// Screen edge the island sits on.
+pub const EDGE_TOP: i32 = 0;
+pub const EDGE_BOTTOM: i32 = 1;
+pub const EDGE_LEFT: i32 = 2;
+pub const EDGE_RIGHT: i32 = 3;
+pub const EDGE_FLOAT: i32 = 4;
+
+/// (monitor rect, work area) of the monitor holding `p`, or the primary one.
+fn monitor_rects(p: Option<(i32, i32)>) -> (RECT, RECT) {
     unsafe {
-        let mon = match anchor {
+        let mon = match p {
             Some((x, y)) => MonitorFromPoint(POINT { x, y }, MONITOR_DEFAULTTONEAREST),
             None => MonitorFromPoint(POINT { x: 0, y: 0 }, MONITOR_DEFAULTTOPRIMARY),
         };
         let mut mi = MONITORINFO { cbSize: size_of::<MONITORINFO>() as u32, ..Default::default() };
         let _ = GetMonitorInfoW(mon, &mut mi);
-        let (m, wk) = (mi.rcMonitor, mi.rcWork);
-        let mid = (m.left + m.right) / 2;
-        let (mut cx, top) = anchor.unwrap_or((mid, m.top));
-        let docked = top - wk.top < SNAP;
-        if docked && (cx - mid).abs() < SNAP {
-            cx = mid;
-        }
-        let x = (cx - w / 2).clamp(wk.left, (wk.right - w).max(wk.left));
-        let y = if docked { m.top } else { top.clamp(wk.top, (wk.bottom - h).max(wk.top)) };
-        let _ = SetWindowPos(hwnd, Some(HWND_TOPMOST), x, y, w, h, SWP_NOACTIVATE);
-        docked
+        (mi.rcMonitor, mi.rcWork)
     }
 }
 
-/// Top centre of the window (physical px).
-pub fn window_anchor(hwnd: HWND) -> (i32, i32) {
-    let mut r = RECT::default();
-    let _ = unsafe { GetWindowRect(hwnd, &mut r) };
-    ((r.left + r.right) / 2, r.top)
+/// Where the pill's centre sits at the top centre of the primary screen (physical px).
+pub fn default_anchor(scale: f32) -> (i32, i32) {
+    let (m, _) = monitor_rects(None);
+    ((m.left + m.right) / 2, m.top + (17.0 * scale) as i32)
+}
+
+/// Which edge the island docks to when its centre is at `anchor`: the closest edge
+/// within reach, else it floats. `None` = top centre.
+pub fn island_edge(anchor: Option<(i32, i32)>, scale: f32) -> i32 {
+    let Some((cx, cy)) = anchor else { return EDGE_TOP };
+    let (_, wk) = monitor_rects(anchor);
+    let reach = (44.0 * scale) as i32;
+    [(cy - wk.top, EDGE_TOP), (wk.bottom - cy, EDGE_BOTTOM), (cx - wk.left, EDGE_LEFT), (wk.right - cx, EDGE_RIGHT)]
+        .into_iter()
+        .filter(|(d, _)| *d < reach)
+        .min_by_key(|(d, _)| *d)
+        .map(|(_, e)| e)
+        .unwrap_or(EDGE_FLOAT)
+}
+
+/// Places the island window (size in physical px) flush against `edge`, centred on the
+/// anchor along that edge (top and bottom snap to the middle when close). Floating, the
+/// pill's centre sits on the anchor and the panel opens downwards.
+pub fn place_island(hwnd: HWND, w: i32, h: i32, anchor: Option<(i32, i32)>, edge: i32, scale: f32) {
+    let (cx, cy) = anchor.unwrap_or_else(|| default_anchor(scale));
+    let (m, wk) = monitor_rects(Some((cx, cy)));
+    let mid = (m.left + m.right) / 2;
+    let snap = (28.0 * scale) as i32;
+    let ccx = if (cx - mid).abs() < snap { mid } else { cx };
+    let (x, y) = match edge {
+        EDGE_TOP => (ccx - w / 2, m.top),
+        EDGE_BOTTOM => (ccx - w / 2, wk.bottom - h),
+        EDGE_LEFT => (wk.left, cy - h / 2),
+        EDGE_RIGHT => (wk.right - w, cy - h / 2),
+        _ => (cx - w / 2, cy - (17.0 * scale) as i32),
+    };
+    let x = x.clamp(wk.left, (wk.right - w).max(wk.left));
+    let y = if edge == EDGE_TOP { y } else { y.clamp(wk.top, (wk.bottom - h).max(wk.top)) };
+    unsafe {
+        let _ = SetWindowPos(hwnd, Some(HWND_TOPMOST), x, y, w, h, SWP_NOACTIVATE);
+    }
 }
 
 pub fn cursor_pos() -> (i32, i32) {
     let mut p = POINT::default();
     let _ = unsafe { GetCursorPos(&mut p) };
     (p.x, p.y)
+}
+
+pub fn left_button_down() -> bool {
+    use windows::Win32::UI::Input::KeyboardAndMouse::VK_LBUTTON;
+    unsafe { GetAsyncKeyState(VK_LBUTTON.0 as i32) as u16 & 0x8000 != 0 }
+}
+
+pub fn escape_down() -> bool {
+    use windows::Win32::UI::Input::KeyboardAndMouse::VK_ESCAPE;
+    unsafe { GetAsyncKeyState(VK_ESCAPE.0 as i32) as u16 & 0x8000 != 0 }
 }
 
 pub fn right_button_down() -> bool {

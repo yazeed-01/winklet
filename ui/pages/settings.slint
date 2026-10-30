@@ -80,6 +80,24 @@ export component SettingsPage inherits Rectangle {
             spacing: 6px;
             SettingRow { title: "Lively eyes"; sub: "Look around, wink, music, zzz…"; key: "eyes"; value: Bridge.eyes-lively; }
             SettingRow { title: "Car show on open"; sub: "Drives in and drifts under the island"; key: "car"; value: Bridge.car-enabled; }
+            SettingRow { title: "Top centre at start"; sub: "Each launch puts it back there"; key: "homestart"; value: Bridge.island-home-start; }
+            HorizontalLayout {
+                spacing: 6px;
+                Button {
+                    icon: Icon.drag-move;
+                    text: "Move";
+                    tip: "Pick it up, then click to drop it · docks to any screen edge, upright on the sides";
+                    horizontal-stretch: 1;
+                    clicked => { Bridge.island-move(); }
+                }
+                Button {
+                    icon: Icon.reset;
+                    text: "Top centre";
+                    tip: "Put it back at the top centre";
+                    horizontal-stretch: 1;
+                    clicked => { Bridge.island-home(); }
+                }
+            }
             HorizontalLayout {
                 spacing: 6px;
                 CarPick { model: 0; art: Cars.jdm; name: "JDM"; }

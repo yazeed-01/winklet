@@ -66,6 +66,7 @@ impl App {
         b.set_water_interval(st.water_interval_min);
         b.set_workspace(s(st.workspace_dir.clone()));
         b.set_car_enabled(st.car_show);
+        b.set_island_home_start(st.island_home_on_start);
         b.set_car_model(st.car_model);
         b.set_eyes_lively(st.eyes_lively);
         b.set_stand_enabled(st.stand_reminders);

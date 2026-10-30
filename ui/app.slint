@@ -284,6 +284,40 @@ component PillStat inherits VerticalLayout {
     Text { text: root.value; font-family: Theme.font-display; font-size: 12px; font-weight: 700; color: root.tint; horizontal-alignment: center; }
 }
 
+// The pill standing upright on the left or right screen edge: time · (FPS) · eyes · battery
+component VerticalPill inherits Rectangle {
+    VerticalLayout {
+        padding-top: 12px;
+        padding-bottom: 12px;
+        spacing: 2px;
+        Label {
+            text: Bridge.time-short;
+            font-size: 11.5px;
+            font-weight: 700;
+            font-family: Theme.font-display;
+            horizontal-alignment: center;
+            opacity: Bridge.user-idle ? 0.35 : 1;
+        }
+        if Bridge.game-mode: Label {
+            text: Bridge.game-fps;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: Theme.font-display;
+            horizontal-alignment: center;
+            color: Bridge.game-fps-n < 0 ? Theme.text-dim : Bridge.game-fps-n >= 60 ? Theme.green : Bridge.game-fps-n >= 30 ? Theme.orange : Theme.red;
+        }
+        Rectangle { vertical-stretch: 1; }
+        if Bridge.charging: Glyph { text: Icon.bolt; font-size: 9px; color: Theme.green; }
+        Label {
+            text: Bridge.battery >= 0 ? Bridge.battery + "%" : Bridge.day-text;
+            font-size: 10.5px;
+            font-weight: 600;
+            horizontal-alignment: center;
+            color: Bridge.battery >= 0 && Bridge.battery <= 15 && !Bridge.charging ? Theme.red : Theme.text-dim;
+        }
+    }
+}
+
 component Collapsed inherits Rectangle {
     // Game mode: time · FPS · CPU · (eyes with a controller) · GPU · RAM · battery
     if Bridge.game-mode: HorizontalLayout {
@@ -754,9 +788,11 @@ export component AppWindow inherits Window {
 
     property <length> pill-w: Bridge.game-mode ? 404px : Bridge.focus-active ? 320px : Bridge.media-playing ? 300px : 226px;
     property <length> peek-w: Bridge.peek-kind == 11 || Bridge.peek-kind == 17 ? 460px : 400px;
-    property <length> island-w: Bridge.expanded ? 580px : Bridge.peeking ? peek-w : pill-w;
-    property <length> island-h: Bridge.expanded ? 336px : Bridge.peeking ? 64px : 34px;
-    property <length> radius: Bridge.expanded ? 32px : Bridge.peeking ? 26px : 17px;
+    // docked on the left or right edge the pill stands upright
+    property <bool> side: (Bridge.edge == 2 || Bridge.edge == 3) && !Bridge.expanded && !Bridge.peeking;
+    property <length> island-w: Bridge.expanded ? 580px : Bridge.peeking ? peek-w : side ? 40px : pill-w;
+    property <length> island-h: Bridge.expanded ? 336px : Bridge.peeking ? 64px : side ? 168px : 34px;
+    property <length> radius: Bridge.expanded ? 32px : Bridge.peeking ? 26px : side ? 20px : 17px;
 
     Ear {
         visible: Bridge.docked;
@@ -771,16 +807,17 @@ export component AppWindow inherits Window {
     }
 
     island := Rectangle {
-        y: 0;
-        x: (parent.width - self.width) / 2;
+        // flush against the edge it's docked to (the window itself sits on that edge)
+        y: Bridge.edge == 1 ? parent.height - self.height : Bridge.edge == 2 || Bridge.edge == 3 ? (parent.height - self.height) / 2 : 0;
+        x: Bridge.edge == 2 ? 0 : Bridge.edge == 3 ? parent.width - self.width : (parent.width - self.width) / 2;
         width: island-w;
         height: island-h;
         background: Theme.island;
-        border-bottom-left-radius: radius;
-        border-bottom-right-radius: radius;
-        // away from the top edge it floats, so round every corner
-        border-top-left-radius: Bridge.docked ? 0 : radius;
-        border-top-right-radius: Bridge.docked ? 0 : radius;
+        // square corners on the docked side, round everywhere else
+        border-top-left-radius: Bridge.edge == 0 || Bridge.edge == 2 ? 0 : radius;
+        border-top-right-radius: Bridge.edge == 0 || Bridge.edge == 3 ? 0 : radius;
+        border-bottom-left-radius: Bridge.edge == 1 || Bridge.edge == 2 ? 0 : radius;
+        border-bottom-right-radius: Bridge.edge == 1 || Bridge.edge == 3 ? 0 : radius;
         drop-shadow-blur: Bridge.expanded ? 24px : 8px;
         drop-shadow-offset-y: 4px;
         drop-shadow-color: #00000080;
@@ -805,7 +842,12 @@ export component AppWindow inherits Window {
             changed has-hover => { Bridge.hover(self.has-hover); }
             clicked => { Bridge.clicked(); }
 
+            if root.side: VerticalPill {
+                width: island.width;
+                height: island.height;
+            }
             collapsed := Collapsed {
+                visible: !root.side;
                 width: pill-w;
                 height: 34px;
                 x: (island.width - self.width) / 2;
@@ -827,10 +869,10 @@ export component AppWindow inherits Window {
                 opacity: 0;
             }
             // one pair of eyes for pill and panel, so they stay put while the island opens
-            if Bridge.show-eyes && (Bridge.expanded || Bridge.game-mode || !Bridge.media-playing || Bridge.focus-active || Bridge.eye-mood == 7): Eyes {
+            if Bridge.show-eyes && (root.side || Bridge.expanded || Bridge.game-mode || !Bridge.media-playing || Bridge.focus-active || Bridge.eye-mood == 7): Eyes {
                 width: pill-w;
                 x: (island.width - self.width) / 2;
-                y: 0;
+                y: root.side ? (island.height - self.height) / 2 : 0;
                 sleepy: Bridge.user-idle && Bridge.eye-mood == 0 && !Bridge.expanded && !Bridge.game-mode;
                 gaming: Bridge.game-mode;
                 playing: Bridge.game-running;
