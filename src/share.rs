@@ -281,7 +281,10 @@ fn is_format_char(c: char) -> bool {
 /// out to another computer. Received ones get ".download" added so they stay inert.
 fn defang(name: String) -> String {
     let lower = name.to_ascii_lowercase();
-    const RISKY: &[&str] = &[".lnk", ".url", ".scf", ".library-ms", ".searchconnector-ms", ".website", ".appref-ms", ".theme", ".themepack"];
+    const RISKY: &[&str] = &[
+        ".lnk", ".url", ".scf", ".library-ms", ".searchconnector-ms", ".search-ms", ".settingcontent-ms",
+        ".website", ".appref-ms", ".theme", ".themepack", ".deskthemepack", ".desktopthemepackfile", ".msc",
+    ];
     if RISKY.iter().any(|e| lower.ends_with(e)) || lower == "desktop.ini" {
         format!("{name}.download")
     } else {
@@ -295,19 +298,22 @@ pub fn sanitize(name: &str) -> String {
         .filter(|c| !is_format_char(*c))
         .map(|c| if "\\/:*?\"<>|".contains(c) || c.is_control() { '_' } else { c })
         .collect();
-    let n = n.trim().trim_start_matches('.').trim_end_matches(['.', ' ']).to_string();
+    // shorten first, then trim: Windows drops trailing dots and spaces itself, so the name
+    // checked below must already be exactly the name the file gets
     let n: String = n.chars().take(180).collect();
+    let n = n.trim().trim_start_matches('.').trim_end_matches(['.', ' ']).to_string();
     // Windows reserved device names (CON, NUL, COM1…) can't be normal files
     let stem = n.split('.').next().unwrap_or("").to_ascii_uppercase();
     let reserved = matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
         || ((stem.starts_with("COM") || stem.starts_with("LPT")) && stem.len() == 4 && stem.as_bytes()[3].is_ascii_digit());
-    if n.is_empty() {
+    let n = if n.is_empty() {
         "file".into()
     } else if reserved {
         format!("_{n}")
     } else {
         n
-    }
+    };
+    defang(n)
 }
 
 /// Marks a received file as coming from another device ("Mark of the Web"), so
@@ -391,7 +397,7 @@ fn handle(req: tiny_http::Request, tok: &str, s: &Server, notify: &(dyn Fn(Event
             return;
         }
         // a brand-new file only: never opens (or later deletes) one that already exists
-        let Some((target, file)) = create_new(&s.inbox, &defang(sanitize(&name))) else {
+        let Some((target, file)) = create_new(&s.inbox, &sanitize(&name)) else {
             let _ = req.respond(tiny_http::Response::from_string("error").with_status_code(500));
             return;
         };
@@ -483,6 +489,10 @@ mod tests {
         assert_eq!(defang("x.searchConnector-ms".into()), "x.searchConnector-ms.download");
         assert_eq!(defang("desktop.ini".into()), "desktop.ini.download");
         assert_eq!(defang("photo.jpg".into()), "photo.jpg");
+        // trailing dots or spaces Windows would drop, even right at the length limit
+        assert_eq!(sanitize("evil.lnk. . ."), "evil.lnk.download");
+        let long = format!("{}.lnk.", "a".repeat(175));
+        assert!(sanitize(&long).ends_with(".download") || !sanitize(&long).to_lowercase().ends_with(".lnk"));
     }
 
     #[test]
