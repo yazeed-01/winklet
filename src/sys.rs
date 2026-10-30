@@ -191,18 +191,33 @@ fn ft(f: FILETIME) -> u64 {
 
 thread_local! {
     static LAST_CPU: Cell<(u64, u64)> = const { Cell::new((0, 0)) };
+    /// (tick ms, value) of the last CPU reading
+    static CPU_READING: Cell<(u64, f32)> = const { Cell::new((0, 0.0)) };
 }
 
 /// System-wide CPU usage (0..1) since the previous call.
 pub fn cpu_usage() -> f32 {
+    // Several views ask for this (Dev, Dash, game stats). Each call measures since the
+    // previous one, so two calls close together saw almost no time pass and read 0%:
+    // keep the last reading until at least half a second has gone by.
+    let now = unsafe { GetTickCount64() };
+    let (at, last) = CPU_READING.with(|c| c.get());
+    if at != 0 && now.saturating_sub(at) < 500 {
+        return last;
+    }
     let (mut idle, mut kernel, mut user) = (FILETIME::default(), FILETIME::default(), FILETIME::default());
     if unsafe { GetSystemTimes(Some(&mut idle), Some(&mut kernel), Some(&mut user)) }.is_err() {
-        return 0.0;
+        return last;
     }
     let (idle, total) = (ft(idle), ft(kernel) + ft(user)); // kernel time includes idle
     let (pi, pt) = LAST_CPU.with(|c| c.replace((idle, total)));
     let (di, dt) = (idle.saturating_sub(pi), total.saturating_sub(pt));
-    if pt == 0 || dt == 0 { 0.0 } else { (1.0 - di as f32 / dt as f32).clamp(0.0, 1.0) }
+    if pt == 0 || dt == 0 {
+        return last;
+    }
+    let v = (1.0 - di as f32 / dt as f32).clamp(0.0, 1.0);
+    CPU_READING.with(|c| c.set((now, v)));
+    v
 }
 
 /// (load 0..1, used GB, total GB)
