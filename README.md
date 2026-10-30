@@ -197,7 +197,7 @@ powershell -ExecutionPolicy Bypass -File install.ps1   # install to %LOCALAPPDAT
 
 You can also turn on **Launch at startup** in Settings. It writes `HKCU\...\CurrentVersion\Run\Winklet`, the same mechanism other tray apps use, so no admin rights are needed.
 
-Your data stays on your PC in `%APPDATA%\Winklet`: `data.json` for tasks, settings, drinks, health and games, and `screen.json` for screen time. **Settings → Your data** opens that folder or wipes it. There are no accounts and no network calls.
+Your data stays on your PC in `%APPDATA%\Winklet`: `data.json` for tasks, settings, drinks, health and games, and `screen.json` for screen time. **Settings → Your data** opens that folder or wipes it. There are no accounts and nothing goes online: only **Send** talks to the network, and only to devices on your Wi-Fi while a link is open.
 
 ## How it stays light
 
