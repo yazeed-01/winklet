@@ -98,12 +98,12 @@ Stand-up reminders wait for a pause in your typing, hold off during calls, fulls
 
 Not just water: tap **Water, Tea, Green tea, Coffee, Espresso, Iced latte, Spanish latte, Matcha latte, Juice, Milk, Sparkling** or **Hot chocolate**, then pick how much from cups drawn out for you: a shot (40 ml), tea glass (150), cup (250), big mug (350), tall glass (400), bottle (500) or big bottle (1 L), or any other amount. The size you had last time is marked, so it adapts to your own cups. Each drink has its own colour, and the bottle fills in layers of what you drank today, with moving waves in the colour of the last one and bubbles rising through it. Drinks you had today light up in their colour.
 
-* **Your own drinks.** **New drink** asks for a name (Cortado, Mocha, Lemonade…), one of 12 colours and the usual cup size. Right-click any drink to rename it, recolour it, change its cup size or remove it.
+* **Your own drinks.** **New drink** asks for a name (Cortado, Mocha, Lemonade…) and one of 12 colours; you pick the size when you log it. Right-click any drink to rename it, recolour it or remove it.
 * Every drink counts towards the daily goal. **Undo** takes back the last one, and the 7-day chart shows how close each day got.
 * Reminders come every N minutes between 08:00 and 22:00, with a one-click **+cup** of water.
 
 <img src="docs/screenshots/water.png" width="440" alt="Water tab: a bottle filled in drink-coloured layers and the drink tiles"> <img src="docs/screenshots/water-sizes.png" width="440" alt="Picking how much: shot, tea glass, cup, big mug, tall glass, bottle or big bottle">
-<img src="docs/screenshots/water-new-drink.png" width="440" alt="Adding your own drink with a name, colour and cup size">
+<img src="docs/screenshots/water-new-drink.png" width="440" alt="Adding your own drink with a name and colour">
 
 ### Alarms
 
