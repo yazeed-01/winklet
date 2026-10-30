@@ -1,8 +1,8 @@
 //! Audio tab: master and per-app volume, microphone mute and mic test.
 
 use super::{App, s};
-use crate::{AppVolume, Bridge, sys};
-use slint::{ComponentHandle, Model};
+use crate::{AppVolume, Bridge, MicItem, sys};
+use slint::{ComponentHandle, Model, ModelRc, VecModel};
 
 impl App {
     pub fn refresh_audio(&mut self) {
@@ -64,6 +64,26 @@ impl App {
         sys::play_sound(if muted { "DeviceConnect" } else { "DeviceDisconnect" });
         self.peek(9, if muted { "Microphone on" } else { "Microphone muted" }, &name, 2);
         self.eye_event(6, 4.0);
+    }
+
+    /// The mic list for the picker.
+    pub fn refresh_mics(&self) {
+        let Some(audio) = &self.audio else { return };
+        let items: Vec<MicItem> =
+            audio.mics().into_iter().map(|(id, name, active)| MicItem { id: s(id), name: s(name), active }).collect();
+        self.ui().global::<Bridge>().set_mics(ModelRc::new(VecModel::from(items)));
+    }
+
+    pub fn select_mic(&mut self, id: &str) {
+        let Some(audio) = &self.audio else { return };
+        if !audio.set_default_mic(id) {
+            self.toast("Couldn't switch microphone");
+            return;
+        }
+        self.stop_mic_test(); // the test listens to the old one
+        self.refresh_audio();
+        self.refresh_mics();
+        self.toast("Microphone switched");
     }
 
     pub fn stop_mic_test(&mut self) {

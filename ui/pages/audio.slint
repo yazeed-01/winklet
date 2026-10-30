@@ -1,7 +1,7 @@
 // Audio: output volume, microphone and per-app volume.
 
 import { Theme, Icon } from "../theme.slint";
-import { Bridge, AppVolume } from "../bridge.slint";
+import { Bridge, AppVolume, MicItem } from "../bridge.slint";
 import { Glyph, Label, IconButton, Button, Card, VolSlider } from "../widgets.slint";
 
 component AppRow inherits Rectangle {
@@ -103,11 +103,31 @@ export component AudioPage inherits Rectangle {
                     spacing: 8px;
                     HorizontalLayout {
                         spacing: 8px;
-                        VerticalLayout {
+                        // full name; click it to switch to another microphone
+                        Rectangle {
                             horizontal-stretch: 1;
-                            alignment: center;
-                            Label { text: "Microphone"; font-weight: 700; font-size: 12.5px; }
-                            Label { text: Bridge.mic-name; font-size: 10px; color: Theme.text-faint; }
+                            border-radius: 8px;
+                            background: nta.has-hover || Bridge.mic-pick-open ? Theme.surface : transparent;
+                            animate background { duration: 120ms; }
+                            VerticalLayout {
+                                padding: 4px;
+                                padding-left: 6px;
+                                alignment: center;
+                                HorizontalLayout {
+                                    spacing: 4px;
+                                    Label { text: "Microphone"; font-weight: 700; font-size: 12.5px; horizontal-stretch: 0; }
+                                    Glyph { text: Icon.chevron-down; font-size: 8px; color: Theme.text-faint; }
+                                    Rectangle { horizontal-stretch: 1; }
+                                }
+                                Label { text: Bridge.mic-name; font-size: 10px; color: Theme.text-faint; wrap: word-wrap; overflow: clip; }
+                            }
+                            nta := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => {
+                                    Bridge.mic-pick-open = !Bridge.mic-pick-open;
+                                    if Bridge.mic-pick-open { Bridge.mic-list(); }
+                                }
+                            }
                         }
                         Rectangle {
                             width: 36px;
@@ -165,6 +185,63 @@ export component AudioPage inherits Rectangle {
                     text: "No apps are playing sound";
                     color: Theme.text-faint;
                     font-size: 12px;
+                }
+            }
+        }
+    }
+    init => { Bridge.mic-pick-open = false; }
+    // microphone picker; a click anywhere else closes it
+    if Bridge.mic-pick-open: TouchArea {
+        width: parent.width;
+        height: parent.height;
+        clicked => { Bridge.mic-pick-open = false; }
+    }
+    if Bridge.mic-pick-open: Rectangle {
+        x: 0;
+        y: 96px;
+        width: 300px;
+        height: min(parent.height - self.y, miclist.preferred-height);
+        border-radius: 14px;
+        background: #1c1c22;
+        border-width: 1px;
+        border-color: Theme.stroke;
+        drop-shadow-blur: 18px;
+        drop-shadow-color: #000a;
+        clip: true;
+        TouchArea { }
+        miclist := VerticalLayout {
+            padding: 6px;
+            spacing: 2px;
+            Label { text: "Choose microphone"; font-size: 10.5px; font-weight: 700; color: Theme.text-dim; height: 22px; x: 6px; }
+            if Bridge.mics.length == 0: Label { text: "No microphones found"; font-size: 11px; color: Theme.text-faint; height: 28px; }
+            for m in Bridge.mics: Rectangle {
+                min-height: 34px;
+                border-radius: 9px;
+                background: m.active ? #34d3991f : mta.has-hover ? Theme.surface-hover : transparent;
+                animate background { duration: 120ms; }
+                HorizontalLayout {
+                    padding-left: 8px;
+                    padding-right: 8px;
+                    padding-top: 6px;
+                    padding-bottom: 6px;
+                    spacing: 8px;
+                    Glyph { text: Icon.mic; font-size: 12px; color: m.active ? Theme.green : Theme.text-dim; }
+                    Label {
+                        text: m.name;
+                        font-size: 11.5px;
+                        font-weight: m.active ? 700 : 400;
+                        wrap: word-wrap;
+                        overflow: clip;
+                        horizontal-stretch: 1;
+                    }
+                    if m.active: Glyph { text: Icon.check; font-size: 11px; color: Theme.green; }
+                }
+                mta := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        if !m.active { Bridge.mic-select(m.id); }
+                        Bridge.mic-pick-open = false;
+                    }
                 }
             }
         }

@@ -44,6 +44,8 @@ pub fn wire(b: &Bridge, app: &Shared) {
         a.refresh_audio();
     });
     on!(b, app, on_mic_toggle, |a| { a.toggle_mic(); });
+    on!(b, app, on_mic_list, |a| { a.refresh_mics(); });
+    on!(b, app, on_mic_select, |a, id| { a.select_mic(&id); });
     {
         let shared = app.clone();
         b.on_mic_test(move || {

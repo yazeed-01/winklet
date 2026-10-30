@@ -5789,6 +5789,7 @@ dependencies = [
  "slint-build",
  "uuid",
  "windows",
+ "windows-core",
 ]
 
 [[package]]

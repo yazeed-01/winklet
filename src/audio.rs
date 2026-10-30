@@ -7,7 +7,7 @@ use windows::Win32::Media::Audio::Endpoints::{IAudioEndpointVolume, IAudioMeterI
 use windows::Win32::Media::Audio::{
     AUDCLNT_SHAREMODE_SHARED, AudioSessionStateActive, AudioSessionStateExpired, IAudioCaptureClient, IAudioClient, IAudioSessionControl2,
     IAudioSessionManager2, IMMDevice, IMMDeviceEnumerator, ISimpleAudioVolume, MMDeviceEnumerator, eCapture, eConsole,
-    eRender,
+    eRender, DEVICE_STATE_ACTIVE,
 };
 use windows::Win32::System::Com::{CLSCTX_ALL, CoCreateInstance, CoTaskMemFree, STGM_READ};
 use windows::Win32::System::Threading::{
@@ -167,12 +167,7 @@ impl Audio {
     }
 
     pub fn mic_name(&self) -> String {
-        let get = || -> Result<String> {
-            let store = unsafe { self.mic()?.OpenPropertyStore(STGM_READ)? };
-            let v = unsafe { store.GetValue(&PKEY_Device_FriendlyName)? };
-            Ok(v.to_string())
-        };
-        get().unwrap_or_else(|_| "No microphone".into())
+        self.mic().and_then(|d| device_name(&d)).unwrap_or_else(|_| "No microphone".into())
     }
 
     /// True while another app is capturing from the mic (a call, a recording...).
@@ -193,6 +188,29 @@ impl Audio {
             Ok(false)
         };
         check().unwrap_or(false)
+    }
+
+    /// Every working microphone: (device id, full name, is the default).
+    pub fn mics(&self) -> Vec<(String, String, bool)> {
+        let default = self.mic().ok().and_then(|d| device_id(&d).ok()).unwrap_or_default();
+        let list = || -> Result<Vec<(String, String, bool)>> {
+            let all = unsafe { self.devices.EnumAudioEndpoints(eCapture, DEVICE_STATE_ACTIVE)? };
+            let mut out = Vec::new();
+            for i in 0..unsafe { all.GetCount()? } {
+                let dev = unsafe { all.Item(i)? };
+                let id = device_id(&dev)?;
+                let name = device_name(&dev).unwrap_or_else(|_| "Microphone".into());
+                let on = id == default;
+                out.push((id, name, on));
+            }
+            Ok(out)
+        };
+        list().unwrap_or_default()
+    }
+
+    /// Makes `id` the default microphone for every use (apps, calls), like the Sound settings do.
+    pub fn set_default_mic(&self, id: &str) -> bool {
+        policy::set_default(id)
     }
 
     pub fn start_mic_test(&self) -> Option<MicTest> {
@@ -281,6 +299,63 @@ impl Drop for MicTest {
     }
 }
 
+fn device_name(dev: &IMMDevice) -> Result<String> {
+    let store = unsafe { dev.OpenPropertyStore(STGM_READ)? };
+    let v = unsafe { store.GetValue(&PKEY_Device_FriendlyName)? };
+    Ok(v.to_string())
+}
+
+fn device_id(dev: &IMMDevice) -> Result<String> {
+    unsafe {
+        let p = dev.GetId()?;
+        let s = p.to_string().unwrap_or_default();
+        CoTaskMemFree(Some(p.0 as *const _));
+        Ok(s)
+    }
+}
+
+/// Undocumented but long-stable COM interface Windows' own Sound settings use to change the
+/// default device (there is no public API for it). Only SetDefaultEndpoint is called; the
+/// other slots just keep the vtable order.
+#[allow(non_snake_case)]
+mod policy {
+    use std::ffi::c_void;
+    use windows::Win32::Media::Audio::ERole;
+    use windows::Win32::Media::Audio::{eCommunications, eConsole, eMultimedia};
+    use windows::Win32::System::Com::{CLSCTX_ALL, CoCreateInstance};
+    use windows::core::{GUID, HRESULT, HSTRING, PCWSTR};
+
+    const CLSID_POLICY_CONFIG: GUID = GUID::from_u128(0x870af99c_171d_4f9e_af0d_e63df40c2bc9);
+
+    /// Makes device `id` the default for every role (apps, multimedia, calls).
+    pub fn set_default(id: &str) -> bool {
+        let Ok(policy) = (unsafe { CoCreateInstance::<_, IPolicyConfig>(&CLSID_POLICY_CONFIG, None, CLSCTX_ALL) }) else {
+            return false;
+        };
+        let id = HSTRING::from(id);
+        [eConsole, eMultimedia, eCommunications]
+            .into_iter()
+            .all(|role| unsafe { policy.SetDefaultEndpoint(PCWSTR(id.as_ptr()), role) }.is_ok())
+    }
+
+    #[windows_core::interface("f8679f50-850a-41cf-9c72-430f290290c8")]
+    unsafe trait IPolicyConfig: windows_core::IUnknown {
+        fn GetMixFormat(&self, id: PCWSTR, fmt: *mut *mut c_void) -> HRESULT;
+        fn GetDeviceFormat(&self, id: PCWSTR, default: i32, fmt: *mut *mut c_void) -> HRESULT;
+        fn ResetDeviceFormat(&self, id: PCWSTR) -> HRESULT;
+        fn SetDeviceFormat(&self, id: PCWSTR, endpoint: *mut c_void, mix: *mut c_void) -> HRESULT;
+        fn GetProcessingPeriod(&self, id: PCWSTR, default: i32, period: *mut i64, min: *mut i64) -> HRESULT;
+        fn SetProcessingPeriod(&self, id: PCWSTR, period: *mut i64) -> HRESULT;
+        fn GetShareMode(&self, id: PCWSTR, mode: *mut c_void) -> HRESULT;
+        fn SetShareMode(&self, id: PCWSTR, mode: *mut c_void) -> HRESULT;
+        fn GetPropertyValue(&self, id: PCWSTR, key: *const c_void, value: *mut c_void) -> HRESULT;
+        fn SetPropertyValue(&self, id: PCWSTR, key: *const c_void, value: *mut c_void) -> HRESULT;
+        fn SetDefaultEndpoint(&self, id: PCWSTR, role: ERole) -> HRESULT;
+        fn SetEndpointVisibility(&self, id: PCWSTR, visible: i32) -> HRESULT;
+    }
+}
+
+
 fn process_name(pid: u32) -> Option<String> {
     unsafe {
         let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
@@ -329,6 +404,9 @@ mod tests {
         }
         let a = Audio::new().expect("audio");
         println!("mic: {} muted={:?}", a.mic_name(), a.mic_muted());
+        for (id, name, on) in a.mics() {
+            println!("  {} {name}  ({id})", if on { "*" } else { " " });
+        }
         let mut t = a.start_mic_test().expect("start");
         for _ in 0..20 {
             std::thread::sleep(std::time::Duration::from_millis(100));

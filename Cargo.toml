@@ -24,6 +24,8 @@ slint = { version = "1.18.1", default-features = false, features = [
 ] }
 uuid = { version = "1.29.0", features = ["v4"] }
 png = "0.18"
+# the interface macro for the undocumented default-device COM interface (same version windows uses)
+windows-core = "0.62.2"
 
 [dependencies.windows]
 version = "0.62.2"

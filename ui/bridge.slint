@@ -41,6 +41,12 @@ export struct ShelfItem {
     missing: bool,
 }
 
+export struct MicItem {
+    id: string,
+    name: string,
+    active: bool,      // the default microphone
+}
+
 export struct AppVolume {
     name: string,
     initial: string,
@@ -321,6 +327,10 @@ export global Bridge {
     callback app-mute-toggle(string);
     callback mic-toggle();
     callback mic-test();
+    in property <[MicItem]> mics;
+    in-out property <bool> mic-pick-open;
+    callback mic-list();               // fill `mics`
+    callback mic-select(string);       // device id
 
     // ---- capture / dev ----
     callback screenshot();
