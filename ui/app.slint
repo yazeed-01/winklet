@@ -698,26 +698,20 @@ component Expanded inherits Rectangle {
         y: 34px;
         height: 30px;
         spacing: 4px;
-        if Bridge.toast != "": Label {
-            text: Bridge.toast;
-            color: Theme.green;
-            font-size: 11.5px;
-            font-weight: 600;
-        }
-        if Bridge.toast == "" && Bridge.has-mic: HeaderButton {
+        if Bridge.has-mic: HeaderButton {
             icon: Bridge.mic-muted ? Icon.mic-off : Icon.mic;
             tint: Bridge.mic-muted ? Theme.red : Theme.text-dim;
             tip: Bridge.mic-muted ? "Unmute mic  (Ctrl+Alt+M)" : "Mute mic  (Ctrl+Alt+M)";
             clicked => { Bridge.mic-toggle(); }
         }
-        if Bridge.toast == "": HeaderButton {
+        HeaderButton {
             icon: Icon.camera;
             tip: "Screenshot (Ctrl+Alt+S) · right-click: snip area";
             clicked => { Bridge.screenshot(); }
             right-clicked => { Bridge.snip(); }
         }
-        if Bridge.toast == "": GearBadge { y: (parent.height - self.height) / 2; }
-        if Bridge.toast == "" && Bridge.charging: Glyph { text: Icon.bolt; font-size: 11px; color: Theme.green; }
+        GearBadge { y: (parent.height - self.height) / 2; }
+        if Bridge.charging: Glyph { text: Icon.bolt; font-size: 11px; color: Theme.green; }
         Label { text: Bridge.time-text; font-weight: 700; font-size: 13px; font-family: Theme.font-display; }
     }
     Rectangle {
@@ -738,6 +732,27 @@ component Expanded inherits Rectangle {
         if Bridge.tab == 10: PageHost { dir: Bridge.tab-dir; SettingsPage { } }
         if Bridge.tab == 11: PageHost { dir: Bridge.tab-dir; GearPage { } }
         if Bridge.tab == 12: PageHost { dir: Bridge.tab-dir; GamePage { } }
+    }
+    // short confirmations ("Link copied", "Received photo.jpg") float over the bottom of the panel
+    if Bridge.toast != "": Rectangle {
+        width: min(tl.preferred-width + 44px, parent.width - 120px);
+        height: 28px;
+        x: (parent.width - self.width) / 2;
+        y: parent.height - 46px;
+        border-radius: 14px;
+        background: #1a1a21f5;
+        border-width: 1px;
+        border-color: #34d39955;
+        drop-shadow-blur: 14px;
+        drop-shadow-color: #000c;
+        HorizontalLayout {
+            padding-left: 14px;
+            padding-right: 14px;
+            spacing: 7px;
+            alignment: center;
+            Glyph { text: Icon.check; font-size: 10px; color: Theme.green; }
+            tl := Label { text: Bridge.toast; color: Theme.text; font-size: 11.5px; font-weight: 600; }
+        }
     }
 }
 
