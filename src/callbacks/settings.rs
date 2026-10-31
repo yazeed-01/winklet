@@ -71,6 +71,9 @@ pub fn wire(b: &Bridge, app: &Shared) {
         let _ = std::fs::create_dir_all(&dir);
         sys::open(&dir.to_string_lossy(), "");
     });
+    b.on_github_open(|| {
+        sys::open("https://github.com/yazeed-01/winklet", "");
+    });
     on!(b, app, on_data_reset, |a| { a.reset_all_data(); });
     on!(b, app, on_set_theme, |a, t| {
         a.data.settings.theme = t.max(0);

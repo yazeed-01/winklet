@@ -268,6 +268,36 @@ export component SettingsPage inherits Rectangle {
                 }
             }
             Rectangle { }
+            // like it? a star on GitHub helps
+            Rectangle {
+                height: 44px;
+                border-radius: 12px;
+                background: gha.has-hover ? Theme.surface-hover : Theme.surface;
+                border-width: 1px;
+                border-color: Theme.stroke;
+                animate background { duration: 120ms; }
+                HorizontalLayout {
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    spacing: 10px;
+                    Rectangle {
+                        width: 26px;
+                        height: 26px;
+                        y: 9px;
+                        border-radius: 13px;
+                        background: #fbbf2426;
+                        Glyph { text: Icon.star; font-size: 12px; color: #f5a524; }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        horizontal-stretch: 1;
+                        Label { text: "Enjoying Winklet?"; font-size: 12px; font-weight: 600; }
+                        Label { text: "Support it with a star on GitHub, thanks!"; font-size: 10px; color: Theme.text-faint; }
+                    }
+                    Glyph { width: 12px; text: Icon.right; font-size: 9px; color: Theme.text-faint; }
+                }
+                gha := TouchArea { mouse-cursor: pointer; clicked => { Bridge.github-open(); } }
+            }
             Button { icon: Icon.power; text: "Quit Winklet"; primary: true; tint: Theme.red; clicked => { Bridge.quit(); } }
         }
     }
