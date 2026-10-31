@@ -34,6 +34,8 @@ const GUIDE_STEPS: [&str; 4] = [
 
 #[derive(Default)]
 pub struct Wellbeing {
+    /// (sitting minutes, active minutes, breaks) last shown on the Health tab
+    pub shown: (u32, u32, u32),
     /// seconds of activity since the last real break
     pub session_s: u32,
     /// reminders already shown this session (drives escalation)
@@ -96,8 +98,14 @@ impl App {
 
         let ui = self.ui();
         let b = ui.global::<Bridge>();
+        // only when something on it changed: every refresh re-animates the ring and the bars
         if b.get_expanded() && b.get_tab() == TAB_HEALTH {
-            self.refresh_health();
+            let day = self.data.health.get(&Local::now().date_naive());
+            let shown = (self.well.session_s / 60, day.map_or(0, |d| d.active_s / 60), day.map_or(0, |d| d.breaks));
+            if shown != self.well.shown {
+                self.well.shown = shown;
+                self.refresh_health();
+            }
         }
         if b.get_expanded() && b.get_tab() == TAB_GEAR {
             self.refresh_gear_time();
