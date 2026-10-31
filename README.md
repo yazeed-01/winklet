@@ -359,7 +359,6 @@ $env:WINKLET_DEMO_CLIP_FIND=word                  # with DEMO_TAB=16: find in th
 $env:WINKLET_DEMO_CYCLE=400                       # with DEMO_TAB: walk every tab and open/close the island (memory soak test)
 $env:WINKLET_TRACE=1                              # log hover / idle / media events to stdout
 $env:SLINT_DEBUG_PERFORMANCE="refresh_lazy,console"   # print frames per second
-$env:SLINT_BACKEND="winit-femtovg"                # try another renderer (default: Skia on the CPU)
 cargo test probe -- --ignored --nocapture         # what this PC reports: app in front, GPU, controller, FPS access
 ```
 
