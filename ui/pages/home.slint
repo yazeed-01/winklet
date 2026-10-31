@@ -349,7 +349,7 @@ export component HomePage inherits Rectangle {
                         Label { text: Bridge.media-len; font-size: 10px; color: Theme.text-faint; horizontal-alignment: right; }
                     }
                 }
-                // transport, with the volume button on the right; the volume slider drops down below it
+                // transport, with the volume button on the left; the volume slider drops down below it
                 VerticalLayout {
                     transport := Rectangle {
                         height: 42px;
@@ -369,7 +369,7 @@ export component HomePage inherits Rectangle {
                         }
                         // closed it shows the level; open it folds the drawer away, the speaker inside mutes
                         IconButton {
-                            x: transport.width - self.width;
+                            x: 0;
                             y: 4px;
                             icon: Bridge.home-volume-open ? Icon.chevron-up : Bridge.master-muted ? Icon.mute : Icon.volume;
                             size: 34px;
