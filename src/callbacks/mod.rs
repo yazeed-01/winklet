@@ -16,6 +16,7 @@ macro_rules! on {
     }};
 }
 
+mod deck;
 mod dev;
 mod file_drop;
 mod focus;
@@ -42,6 +43,7 @@ pub fn wire_callbacks(ui: &AppWindow, app: &Shared) {
     water::wire(&b, app);
     planner::wire(&b, app);
     dev::wire(&b, app);
+    deck::wire(&b, app);
     settings::wire(&b, app);
     shelf::wire(&b, app);
     sound::wire(&b, app);

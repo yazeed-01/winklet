@@ -1,7 +1,7 @@
 import { Theme, Icon, Cars, EyeTint } from "theme.slint";
 import { Bridge, TodoItem, AlarmItem, DayCell, Bar, ShelfItem, AppVolume } from "bridge.slint";
 import { Glyph, Label, IconButton, Button, Ring, WaterDrop, PageHost, Tip } from "widgets.slint";
-import { HomePage, TodoPage, CalendarPage, FocusPage, WaterPage, AlarmPage, DevPage, SettingsPage, ShelfPage, AudioPage, HealthPage, GearPage, GamePage, PowerPage } from "pages.slint";
+import { HomePage, TodoPage, CalendarPage, FocusPage, WaterPage, AlarmPage, DevPage, SettingsPage, ShelfPage, AudioPage, HealthPage, GearPage, GamePage, PowerPage, DeckPage } from "pages.slint";
 
 export { Bridge, TodoItem, AlarmItem, DayCell, Bar, ShelfItem, AppVolume, Tip }
 
@@ -539,10 +539,10 @@ component Peek inherits Rectangle {
 }
 
 // Where a tab sits in the bar, by tab index. New tabs get the next index so older ones keep
-// theirs: Drive (11) sits after Focus and Power (13) before Settings.
+// theirs: Drive (11) sits after Focus, Deck (14) after Developer, Power (13) before Settings.
 global TabOrder {
     public pure function pos(i: int) -> int {
-        return [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 13, 4, 11, 12][max(0, min(13, i))];
+        return [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 14, 4, 12, 13, 11][max(0, min(14, i))];
     }
 }
 
@@ -675,7 +675,7 @@ component Expanded inherits Rectangle {
     Rectangle {
         x: 14px;
         y: 34px;
-        width: 14 * 28px;
+        width: 15 * 28px;
         height: 30px;
         Rectangle {
             x: TabOrder.pos(Bridge.tab) * 28px;
@@ -698,6 +698,7 @@ component Expanded inherits Rectangle {
             TabButton { index: 7; tip: "Shelf"; icon: Icon.shelf; }
             TabButton { index: 8; tip: "Audio & mic"; icon: Icon.volume; }
             TabButton { index: 9; tip: "Developer tools"; icon: Icon.code; }
+            TabButton { index: 14; tip: "Deck: your keys for apps, commands and shortcuts"; icon: Icon.deck; }
             TabButton { index: 12; tip: "Game mode (Ctrl+Alt+G)"; icon: Icon.game; lit: Bridge.game-mode; }
             TabButton { index: 13; tip: Bridge.power-pending >= 0 ? "Power: planned for " + Bridge.power-at : "Power: lock, sleep, restart, shut down"; icon: Icon.power; lit: Bridge.power-pending >= 0; lit-tint: Theme.orange; }
             TabButton { index: 10; tip: "Settings"; icon: Icon.settings; }
@@ -744,6 +745,7 @@ component Expanded inherits Rectangle {
         if Bridge.tab == 11: PageHost { dir: Bridge.tab-dir; GearPage { } }
         if Bridge.tab == 12: PageHost { dir: Bridge.tab-dir; GamePage { } }
         if Bridge.tab == 13: PageHost { dir: Bridge.tab-dir; PowerPage { } }
+        if Bridge.tab == 14: PageHost { dir: Bridge.tab-dir; DeckPage { } }
     }
     // short confirmations ("Link copied", "Received photo.jpg") float over the bottom of the panel
     if Bridge.toast != "": Rectangle {

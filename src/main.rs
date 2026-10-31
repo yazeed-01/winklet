@@ -9,6 +9,7 @@ mod fps;
 mod games_scan;
 mod gpu;
 mod gpu_info;
+mod keys;
 mod lenovo;
 mod media;
 mod pad;
@@ -322,6 +323,15 @@ fn init_window(app: Shared) {
                         b.set_power_delay(45);
                     })
                 });
+            }
+            // WINKLET_DEMO_DECK_EDIT=slot opens the Deck key editor (WINKLET_DEMO_DECK_EDITING: edit mode)
+            if let Some(slot) = std::env::var("WINKLET_DEMO_DECK_EDIT").ok().and_then(|v| v.parse::<i32>().ok()) {
+                slint::Timer::single_shot(std::time::Duration::from_millis(900), move || {
+                    app::with_app(|s| s.borrow_mut().deck_edit(slot))
+                });
+            }
+            if std::env::var_os("WINKLET_DEMO_DECK_EDITING").is_some() {
+                a.ui().global::<Bridge>().set_deck_editing(true);
             }
             if std::env::var_os("WINKLET_DEMO_HISTORY").is_some() {
                 a.ui().global::<Bridge>().set_health_view(3);

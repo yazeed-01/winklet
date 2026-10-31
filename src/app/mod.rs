@@ -2,6 +2,7 @@
 //! peeking and expanded. Each feature adds its own `impl App` in a submodule.
 
 mod car;
+mod deck;
 mod dev;
 mod drag;
 mod drinks;
@@ -26,6 +27,7 @@ mod wellbeing;
 mod workspaces;
 
 pub use car::{CAR_PUFFS, CAR_SKIDS};
+pub use deck::deck_browse;
 pub use focus::Focus;
 pub use game::{Play, TAB_GAME, games_pick};
 pub use send::send_pick;
@@ -65,6 +67,8 @@ pub const TAB_DEV: i32 = 9;
 pub const TAB_GEAR: i32 = 11;
 /// lock, sleep, restart, sign out, shut down
 pub const TAB_POWER: i32 = 13;
+/// Stream Deck style keys
+pub const TAB_DECK: i32 = 14;
 
 pub struct App {
     pub ui: slint::Weak<AppWindow>,
@@ -322,6 +326,7 @@ impl App {
             }
             TAB_GEAR => self.refresh_gear_time(),
             TAB_POWER => self.refresh_power(),
+            TAB_DECK => self.refresh_deck(),
             TAB_GAME => {
                 self.refresh_game();
                 if self.ui().global::<Bridge>().get_game_view() == 1 {

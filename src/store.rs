@@ -203,6 +203,28 @@ pub struct Playlist {
     pub url: String,
 }
 
+/// One key on the Deck tab.
+#[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct DeckKey {
+    pub id: String,
+    pub page: i32,
+    /// position on its page, row by row
+    pub slot: i32,
+    /// "open", "multi", "command", "hotkey", "text" or "action"
+    pub kind: String,
+    /// open: program, file, folder or link · multi: one of those (or "> command") per line ·
+    /// command: a command line · hotkey: "ctrl+shift+esc" · text: what to type · action: its id
+    pub target: String,
+    pub title: String,
+    /// Segoe Fluent glyph; "" = the program's own icon
+    pub glyph: String,
+    /// key colour, "#rrggbb"
+    pub color: String,
+    /// command: keep a window open with the output · text: press Enter after typing
+    pub flag: bool,
+}
+
 /// A kind of drink on the Water tab.
 #[derive(Serialize, Deserialize, Clone, Default)]
 #[serde(default)]
@@ -213,6 +235,38 @@ pub struct DrinkType {
     pub color: String,
     /// usual cup size
     pub ml: i32,
+}
+
+/// The Deck keys everyone starts with: a few apps, media keys and handy actions.
+pub fn default_deck() -> Vec<DeckKey> {
+    let win = std::env::var("WINDIR").unwrap_or_else(|_| r"C:\Windows".into());
+    let key = |slot: i32, kind: &str, target: String, title: &str, glyph: &str, color: &str| DeckKey {
+        id: new_id(),
+        page: 0,
+        slot,
+        kind: kind.into(),
+        target,
+        title: title.into(),
+        glyph: glyph.into(),
+        color: color.into(),
+        flag: false,
+    };
+    vec![
+        key(0, "open", format!(r"{win}\explorer.exe"), "Explorer", "", "#2563eb"),
+        key(1, "open", "wt.exe".into(), "Terminal", "\u{E756}", "#2b2b33"),
+        key(2, "open", format!(r"{win}\System32\calc.exe"), "Calculator", "", "#475569"),
+        key(3, "open", format!(r"{win}\System32\Taskmgr.exe"), "Task Manager", "", "#059669"),
+        key(4, "open", "ms-settings:".into(), "Settings", "\u{E713}", "#4f46e5"),
+        key(5, "hotkey", "win+d".into(), "Desktop", "\u{E7F4}", "#0891b2"),
+        key(8, "action", "prev".into(), "Previous", "\u{E892}", "#9333ea"),
+        key(9, "action", "playpause".into(), "Play / Pause", "\u{E768}", "#9333ea"),
+        key(10, "action", "next".into(), "Next", "\u{E893}", "#9333ea"),
+        key(11, "action", "mute".into(), "Mute", "\u{E74F}", "#db2777"),
+        key(12, "action", "mic".into(), "Mic", "\u{E720}", "#db2777"),
+        key(16, "action", "screenshot".into(), "Screenshot", "\u{E722}", "#ea580c"),
+        key(17, "action", "focus".into(), "Focus", "\u{E916}", "#ca8a04"),
+        key(18, "action", "lock".into(), "Lock", "\u{E72E}", "#dc2626"),
+    ]
 }
 
 /// The drinks everyone starts with (they can be edited or removed, except water).
@@ -284,6 +338,12 @@ pub struct Data {
     pub playlists: Vec<Playlist>,
     /// last day the end-of-day summary popped up
     pub summary_day: Option<NaiveDate>,
+    /// Deck tab: the keys on every page
+    pub deck: Vec<DeckKey>,
+    /// how many Deck pages there are (at least 1)
+    pub deck_pages: i32,
+    /// the starter keys were put in once, so a deck you emptied stays empty
+    pub deck_seeded: bool,
     pub settings: Settings,
 }
 
@@ -378,6 +438,11 @@ impl Data {
         if data.drinks.is_empty() {
             data.drinks = default_drinks();
         }
+        if !data.deck_seeded {
+            data.deck = default_deck();
+            data.deck_seeded = true;
+        }
+        data.deck_pages = data.deck_pages.max(1);
         // keep two months of wellbeing history
         if let Some(cutoff) = Local::now().date_naive().checked_sub_days(chrono::Days::new(60)) {
             data.health.retain(|d, _| *d >= cutoff);

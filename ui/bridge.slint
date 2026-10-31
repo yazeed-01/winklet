@@ -145,6 +145,15 @@ export struct GameItem {
     running: bool,
 }
 
+export struct DeckSlot {
+    title: string,
+    glyph: string,     // shown when there's no program icon
+    icon: image,
+    has-icon: bool,
+    color: color,
+    empty: bool,
+}
+
 export struct PortItem {
     port: int,
     label: string,     // "Metro (React Native)", "" if unknown
@@ -452,6 +461,34 @@ export global Bridge {
     callback ws-add(string);                   // path or link
     callback ws-remove-app(int);
     callback ws-browse();
+
+    // ---- Deck (Stream Deck style keys) ----
+    in property <[DeckSlot]> deck-keys;        // the 24 slots of the page on screen, row by row
+    in-out property <int> deck-page;
+    in property <int> deck-pages: 1;
+    in-out property <bool> deck-editing;       // edit mode: clicking edits, dragging moves
+    in property <[color]> deck-palette;
+    in-out property <bool> deck-edit-open;
+    in property <int> deck-edit-slot;
+    in property <bool> deck-edit-new;
+    in-out property <int> deck-edit-kind;      // 0 open, 1 multi, 2 command, 3 hotkey, 4 text, 5 action
+    in-out property <string> deck-edit-target;
+    in-out property <string> deck-edit-title;
+    in-out property <string> deck-edit-glyph;  // "" = the program's own icon
+    in-out property <int> deck-edit-color;     // index in deck-palette
+    in-out property <bool> deck-edit-flag;     // command: show a window · text: press Enter after
+    in property <image> deck-edit-icon;
+    in property <bool> deck-edit-has-icon;
+    callback deck-press(int);
+    callback deck-edit(int);
+    callback deck-save();
+    callback deck-delete();
+    callback deck-browse(bool);                // true = a folder
+    callback deck-preview();                   // the target changed: refresh the icon
+    callback deck-move(int, int);
+    callback deck-page-set(int);
+    callback deck-page-add();
+    callback deck-page-remove();
 
     // ---- playlists (Home media card) ----
     in property <[PlaylistItem]> playlists;

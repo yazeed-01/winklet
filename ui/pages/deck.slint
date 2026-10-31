@@ -1,0 +1,539 @@
+// Deck: a grid of keys like a Stream Deck. Each key opens apps, files, folders or links,
+// runs a command, presses a hotkey, types text or does one of Winklet's actions.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge, DeckSlot } from "../bridge.slint";
+import { Label, Button, Glyph, IconButton, Segmented, Toggle, Tip } from "../widgets.slint";
+
+struct DeckAction {
+    id: string,
+    name: string,
+    glyph: string,
+}
+
+// Glyphs to pick for a key, and Winklet's own actions.
+global DeckDefs {
+    out property <[string]> glyphs: [
+        "\u{E7B5}", "\u{E756}", "\u{E943}", "\u{E774}", "\u{E8B7}", "\u{E8A5}", "\u{E8D6}", "\u{E768}",
+        "\u{E767}", "\u{E74F}", "\u{E720}", "\u{E722}", "\u{E72E}", "\u{E7E8}", "\u{E708}", "\u{E713}",
+        "\u{E80F}", "\u{E715}", "\u{E8BD}", "\u{E787}", "\u{E916}", "\u{E7FC}", "\u{EB51}", "\u{E734}",
+        "\u{E945}", "\u{E9D2}", "\u{E70F}", "\u{E8C8}", "\u{E721}", "\u{E896}", "\u{E753}", "\u{E7F4}",
+    ];
+    out property <[DeckAction]> actions: [
+        { id: "playpause", name: "Play / Pause", glyph: "\u{E768}" },
+        { id: "next", name: "Next track", glyph: "\u{E893}" },
+        { id: "prev", name: "Previous", glyph: "\u{E892}" },
+        { id: "mute", name: "Mute", glyph: "\u{E74F}" },
+        { id: "volup", name: "Volume up", glyph: "\u{E995}" },
+        { id: "voldown", name: "Volume down", glyph: "\u{E993}" },
+        { id: "mic", name: "Mic on/off", glyph: "\u{E720}" },
+        { id: "screenshot", name: "Screenshot", glyph: "\u{E722}" },
+        { id: "lock", name: "Lock", glyph: "\u{E72E}" },
+        { id: "sleep", name: "Sleep", glyph: "\u{E708}" },
+        { id: "focus", name: "Focus timer", glyph: "\u{E916}" },
+        { id: "game", name: "Game mode", glyph: "\u{E7FC}" },
+    ];
+    // the glyph a key shows when it has no icon of its own (matches deck.rs)
+    public pure function kind-glyph(kind: int) -> string {
+        return kind == 0 ? "\u{E7B5}" : kind == 1 ? "\u{E8A9}" : kind == 2 ? "\u{E756}" : kind == 3 ? "\u{E765}" : kind == 4 ? "\u{E8D2}" : "\u{E945}";
+    }
+}
+
+// The face of a key: its colour with a soft sheen, the icon or glyph, and the title at the bottom.
+component KeyFace inherits Rectangle {
+    in property <color> tint;
+    in property <string> title;
+    in property <string> glyph;
+    in property <image> icon;
+    in property <bool> has-icon;
+    property <length> s: min(self.width, self.height);
+    border-radius: s * 0.24;
+    background: @linear-gradient(160deg, tint.brighter(0.35) 0%, tint 55%, tint.darker(0.35) 100%);
+    border-width: 1px;
+    border-color: #ffffff22;
+    drop-shadow-blur: 10px;
+    drop-shadow-offset-y: 3px;
+    drop-shadow-color: tint.with-alpha(0.35);
+    clip: true;
+    // glassy top highlight
+    Rectangle {
+        y: 0;
+        height: parent.height * 0.48;
+        background: @linear-gradient(180deg, #ffffff26 0%, #ffffff00 100%);
+    }
+    if root.has-icon: Image {
+        x: (parent.width - self.width) / 2;
+        y: parent.height * 0.18;
+        width: root.s * 0.42;
+        height: self.width;
+        source: root.icon;
+        image-fit: contain;
+    }
+    if !root.has-icon: Glyph {
+        y: parent.height * 0.14;
+        height: parent.height * 0.5;
+        text: root.glyph;
+        font-size: root.s * 0.32;
+        color: #ffffff;
+    }
+    Text {
+        x: 5px;
+        y: parent.height - self.height - root.s * 0.1;
+        width: parent.width - 10px;
+        text: root.title;
+        font-family: Theme.font;
+        font-size: max(8.5px, root.s * 0.14);
+        font-weight: 600;
+        color: #ffffffee;
+        horizontal-alignment: center;
+        overflow: elide;
+    }
+}
+
+// One slot on the grid: press it, right-click to edit, drag it around in edit mode.
+component DeckKeyView inherits Rectangle {
+    in property <DeckSlot> key;
+    in property <int> slot;
+    in property <length> pitch;      // distance between keys
+    property <bool> flash;
+    property <bool> dragging;
+    property <length> dx;
+    property <length> dy;
+    z: dragging ? 10 : 0;
+    pure function target() -> int {
+        let col = max(0, min(7, round((root.x + root.dx) / root.pitch)));
+        let row = max(0, min(2, round((root.y + root.dy) / root.pitch)));
+        return row * 8 + col;
+    }
+    if root.key.empty: Rectangle {
+        border-radius: root.width * 0.24;
+        background: ta.has-hover ? Theme.surface-hover : Theme.surface;
+        border-width: 1px;
+        border-color: Bridge.deck-editing ? Theme.accent.with-alpha(0.35) : Theme.stroke;
+        opacity: Bridge.deck-editing || ta.has-hover ? 1 : 0.6;
+        animate background { duration: 120ms; }
+        Glyph {
+            text: Icon.add;
+            font-size: 13px;
+            color: Theme.text-faint;
+            opacity: ta.has-hover || Bridge.deck-editing ? 1 : 0;
+            animate opacity { duration: 120ms; }
+        }
+    }
+    if !root.key.empty: face := KeyFace {
+        x: root.dx;
+        y: root.dy;
+        width: root.width;
+        height: root.height;
+        tint: root.key.color;
+        title: root.key.title;
+        glyph: root.key.glyph;
+        icon: root.key.icon;
+        has-icon: root.key.has-icon;
+        transform-scale: root.dragging ? 1.08 : ta.pressed ? 0.9 : ta.has-hover ? 1.04 : 1;
+        animate transform-scale { duration: 240ms; easing: Theme.spring-ease; }
+        // white flash when it fires
+        Rectangle {
+            background: white;
+            opacity: root.flash ? 0.45 : 0;
+            animate opacity { duration: 320ms; easing: ease-out; }
+        }
+        // edit mode: a pencil badge
+        if Bridge.deck-editing: Rectangle {
+            x: parent.width - 18px;
+            y: 4px;
+            width: 14px;
+            height: 14px;
+            border-radius: 7px;
+            background: #000000aa;
+            Glyph { text: Icon.edit; font-size: 7px; color: white; }
+        }
+    }
+    unflash := Timer {
+        interval: 60ms;
+        running: false;
+        triggered => { root.flash = false; self.running = false; }
+    }
+    ta := TouchArea {
+        mouse-cursor: root.dragging ? MouseCursor.grabbing : MouseCursor.pointer;
+        clicked => {
+            Tip.shown = false;
+            if root.dragging || root.dx != 0 || root.dy != 0 {
+                return;
+            }
+            if Bridge.deck-editing || root.key.empty {
+                Bridge.deck-edit(root.slot);
+            } else {
+                root.flash = true;
+                unflash.running = true;
+                Bridge.deck-press(root.slot);
+            }
+        }
+        pointer-event(e) => {
+            if e.button == PointerEventButton.right && e.kind == PointerEventKind.up && !Bridge.dragging {
+                Bridge.deck-edit(root.slot);
+            }
+            if e.button == PointerEventButton.left && e.kind == PointerEventKind.up && root.dragging {
+                Bridge.deck-move(root.slot, root.target());
+                root.dragging = false;
+                root.dx = 0;
+                root.dy = 0;
+            }
+        }
+        moved => {
+            if self.pressed && Bridge.deck-editing && !root.key.empty {
+                if root.dragging || abs(self.mouse-x - self.pressed-x) + abs(self.mouse-y - self.pressed-y) > 6px {
+                    root.dragging = true;
+                    root.dx = self.mouse-x - self.pressed-x;
+                    root.dy = self.mouse-y - self.pressed-y;
+                }
+            }
+        }
+        changed has-hover => {
+            if self.has-hover && !root.key.empty {
+                Tip.text = root.key.title;
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if !self.has-hover && Tip.text == root.key.title {
+                Tip.shown = false;
+            }
+        }
+    }
+}
+
+// A text box bound to an editor field; several lines for Multi and Text keys.
+component DeckInput inherits Rectangle {
+    in property <string> placeholder;
+    in property <bool> multi;
+    in-out property <string> text <=> input.text;
+    callback edited();
+    border-radius: 10px;
+    background: input.has-focus ? #ffffff14 : Theme.surface;
+    border-width: 1px;
+    border-color: input.has-focus ? Theme.accent : Theme.stroke;
+    animate border-color, background { duration: 160ms; }
+    changed has-focus => { Bridge.editing = self.has-focus; }
+    out property <bool> has-focus: input.has-focus;
+    clip: true;
+    Text {
+        x: 10px;
+        y: root.multi ? 7px : 0;
+        width: parent.width - 20px;
+        height: root.multi ? self.preferred-height : parent.height;
+        visible: input.text == "";
+        text: root.placeholder;
+        color: Theme.text-faint;
+        font-family: Theme.font;
+        font-size: 11.5px;
+        vertical-alignment: center;
+        wrap: word-wrap;
+    }
+    input := TextInput {
+        x: 10px;
+        y: root.multi ? 7px : 0;
+        width: parent.width - 20px;
+        height: root.multi ? parent.height - 14px : parent.height;
+        color: Theme.text;
+        font-family: Theme.font;
+        font-size: 11.5px;
+        vertical-alignment: root.multi ? top : center;
+        single-line: !root.multi;
+        wrap: root.multi ? word-wrap : no-wrap;
+        selection-background-color: Theme.accent.with-alpha(0.5);
+        edited => { root.edited(); }
+    }
+}
+
+component SmallLabel inherits Text {
+    font-family: Theme.font;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: Theme.text-faint;
+}
+
+// The key editor: what it does on the left, how it looks on the right, a live preview.
+component DeckEditor inherits Rectangle {
+    property <color> pick: Bridge.deck-palette.length > 0 ? Bridge.deck-palette[max(0, min(Bridge.deck-palette.length - 1, Bridge.deck-edit-color))] : #2b2b33;
+    property <bool> show-icon: Bridge.deck-edit-kind == 0 && Bridge.deck-edit-glyph == "" && Bridge.deck-edit-has-icon;
+    property <bool> armed;
+    TouchArea { }
+    VerticalLayout {
+        spacing: 10px;
+        HorizontalLayout {
+            height: 28px;
+            spacing: 8px;
+            IconButton { icon: Icon.left; size: 28px; icon-size: 10px; fill: Theme.surface; tip: "Cancel"; clicked => { Bridge.deck-edit-open = false; } }
+            Label { text: Bridge.deck-edit-new ? "New key" : "Edit key"; font-size: 14px; font-weight: 700; font-family: Theme.font-display; horizontal-stretch: 1; }
+            if !Bridge.deck-edit-new: Button {
+                height: 28px;
+                icon: Icon.delete;
+                text: root.armed ? "Sure?" : "Delete";
+                primary: root.armed;
+                tint: Theme.red;
+                clicked => {
+                    if root.armed { root.armed = false; Bridge.deck-delete(); } else { root.armed = true; disarm.running = true; }
+                }
+            }
+            Button { height: 28px; icon: Icon.check; text: "Save"; primary: true; clicked => { Bridge.deck-save(); } }
+        }
+        HorizontalLayout {
+            spacing: 14px;
+            // live preview
+            VerticalLayout {
+                width: 96px;
+                spacing: 8px;
+                KeyFace {
+                    width: 96px;
+                    height: 96px;
+                    tint: root.pick;
+                    title: Bridge.deck-edit-title != "" ? Bridge.deck-edit-title : "Title";
+                    glyph: Bridge.deck-edit-glyph != "" ? Bridge.deck-edit-glyph : DeckDefs.kind-glyph(Bridge.deck-edit-kind);
+                    icon: Bridge.deck-edit-icon;
+                    has-icon: root.show-icon;
+                }
+                SmallLabel { text: "TITLE"; }
+                DeckInput {
+                    height: 30px;
+                    placeholder: "Name";
+                    text <=> Bridge.deck-edit-title;
+                }
+                Rectangle { }
+            }
+            // what it does
+            VerticalLayout {
+                horizontal-stretch: 1;
+                spacing: 8px;
+                Segmented {
+                    items: ["Open", "Multi", "Command", "Hotkey", "Text", "Action"];
+                    value: Bridge.deck-edit-kind;
+                    picked(i) => { Bridge.deck-edit-kind = i; Bridge.deck-preview(); }
+                }
+                if Bridge.deck-edit-kind == 0: VerticalLayout {
+                    spacing: 6px;
+                    DeckInput {
+                        height: 30px;
+                        placeholder: "App, file, folder or link (https://…)";
+                        text <=> Bridge.deck-edit-target;
+                        edited => { Bridge.deck-preview(); }
+                    }
+                    HorizontalLayout {
+                        spacing: 6px;
+                        Button { height: 28px; icon: Icon.rocket; text: "App or file"; horizontal-stretch: 1; clicked => { Bridge.deck-browse(false); } }
+                        Button { height: 28px; icon: Icon.folder; text: "Folder"; horizontal-stretch: 1; clicked => { Bridge.deck-browse(true); } }
+                    }
+                    Label { text: "Apps show their own icon. Links open in your browser."; font-size: 10px; color: Theme.text-faint; wrap: word-wrap; }
+                }
+                if Bridge.deck-edit-kind == 1: VerticalLayout {
+                    spacing: 6px;
+                    DeckInput {
+                        height: 76px;
+                        multi: true;
+                        placeholder: "One per line: apps, files, folders, links, or > a command. They all open with one press.";
+                        text <=> Bridge.deck-edit-target;
+                    }
+                    HorizontalLayout {
+                        spacing: 6px;
+                        Button { height: 28px; icon: Icon.add; text: "App or file"; horizontal-stretch: 1; clicked => { Bridge.deck-browse(false); } }
+                        Button { height: 28px; icon: Icon.folder; text: "Folder"; horizontal-stretch: 1; clicked => { Bridge.deck-browse(true); } }
+                    }
+                }
+                if Bridge.deck-edit-kind == 2: VerticalLayout {
+                    spacing: 8px;
+                    DeckInput {
+                        height: 30px;
+                        placeholder: "A command, like: code C:\\repo  or  npm run dev";
+                        text <=> Bridge.deck-edit-target;
+                    }
+                    HorizontalLayout {
+                        height: 26px;
+                        VerticalLayout {
+                            alignment: center;
+                            horizontal-stretch: 1;
+                            Label { text: "Show window"; font-size: 12px; }
+                            Label { text: "Keep a console open to see the output"; font-size: 10px; color: Theme.text-faint; }
+                        }
+                        Toggle { y: 2px; checked: Bridge.deck-edit-flag; toggled(v) => { Bridge.deck-edit-flag = v; } }
+                    }
+                    Label { text: "Runs with cmd in your home folder."; font-size: 10px; color: Theme.text-faint; }
+                }
+                if Bridge.deck-edit-kind == 3: VerticalLayout {
+                    spacing: 6px;
+                    DeckInput {
+                        height: 30px;
+                        placeholder: "Keys, like ctrl+shift+esc · win+d · alt+tab · f5";
+                        text <=> Bridge.deck-edit-target;
+                    }
+                    Label { text: "Pressed in the app you were using. Use ctrl, shift, alt, win, letters, f1–f24, enter, esc, tab, space, arrows, playpause, mute, volup …"; font-size: 10px; color: Theme.text-faint; wrap: word-wrap; }
+                }
+                if Bridge.deck-edit-kind == 4: VerticalLayout {
+                    spacing: 6px;
+                    DeckInput {
+                        height: 64px;
+                        multi: true;
+                        placeholder: "Text to type: an email address, a reply you send often, a signature…";
+                        text <=> Bridge.deck-edit-target;
+                    }
+                    HorizontalLayout {
+                        height: 24px;
+                        Label { text: "Press Enter after"; font-size: 12px; horizontal-stretch: 1; }
+                        Toggle { y: 1px; checked: Bridge.deck-edit-flag; toggled(v) => { Bridge.deck-edit-flag = v; } }
+                    }
+                }
+                if Bridge.deck-edit-kind == 5: acts := Rectangle {
+                    height: 96px;
+                    property <length> cw: (self.width - 2 * 6px) / 3;
+                    for a[i] in DeckDefs.actions: Rectangle {
+                        x: mod(i, 3) * (acts.cw + 6px);
+                        y: floor(i / 3) * 24px;
+                        width: acts.cw;
+                        height: 21px;
+                        property <bool> on: Bridge.deck-edit-target == a.id;
+                        border-radius: 8px;
+                        background: on ? Theme.accent.with-alpha(0.25) : aa.has-hover ? Theme.surface-hover : Theme.surface;
+                        border-width: on ? 1px : 0;
+                        border-color: Theme.accent;
+                        HorizontalLayout {
+                            padding-left: 7px;
+                            spacing: 5px;
+                            Glyph { text: a.glyph; font-size: 9.5px; width: 12px; color: on ? Theme.text : Theme.text-dim; }
+                            Label { text: a.name; font-size: 10.5px; color: on ? Theme.text : Theme.text-dim; }
+                        }
+                        aa := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                Bridge.deck-edit-target = a.id;
+                                Bridge.deck-edit-title = a.name;
+                                Bridge.deck-edit-glyph = a.glyph;
+                            }
+                        }
+                    }
+                }
+                Rectangle { }
+            }
+            // how it looks
+            VerticalLayout {
+                width: 206px;
+                spacing: 6px;
+                SmallLabel { text: "COLOUR"; }
+                sw := Rectangle {
+                    height: 50px;
+                    for c[i] in Bridge.deck-palette: Rectangle {
+                        x: mod(i, 6) * 35px;
+                        y: floor(i / 6) * 26px;
+                        width: 24px;
+                        height: 24px;
+                        border-radius: 8px;
+                        background: @linear-gradient(160deg, c.brighter(0.35) 0%, c 60%, c.darker(0.3) 100%);
+                        border-width: Bridge.deck-edit-color == i ? 2px : 1px;
+                        border-color: Bridge.deck-edit-color == i ? white : #ffffff22;
+                        TouchArea { mouse-cursor: pointer; clicked => { Bridge.deck-edit-color = i; } }
+                    }
+                }
+                SmallLabel { text: "ICON"; }
+                gl := Rectangle {
+                    vertical-stretch: 1;
+                    Flickable {
+                        content-height: ceil((DeckDefs.glyphs.length + 1) / 8) * 26px;
+                        // the program's own icon (Open keys)
+                        Rectangle {
+                            x: 0;
+                            y: 0;
+                            width: 24px;
+                            height: 24px;
+                            border-radius: 7px;
+                            background: Bridge.deck-edit-glyph == "" ? Theme.accent.with-alpha(0.3) : Theme.surface;
+                            border-width: Bridge.deck-edit-glyph == "" ? 1px : 0;
+                            border-color: Theme.accent;
+                            if Bridge.deck-edit-has-icon: Image { x: 4px; y: 4px; width: 16px; height: 16px; source: Bridge.deck-edit-icon; }
+                            if !Bridge.deck-edit-has-icon: Text { text: "Auto"; font-size: 7.5px; font-weight: 700; color: Theme.text-dim; width: 100%; height: 100%; horizontal-alignment: center; vertical-alignment: center; }
+                            TouchArea { mouse-cursor: pointer; clicked => { Bridge.deck-edit-glyph = ""; } }
+                        }
+                        for g[i] in DeckDefs.glyphs: Rectangle {
+                            x: mod(i + 1, 8) * 26px;
+                            y: floor((i + 1) / 8) * 26px;
+                            width: 24px;
+                            height: 24px;
+                            border-radius: 7px;
+                            background: Bridge.deck-edit-glyph == g ? Theme.accent.with-alpha(0.3) : ga.has-hover ? Theme.surface-hover : Theme.surface;
+                            border-width: Bridge.deck-edit-glyph == g ? 1px : 0;
+                            border-color: Theme.accent;
+                            Glyph { text: g; font-size: 11px; color: Bridge.deck-edit-glyph == g ? Theme.text : Theme.text-dim; }
+                            ga := TouchArea { mouse-cursor: pointer; clicked => { Bridge.deck-edit-glyph = g; } }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    disarm := Timer {
+        interval: 3s;
+        running: false;
+        triggered => { root.armed = false; self.running = false; }
+    }
+}
+
+export component DeckPage inherits Rectangle {
+    property <length> gap: 10px;
+    // keys as big as fit: 8 across, 3 down
+    property <length> key: min((self.width - 7 * gap) / 8, (self.height - 38px - 2 * gap) / 3);
+    init => { Bridge.deck-edit-open = false; }
+    if !Bridge.deck-edit-open: HorizontalLayout {
+        y: 0;
+        width: parent.width;
+        height: 28px;
+        spacing: 6px;
+        // pages
+        for p in Bridge.deck-pages: Rectangle {
+            width: 28px;
+            border-radius: 14px;
+            background: Bridge.deck-page == p ? Theme.accent.with-alpha(0.25) : pa.has-hover ? Theme.surface-hover : Theme.surface;
+            border-width: Bridge.deck-page == p ? 1px : 0;
+            border-color: Theme.accent;
+            Text {
+                text: p + 1;
+                font-family: Theme.font;
+                font-size: 11px;
+                font-weight: 700;
+                color: Bridge.deck-page == p ? Theme.text : Theme.text-dim;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            pa := TouchArea { mouse-cursor: pointer; clicked => { Bridge.deck-page-set(p); } }
+        }
+        if Bridge.deck-editing: IconButton { y: 1px; icon: Icon.add; size: 26px; icon-size: 10px; fill: Theme.surface; tip: "Add a page"; clicked => { Bridge.deck-page-add(); } }
+        if Bridge.deck-editing && Bridge.deck-pages > 1: IconButton { y: 1px; icon: Icon.delete; size: 26px; icon-size: 10px; fill: Theme.surface; tint: Theme.red; tip: "Remove this page and its keys"; clicked => { Bridge.deck-page-remove(); } }
+        Rectangle { horizontal-stretch: 1; }
+        Label {
+            text: Bridge.deck-editing ? "Click a key to change it · drag to move it" : "Right-click a key to change it";
+            font-size: 10.5px;
+            color: Theme.text-faint;
+        }
+        Button {
+            height: 28px;
+            icon: Bridge.deck-editing ? Icon.check : Icon.edit;
+            text: Bridge.deck-editing ? "Done" : "Edit";
+            primary: Bridge.deck-editing;
+            clicked => { Bridge.deck-editing = !Bridge.deck-editing; }
+        }
+    }
+    if !Bridge.deck-edit-open: grid := Rectangle {
+        y: 38px;
+        width: 8 * root.key + 7 * root.gap;
+        height: 3 * root.key + 2 * root.gap;
+        x: (parent.width - self.width) / 2;
+        for k[i] in Bridge.deck-keys: DeckKeyView {
+            x: mod(i, 8) * (root.key + root.gap);
+            y: floor(i / 8) * (root.key + root.gap);
+            width: root.key;
+            height: root.key;
+            key: k;
+            slot: i;
+            pitch: root.key + root.gap;
+        }
+    }
+    if Bridge.deck-edit-open: DeckEditor { }
+}
