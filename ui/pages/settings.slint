@@ -301,6 +301,19 @@ export component SettingsPage inherits Rectangle {
                     tta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.theme-picking = true; } }
                 }
             }
+            // notch against the screen edge, or a floating ball with just the eyes
+            HorizontalLayout {
+                height: 30px;
+                spacing: 6px;
+                Label { text: "Island style"; font-size: 12px; horizontal-stretch: 1; }
+                Segmented {
+                    y: 3px;
+                    width: 140px;
+                    items: ["Notch", "Bubble"];
+                    value: Bridge.bubble ? 1 : 0;
+                    picked(i) => { Bridge.set-setting("bubble", i == 1); }
+                }
+            }
             // the panel and the pill grow and shrink together
             SliderRow {
                 title: "Size";

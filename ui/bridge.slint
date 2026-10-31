@@ -406,6 +406,7 @@ export global Bridge {
     in property <bool> show-eyes: true;
     // island touches the top screen edge (notch look); false after it's dragged elsewhere
     in property <bool> docked: true;
+    in property <bool> bubble;               // island style: false = notch, true = floating ball
     in property <int> edge;                  // 0 top, 1 bottom, 2 left, 3 right, 4 floating
     in property <bool> island-home-start: true;
     in property <string> projects-dir;       // Dev tools folders ("" = not known yet)

@@ -19,6 +19,8 @@ pub fn wire(b: &Bridge, app: &Shared) {
             "water" => a.data.settings.water_reminders = value,
             "car" => a.data.settings.car_show = value,
             "homestart" => a.data.settings.island_home_on_start = value,
+            // the window takes the new resting size when the panel closes
+            "bubble" => a.data.settings.bubble = value,
             "stand" => a.data.settings.stand_reminders = value,
             "eyerest" => a.data.settings.eye_rest = value,
             "waitpause" => a.data.settings.wait_for_pause = value,

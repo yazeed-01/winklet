@@ -815,19 +815,32 @@ export component AppWindow inherits Window {
 
     property <length> pill-w: Bridge.game-mode ? 404px : Bridge.focus-active ? 320px : Bridge.media-playing ? 300px : 226px;
     property <length> peek-w: Bridge.peek-kind == 11 || Bridge.peek-kind == 17 ? 460px : 400px;
+    // Bubble style: at rest the island is a floating ball with just the eyes
+    property <bool> ball: Bridge.bubble && !Bridge.expanded && !Bridge.peeking;
+    // the ball floats a little off the screen edge (the notch sits flush against it)
+    property <length> gap: Bridge.bubble ? 6px : 0;
+    property <length> ball-d: hover.has-hover ? 48px : 44px;
     // docked on the left or right edge the pill stands upright
-    property <bool> side: (Bridge.edge == 2 || Bridge.edge == 3) && !Bridge.expanded && !Bridge.peeking;
-    property <length> island-w: Bridge.expanded ? 580px : Bridge.peeking ? peek-w : side ? 40px : pill-w;
-    property <length> island-h: Bridge.expanded ? 336px : Bridge.peeking ? 64px : side ? 168px : 34px;
-    property <length> radius: Bridge.expanded ? 32px : Bridge.peeking ? 26px : side ? 20px : 17px;
+    property <bool> side: (Bridge.edge == 2 || Bridge.edge == 3) && !Bridge.expanded && !Bridge.peeking && !Bridge.bubble;
+    property <length> island-w: Bridge.expanded ? 580px : Bridge.peeking ? peek-w : ball ? ball-d : side ? 40px : pill-w;
+    property <length> island-h: Bridge.expanded ? 336px : Bridge.peeking ? 64px : ball ? ball-d : side ? 168px : 34px;
+    property <length> radius: Bridge.expanded ? 32px : Bridge.peeking ? 26px : ball ? ball-d / 2 : side ? 20px : 17px;
+    // the ball bobs gently while you're around, and rests when you step away
+    property <bool> float-up;
+    property <length> bob: ball && float-up ? -3px : 0;
+    Timer {
+        interval: 1800ms;
+        running: root.ball && !Bridge.user-idle && !Bridge.dragging;
+        triggered => { root.float-up = !root.float-up; }
+    }
 
     Ear {
-        visible: Bridge.docked;
+        visible: Bridge.docked && !Bridge.bubble;
         x: island.x - self.width + 0.5px;
         y: 0;
     }
     Ear {
-        visible: Bridge.docked;
+        visible: Bridge.docked && !Bridge.bubble;
         mirrored: true;
         x: island.x + island.width - 0.5px;
         y: 0;
@@ -835,16 +848,20 @@ export component AppWindow inherits Window {
 
     island := Rectangle {
         // flush against the edge it's docked to (the window itself sits on that edge)
-        y: Bridge.edge == 1 ? parent.height - self.height : Bridge.edge == 2 || Bridge.edge == 3 ? (parent.height - self.height) / 2 : 0;
-        x: Bridge.edge == 2 ? 0 : Bridge.edge == 3 ? parent.width - self.width : (parent.width - self.width) / 2;
+        y: root.bob + (Bridge.edge == 1 ? parent.height - self.height - root.gap : Bridge.edge == 2 || Bridge.edge == 3 ? (parent.height - self.height) / 2 : root.gap);
+        x: Bridge.edge == 2 ? root.gap : Bridge.edge == 3 ? parent.width - self.width - root.gap : (parent.width - self.width) / 2;
+        animate y { duration: 1800ms; easing: ease-in-out; }
         width: island-w;
         height: island-h;
         background: Theme.island.with-alpha(Bridge.island-alpha);
-        // square corners on the docked side, round everywhere else
-        border-top-left-radius: Bridge.edge == 0 || Bridge.edge == 2 ? 0 : radius;
-        border-top-right-radius: Bridge.edge == 0 || Bridge.edge == 3 ? 0 : radius;
-        border-bottom-left-radius: Bridge.edge == 1 || Bridge.edge == 2 ? 0 : radius;
-        border-bottom-right-radius: Bridge.edge == 1 || Bridge.edge == 3 ? 0 : radius;
+        // square corners on the docked side, round everywhere else (a bubble floats: round all over)
+        border-top-left-radius: !Bridge.bubble && (Bridge.edge == 0 || Bridge.edge == 2) ? 0 : radius;
+        border-top-right-radius: !Bridge.bubble && (Bridge.edge == 0 || Bridge.edge == 3) ? 0 : radius;
+        border-bottom-left-radius: !Bridge.bubble && (Bridge.edge == 1 || Bridge.edge == 2) ? 0 : radius;
+        border-bottom-right-radius: !Bridge.bubble && (Bridge.edge == 1 || Bridge.edge == 3) ? 0 : radius;
+        // the ball gets a thin accent rim
+        border-width: root.ball ? 1px : 0;
+        border-color: Theme.accent.with-alpha(0.45);
         drop-shadow-blur: Bridge.expanded ? 24px : 8px;
         drop-shadow-offset-y: 4px;
         // a see-through island would show its own shadow through it, so the shadow fades with it
@@ -854,6 +871,23 @@ export component AppWindow inherits Window {
         animate height { duration: Theme.spring; easing: Theme.spring-ease; }
         animate border-bottom-left-radius, border-bottom-right-radius, border-top-left-radius, border-top-right-radius { duration: 300ms; }
 
+        // the ball: a soft sheen on top, and the focus timer as a ring around the eyes
+        if root.ball: Rectangle {
+            x: parent.width * 0.18;
+            y: 3px;
+            width: parent.width * 0.64;
+            height: parent.height * 0.4;
+            border-radius: self.height / 2;
+            background: @linear-gradient(180deg, #ffffff22 0%, #ffffff00 100%);
+        }
+        if root.ball && Bridge.focus-active: Ring {
+            width: parent.width;
+            height: parent.height;
+            thickness: 2.5px;
+            track: transparent;
+            progress: Bridge.focus-progress;
+            tint: Bridge.focus-break ? Theme.green : Theme.orange;
+        }
         // faint accent rim
         Rectangle {
             y: parent.height - 1px;
@@ -875,7 +909,7 @@ export component AppWindow inherits Window {
                 height: island.height;
             }
             collapsed := Collapsed {
-                visible: !root.side;
+                visible: !root.side && !root.ball;
                 width: pill-w;
                 height: 34px;
                 x: (island.width - self.width) / 2;
@@ -897,10 +931,10 @@ export component AppWindow inherits Window {
                 opacity: 0;
             }
             // one pair of eyes for pill and panel, so they stay put while the island opens
-            if Bridge.show-eyes && (root.side || Bridge.expanded || Bridge.game-mode || !Bridge.media-playing || Bridge.focus-active || Bridge.eye-mood == 7): Eyes {
-                width: pill-w;
+            if Bridge.show-eyes && (root.side || root.ball || Bridge.expanded || Bridge.game-mode || !Bridge.media-playing || Bridge.focus-active || Bridge.eye-mood == 7): Eyes {
+                width: root.ball ? island.width : pill-w;
                 x: (island.width - self.width) / 2;
-                y: root.side ? (island.height - self.height) / 2 : 0;
+                y: root.side || root.ball ? (island.height - self.height) / 2 : 0;
                 sleepy: Bridge.user-idle && Bridge.eye-mood == 0 && !Bridge.expanded && !Bridge.game-mode;
                 gaming: Bridge.game-mode;
                 playing: Bridge.game-running;

@@ -51,6 +51,8 @@ pub const SMALL: (f32, f32) = (340.0, 44.0);
 /// game mode's pill is wider (time, FPS, CPU, eyes, GPU, RAM, battery)
 const SMALL_GAME: (f32, f32) = (444.0, 44.0);
 const BIG: (f32, f32) = (620.0, 364.0);
+/// Bubble style: the ball, a little gap off the edge and room for it to bob
+pub const BUBBLE: (f32, f32) = (64.0, 60.0);
 /// the pill docked on the left or right edge stands upright
 const VERT: (f32, f32) = (52.0, 180.0);
 const BIG_CAR: (f32, f32) = (620.0, 484.0);
@@ -206,7 +208,13 @@ impl App {
     // ------------------------------------------------------------ window
     pub fn resize(&mut self, big: bool) {
         // the car show needs extra room under the island
-        let small = if self.data.settings.game_mode { SMALL_GAME } else { SMALL };
+        let small = if self.data.settings.bubble {
+            BUBBLE
+        } else if self.data.settings.game_mode {
+            SMALL_GAME
+        } else {
+            SMALL
+        };
         let target = if !big { small } else if self.car.is_some() { BIG_CAR } else { BIG };
         if self.cur_size == target {
             return;
