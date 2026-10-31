@@ -1,5 +1,5 @@
 // Deck: a grid of keys like a Stream Deck. Each key opens apps, files, folders or links,
-// runs a command, presses a hotkey, types text or does one of Winklet's actions.
+// runs a command or a script, presses a hotkey, types text or does one of Winklet's actions.
 
 import { Theme, Icon } from "../theme.slint";
 import { Bridge, DeckSlot } from "../bridge.slint";
@@ -35,7 +35,7 @@ global DeckDefs {
     ];
     // the glyph a key shows when it has no icon of its own (matches deck.rs)
     public pure function kind-glyph(kind: int) -> string {
-        return kind == 0 ? "\u{E7B5}" : kind == 1 ? "\u{E8A9}" : kind == 2 ? "\u{E756}" : kind == 3 ? "\u{E765}" : kind == 4 ? "\u{E8D2}" : "\u{E945}";
+        return kind == 0 ? "\u{E7B5}" : kind == 1 ? "\u{E8A9}" : kind == 2 ? "\u{E756}" : kind == 3 ? "\u{E943}" : kind == 4 ? "\u{E765}" : kind == 5 ? "\u{E8D2}" : "\u{E945}";
     }
 }
 
@@ -204,10 +204,11 @@ component DeckKeyView inherits Rectangle {
     }
 }
 
-// A text box bound to an editor field; several lines for Multi and Text keys.
+// A text box bound to an editor field; several lines for Multi, Script and Text keys.
 component DeckInput inherits Rectangle {
     in property <string> placeholder;
     in property <bool> multi;
+    in property <bool> mono;   // code: a fixed-width font, no wrapping
     in-out property <string> text <=> input.text;
     callback edited();
     border-radius: 10px;
@@ -237,11 +238,11 @@ component DeckInput inherits Rectangle {
         width: parent.width - 20px;
         height: root.multi ? parent.height - 14px : parent.height;
         color: Theme.text;
-        font-family: Theme.font;
-        font-size: 11.5px;
+        font-family: root.mono ? "Cascadia Mono" : Theme.font;
+        font-size: root.mono ? 11px : 11.5px;
         vertical-alignment: root.multi ? top : center;
         single-line: !root.multi;
-        wrap: root.multi ? word-wrap : no-wrap;
+        wrap: root.multi && !root.mono ? word-wrap : no-wrap;
         selection-background-color: Theme.accent.with-alpha(0.5);
         edited => { root.edited(); }
     }
@@ -308,7 +309,7 @@ component DeckEditor inherits Rectangle {
                 horizontal-stretch: 1;
                 spacing: 8px;
                 Segmented {
-                    items: ["Open", "Multi", "Command", "Hotkey", "Text", "Action"];
+                    items: ["Open", "Multi", "Command", "Script", "Hotkey", "Text", "Action"];
                     value: Bridge.deck-edit-kind;
                     picked(i) => { Bridge.deck-edit-kind = i; Bridge.deck-preview(); }
                 }
@@ -362,6 +363,34 @@ component DeckEditor inherits Rectangle {
                 }
                 if Bridge.deck-edit-kind == 3: VerticalLayout {
                     spacing: 6px;
+                    Segmented {
+                        width: 160px;
+                        items: ["PowerShell", "Batch"];
+                        value: Bridge.deck-edit-lang;
+                        picked(i) => { Bridge.deck-edit-lang = i; }
+                    }
+                    DeckInput {
+                        height: 84px;
+                        multi: true;
+                        mono: true;
+                        placeholder: Bridge.deck-edit-lang == 0
+                            ? "Your script, one command per line:\ncd C:\\repo\ngit pull\nnpm run dev"
+                            : "Your script, one command per line:\ncd /d C:\\repo\ngit pull\nnpm run dev";
+                        text <=> Bridge.deck-edit-target;
+                    }
+                    HorizontalLayout {
+                        height: 26px;
+                        VerticalLayout {
+                            alignment: center;
+                            horizontal-stretch: 1;
+                            Label { text: "Show window"; font-size: 12px; }
+                            Label { text: "Keep a console open to see the output"; font-size: 10px; color: Theme.text-faint; }
+                        }
+                        Toggle { y: 2px; checked: Bridge.deck-edit-flag; toggled(v) => { Bridge.deck-edit-flag = v; } }
+                    }
+                }
+                if Bridge.deck-edit-kind == 4: VerticalLayout {
+                    spacing: 6px;
                     DeckInput {
                         height: 30px;
                         placeholder: "Keys, like ctrl+shift+esc · win+d · alt+tab · f5";
@@ -369,7 +398,7 @@ component DeckEditor inherits Rectangle {
                     }
                     Label { text: "Pressed in the app you were using. Use ctrl, shift, alt, win, letters, f1–f24, enter, esc, tab, space, arrows, playpause, mute, volup …"; font-size: 10px; color: Theme.text-faint; wrap: word-wrap; }
                 }
-                if Bridge.deck-edit-kind == 4: VerticalLayout {
+                if Bridge.deck-edit-kind == 5: VerticalLayout {
                     spacing: 6px;
                     DeckInput {
                         height: 64px;
@@ -383,7 +412,7 @@ component DeckEditor inherits Rectangle {
                         Toggle { y: 1px; checked: Bridge.deck-edit-flag; toggled(v) => { Bridge.deck-edit-flag = v; } }
                     }
                 }
-                if Bridge.deck-edit-kind == 5: acts := Rectangle {
+                if Bridge.deck-edit-kind == 6: acts := Rectangle {
                     height: 96px;
                     property <length> cw: (self.width - 2 * 6px) / 3;
                     for a[i] in DeckDefs.actions: Rectangle {

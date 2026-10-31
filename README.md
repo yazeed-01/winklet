@@ -174,6 +174,7 @@ Your own Stream Deck on the island: a grid of 8 × 3 keys, on up to six pages. E
 | **Open** | An app, file, folder or website (`https://…`, `ms-settings:`, …) |
 | **Multi** | Several at once: apps, files, folders, links, or `> a command`, one per line. A whole setup with one press |
 | **Command** | Runs a command line, hidden or in a console that stays open so you can read the output |
+| **Script** | Runs a whole PowerShell or Batch script you write in the key, hidden or in a console that stays open |
 | **Hotkey** | Presses a key combination in the app you were using: `ctrl+shift+esc`, `win+d`, `alt+f4`, `f5` … |
 | **Text** | Types text for you (an email address, a reply you send often), optionally pressing Enter after |
 | **Action** | Play/pause, next, previous, mute, volume up/down, mic on/off, screenshot, lock, sleep, focus timer, game mode |
@@ -184,7 +185,7 @@ Your own Stream Deck on the island: a grid of 8 × 3 keys, on up to six pages. E
 
 <img src="docs/screenshots/deck.png" width="560" alt="The Deck: colourful keys with app icons and glyphs">
 
-<img src="docs/screenshots/deck-edit.png" width="560" alt="The key editor with a live preview, the six kinds of key, colours and icons">
+<img src="docs/screenshots/deck-edit.png" width="560" alt="The key editor with a live preview, the kinds of key, colours and icons">
 
 ### Wallpaper
 

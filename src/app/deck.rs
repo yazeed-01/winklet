@@ -1,5 +1,5 @@
 //! The Deck tab: a grid of keys like a Stream Deck. A key opens an app, file, folder or link,
-//! runs several of those at once, runs a command, presses a hotkey, types text, or does one
+//! runs several of those at once, runs a command or a script, presses a hotkey, types text, or does one
 //! of Winklet's own actions (media keys, mic, screenshot, lock …). Each key has its own
 //! colour and either the program's icon or a glyph.
 
@@ -12,7 +12,10 @@ pub const PER_PAGE: i32 = 24;
 const MAX_PAGES: i32 = 6;
 
 /// in the order of the editor's kind switch
-const KINDS: [&str; 6] = ["open", "multi", "command", "hotkey", "text", "action"];
+const KINDS: [&str; 7] = ["open", "multi", "command", "script", "hotkey", "text", "action"];
+
+/// in the order of the script editor's language switch
+const LANGS: [&str; 2] = ["powershell", "batch"];
 
 /// key colours: graphite, indigo, blue, cyan, green, lime, amber, orange, red, pink, purple, slate
 pub const PALETTE: [&str; 12] =
@@ -34,6 +37,7 @@ fn kind_glyph(kind: &str, target: &str) -> &'static str {
         "open" => "\u{E7B5}",
         "multi" => "\u{E8A9}",
         "command" => "\u{E756}",
+        "script" => "\u{E943}",
         "hotkey" => "\u{E765}",
         "text" => "\u{E8D2}",
         _ => "\u{E945}",
@@ -46,6 +50,7 @@ fn default_title(kind: &str, target: &str) -> String {
         "open" if !target.trim().is_empty() => item_name(target.trim()),
         "multi" => format!("{} items", target.lines().filter(|l| !l.trim().is_empty()).count()),
         "command" => first.split_whitespace().next().unwrap_or("Command").to_string(),
+        "script" => "Script".into(),
         "hotkey" => target.trim().to_string(),
         "text" => first.chars().take(14).collect(),
         "action" => target.to_string(),
@@ -64,6 +69,41 @@ fn run_command(cmd: &str, show: bool) -> bool {
     } else {
         c.arg("/c").raw_arg(cmd).creation_flags(CREATE_NO_WINDOW);
     }
+    if let Ok(home) = std::env::var("USERPROFILE") {
+        c.current_dir(home);
+    }
+    c.spawn().is_ok()
+}
+
+/// Saves a script key's lines to %APPDATA%\Winklet\scripts and runs the file: hidden, or in a
+/// console window that stays open to show the output.
+fn run_script(id: &str, body: &str, lang: &str, show: bool) -> bool {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
+    let batch = lang == "batch";
+    let dir = store::data_dir().join("scripts");
+    let file = dir.join(format!("deck-{id}.{}", if batch { "cmd" } else { "ps1" }));
+    let body = body.replace("\r\n", "\n").replace('\n', "\r\n");
+    // Windows PowerShell reads a .ps1 without a BOM as ANSI; cmd needs the UTF-8 code page
+    let text = if batch { format!("@chcp 65001 >nul\r\n{body}\r\n") } else { format!("\u{FEFF}{body}\r\n") };
+    if std::fs::create_dir_all(&dir).and_then(|_| std::fs::write(&file, text)).is_err() {
+        return false;
+    }
+    let mut c = if batch {
+        let mut c = std::process::Command::new("cmd");
+        c.arg(if show { "/k" } else { "/c" }).arg(&file);
+        c
+    } else {
+        let mut c = std::process::Command::new("powershell");
+        c.args(["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass"]);
+        if show {
+            c.arg("-NoExit");
+        }
+        c.arg("-File").arg(&file);
+        c
+    };
+    c.creation_flags(if show { CREATE_NEW_CONSOLE } else { CREATE_NO_WINDOW });
     if let Ok(home) = std::env::var("USERPROFILE") {
         c.current_dir(home);
     }
@@ -140,6 +180,11 @@ impl App {
                     a.toast("Couldn't run the command");
                 }
             }
+            "script" => {
+                if !run_script(&k.id, &target, &k.lang, k.flag) {
+                    a.toast("Couldn't run the script");
+                }
+            }
             "hotkey" | "text" => {
                 let (kind, flag) = (k.kind.clone(), k.flag);
                 a.collapse();
@@ -179,6 +224,7 @@ impl App {
         b.set_deck_edit_glyph(s(k.glyph.clone()));
         b.set_deck_edit_color(PALETTE.iter().position(|c| c.eq_ignore_ascii_case(&k.color)).unwrap_or(0) as i32);
         b.set_deck_edit_flag(k.flag);
+        b.set_deck_edit_lang(LANGS.iter().position(|x| *x == k.lang).unwrap_or(0) as i32);
         b.set_deck_edit_has_icon(icon.size().width > 0);
         b.set_deck_edit_icon(icon);
         b.set_deck_edit_open(true);
@@ -201,7 +247,7 @@ impl App {
     pub fn deck_save(&mut self) {
         let ui = self.ui();
         let b = ui.global::<Bridge>();
-        let kind = KINDS[b.get_deck_edit_kind().clamp(0, 5) as usize];
+        let kind = KINDS[b.get_deck_edit_kind().clamp(0, KINDS.len() as i32 - 1) as usize];
         let target = b.get_deck_edit_target().trim().trim_matches('"').to_string();
         if target.is_empty() {
             self.toast(match kind {
@@ -228,6 +274,7 @@ impl App {
             glyph: b.get_deck_edit_glyph().to_string(),
             color,
             flag: b.get_deck_edit_flag(),
+            lang: if kind == "script" { LANGS[b.get_deck_edit_lang().clamp(0, 1) as usize].into() } else { String::new() },
         };
         match self.data.deck.iter_mut().find(|k| k.page == page && k.slot == slot) {
             Some(k) => *k = store::DeckKey { id: k.id.clone(), ..key },

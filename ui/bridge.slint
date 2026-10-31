@@ -500,12 +500,13 @@ export global Bridge {
     in-out property <bool> deck-edit-open;
     in property <int> deck-edit-slot;
     in property <bool> deck-edit-new;
-    in-out property <int> deck-edit-kind;      // 0 open, 1 multi, 2 command, 3 hotkey, 4 text, 5 action
+    in-out property <int> deck-edit-kind;      // 0 open, 1 multi, 2 command, 3 script, 4 hotkey, 5 text, 6 action
     in-out property <string> deck-edit-target;
     in-out property <string> deck-edit-title;
     in-out property <string> deck-edit-glyph;  // "" = the program's own icon
     in-out property <int> deck-edit-color;     // index in deck-palette
-    in-out property <bool> deck-edit-flag;     // command: show a window · text: press Enter after
+    in-out property <bool> deck-edit-flag;     // command, script: show a window · text: press Enter after
+    in-out property <int> deck-edit-lang;      // script: 0 PowerShell, 1 Batch
     in property <image> deck-edit-icon;
     in property <bool> deck-edit-has-icon;
     callback deck-press(int);

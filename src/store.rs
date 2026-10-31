@@ -223,18 +223,21 @@ pub struct DeckKey {
     pub page: i32,
     /// position on its page, row by row
     pub slot: i32,
-    /// "open", "multi", "command", "hotkey", "text" or "action"
+    /// "open", "multi", "command", "script", "hotkey", "text" or "action"
     pub kind: String,
     /// open: program, file, folder or link · multi: one of those (or "> command") per line ·
-    /// command: a command line · hotkey: "ctrl+shift+esc" · text: what to type · action: its id
+    /// command: a command line · script: the script's lines · hotkey: "ctrl+shift+esc" ·
+    /// text: what to type · action: its id
     pub target: String,
     pub title: String,
     /// Segoe Fluent glyph; "" = the program's own icon
     pub glyph: String,
     /// key colour, "#rrggbb"
     pub color: String,
-    /// command: keep a window open with the output · text: press Enter after typing
+    /// command, script: keep a window open with the output · text: press Enter after typing
     pub flag: bool,
+    /// script: "powershell" (the default) or "batch"
+    pub lang: String,
 }
 
 /// A kind of drink on the Water tab.
@@ -262,6 +265,7 @@ pub fn default_deck() -> Vec<DeckKey> {
         glyph: glyph.into(),
         color: color.into(),
         flag: false,
+        lang: String::new(),
     };
     vec![
         key(0, "open", format!(r"{win}\explorer.exe"), "Explorer", "", "#2563eb"),
