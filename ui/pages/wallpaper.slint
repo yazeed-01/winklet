@@ -1,4 +1,5 @@
-// Wallpaper: your desktop picture now, and a gallery to pick the next one from.
+// Wallpaper: your desktop picture now, and a gallery to pick the next one from: a 3D-style
+// carousel (the default) or a grid.
 
 import { Theme, Icon } from "../theme.slint";
 import { Bridge, WallItem } from "../bridge.slint";
@@ -63,6 +64,150 @@ component WallThumb inherits Rectangle {
     ta := TouchArea {
         mouse-cursor: pointer;
         clicked => { Bridge.wall-set(root.item.path); }
+    }
+}
+
+// One picture in the carousel: it shrinks, dims and steps back the further it is from the
+// front, stands on a glossy floor with its reflection, and comes forward when clicked.
+component WallSlide inherits Rectangle {
+    in property <WallItem> item;
+    in property <float> d;                  // places from the front (fractional while sliding)
+    in property <length> cw;                // the front picture's size
+    in property <length> ch;
+    in property <length> floor;             // where the pictures stand
+    in property <length> mid;
+    callback picked();
+    property <float> ad: abs(d);
+    property <float> s: max(0.42, 1 - min(ad, 3) * 0.19);
+    // the first step aside is wide, the ones after it tuck in behind
+    property <length> off: (min(ad, 1) * 0.6 + max(ad - 1, 0) * 0.32) * cw;
+    property <bool> front: ad < 0.5;
+    visible: ad < 3.4;
+    width: cw * s;
+    height: ch * s;
+    x: mid + (d < 0 ? -off : off) - self.width / 2;
+    y: floor - self.height;
+    z: 10 - ad;
+    opacity: 1 - min(ad, 3) * 0.2;
+    // reflection on the floor: the picture flipped, fading out
+    Rectangle {
+        y: parent.height + 3px;
+        height: parent.height * 0.32;
+        border-radius: 10px * root.s;
+        clip: true;
+        opacity: 0.32;
+        if root.item.loaded: Image {
+            y: 0;
+            width: parent.width;
+            height: root.height;
+            source: root.item.thumb;
+            image-fit: cover;
+            transform-scale-y: -1;
+        }
+        Rectangle { background: @linear-gradient(180deg, Theme.island.with-alpha(0.35) 0%, Theme.island 85%); }
+    }
+    card := Rectangle {
+        border-radius: 12px * root.s;
+        background: Theme.surface;
+        clip: true;
+        drop-shadow-blur: root.front ? 22px : 10px;
+        drop-shadow-color: #000a;
+        transform-scale: root.front && ta.has-hover ? 1.03 : 1;
+        animate transform-scale { duration: 300ms; easing: Theme.smooth; }
+        if !root.item.loaded: Rectangle {
+            background: @linear-gradient(110deg, Theme.wash(0.02) 0%, Theme.wash(0.07) 50%, Theme.wash(0.02) 100%);
+        }
+        if root.item.loaded: Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.item.thumb;
+            image-fit: cover;
+        }
+        // the ones aside sit in shade
+        Rectangle { background: #000000.with-alpha(min(root.ad, 1.6) * 0.28); }
+        if root.item.current: Rectangle {
+            border-radius: parent.border-radius;
+            border-width: 2px;
+            border-color: Theme.accent;
+            Rectangle {
+                x: parent.width - 22px;
+                y: 6px;
+                width: 16px;
+                height: 16px;
+                border-radius: 8px;
+                background: Theme.accent;
+                Glyph { text: Icon.check; font-size: 8px; color: #0b0b12; }
+            }
+        }
+        ta := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { root.picked(); }
+        }
+    }
+}
+
+// The carousel: the wheel or the arrows slide through the folder, a click on a side picture
+// brings it to the front, a click on the front one puts it on the desktop.
+component WallCarousel inherits Rectangle {
+    property <int> n: Bridge.walls.length;
+    // slides smoothly between pictures
+    property <float> at: Bridge.wall-focus;
+    animate at { duration: 520ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+    property <length> cw: min(self.width * 0.58, (self.height - 70px) * 16 / 9);
+    property <length> ch: cw * 9 / 16;
+    property <length> floor: (self.height - 34px - ch) / 2 + ch - 4px;
+    function go(step: int) {
+        Bridge.wall-focus = max(0, min(root.n - 1, Bridge.wall-focus + step));
+    }
+    clip: true;
+    TouchArea {
+        scroll-event(e) => {
+            if e.delta-y + e.delta-x < 0 {
+                root.go(1);
+            } else if e.delta-y + e.delta-x > 0 {
+                root.go(-1);
+            }
+            accept
+        }
+    }
+    for w[i] in Bridge.walls: WallSlide {
+        item: w;
+        d: i - root.at;
+        cw: root.cw;
+        ch: root.ch;
+        floor: root.floor;
+        mid: root.width / 2;
+        picked => {
+            if i == Bridge.wall-focus { Bridge.wall-set(w.path); } else { Bridge.wall-focus = i; }
+        }
+    }
+    // the front picture's name, where you are, and the arrows
+    HorizontalLayout {
+        y: parent.height - 30px;
+        height: 30px;
+        spacing: 8px;
+        IconButton { y: 1px; icon: Icon.left; size: 28px; icon-size: 10px; fill: Theme.surface; tip: "Previous"; clicked => { root.go(-1); } }
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 1;
+            Text {
+                text: Bridge.walls[Bridge.wall-focus].name;
+                font-family: Theme.font;
+                font-size: 11.5px;
+                font-weight: 600;
+                color: Theme.text;
+                horizontal-alignment: center;
+                overflow: elide;
+            }
+            Text {
+                text: (Bridge.walls[Bridge.wall-focus].current ? "On your desktop" : "Click it to set it") + " · " + (Bridge.wall-focus + 1) + " / " + root.n;
+                font-family: Theme.font;
+                font-size: 9.5px;
+                color: Theme.text-faint;
+                horizontal-alignment: center;
+            }
+        }
+        IconButton { y: 1px; icon: Icon.right; size: 28px; icon-size: 10px; fill: Theme.surface; tip: "Next"; clicked => { root.go(1); } }
     }
 }
 
@@ -183,17 +328,56 @@ export component WallpaperPage inherits Rectangle {
         VerticalLayout {
             width: root.width - 248px - 16px;
             spacing: 10px;
-            Flickable {
+            HorizontalLayout {
                 height: 26px;
-                interactive: false;
-                content-width: chips.preferred-width;
-                chips := HorizontalLayout {
-                    spacing: 6px;
-                    for name[i] in Bridge.wall-sources: SourceChip { name: name; index: i; }
-                    IconButton { icon: Icon.add; size: 26px; icon-size: 10px; fill: Theme.surface; tip: "Add a folder of your pictures"; clicked => { Bridge.wall-add-folder(); } }
+                spacing: 8px;
+                Flickable {
+                    horizontal-stretch: 1;
+                    interactive: false;
+                    content-width: chips.preferred-width;
+                    chips := HorizontalLayout {
+                        spacing: 6px;
+                        for name[i] in Bridge.wall-sources: SourceChip { name: name; index: i; }
+                        IconButton { icon: Icon.add; size: 26px; icon-size: 10px; fill: Theme.surface; tip: "Add a folder of your pictures"; clicked => { Bridge.wall-add-folder(); } }
+                    }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                // carousel or grid (the last one picked sticks)
+                Rectangle {
+                    width: 58px;
+                    border-radius: 13px;
+                    background: Theme.surface;
+                    for g[i] in ["\u{E786}", "\u{F0E2}"]: Rectangle {
+                        property <int> view: i == 0 ? 1 : 0;
+                        x: 2px + i * 27px;
+                        y: 2px;
+                        width: 27px;
+                        height: 22px;
+                        border-radius: 11px;
+                        background: Bridge.wall-view == view ? Theme.wash(0.14) : va.has-hover ? Theme.surface-hover : transparent;
+                        animate background { duration: 140ms; }
+                        Glyph { text: g; font-size: 10px; color: Bridge.wall-view == view ? Theme.text : Theme.text-faint; }
+                        va := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { Bridge.wall-view-set(view); }
+                            changed has-hover => {
+                                if self.has-hover {
+                                    Tip.text = view == 1 ? "Carousel" : "Grid";
+                                    Tip.ax = parent.absolute-position.x;
+                                    Tip.ay = parent.absolute-position.y;
+                                    Tip.aw = parent.width;
+                                    Tip.ah = parent.height;
+                                    Tip.shown = true;
+                                } else {
+                                    Tip.shown = false;
+                                }
+                            }
+                        }
+                    }
                 }
             }
-            grid := Rectangle {
+            if Bridge.wall-view == 1 && Bridge.walls.length > 0: WallCarousel { vertical-stretch: 1; }
+            if Bridge.wall-view == 0 || Bridge.walls.length == 0: grid := Rectangle {
                 vertical-stretch: 1;
                 property <int> cols: 3;
                 property <length> gap: 9px;

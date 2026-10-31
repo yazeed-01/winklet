@@ -16,7 +16,8 @@ use std::time::{Duration, Instant};
 
 /// "Change every" steps in minutes (0 = off)
 const EVERY: [i32; 6] = [0, 15, 30, 60, 180, 1440];
-const THUMB: i32 = 200;
+/// big enough for the carousel's front picture
+const THUMB: i32 = 288;
 const PREVIEW: i32 = 480;
 
 struct Job {
@@ -125,11 +126,13 @@ impl App {
         if !current.is_empty() {
             let _ = tx.send(Job { gen_: 0, path: current.clone(), size: PREVIEW });
         }
-        self.wall.paths = paths;
         self.wall.items.set_vec(items);
         let ui = self.ui();
         let b = ui.global::<Bridge>();
         b.set_walls(ModelRc::from(self.wall.items.clone()));
+        // the carousel opens on the picture on the desktop now
+        b.set_wall_focus(paths.iter().position(|p| p.eq_ignore_ascii_case(&current)).unwrap_or(0) as i32);
+        b.set_wall_view(self.data.settings.wallpaper_view);
         b.set_wall_sources(ModelRc::new(VecModel::from(sources)));
         b.set_wall_source(source);
         b.set_wall_current_name(s(if current.is_empty() { "A solid colour or slideshow".into() } else { name_of(&current) }));
@@ -139,6 +142,14 @@ impl App {
         b.set_wall_fit(wall::position());
         b.set_wall_every_text(s(every_text(every)));
         b.set_wall_dir(s(dir.to_string_lossy().to_string()));
+        self.wall.paths = paths;
+    }
+
+    /// Grid or carousel; remembered for next time.
+    pub fn wall_view_set(&mut self, v: i32) {
+        self.data.settings.wallpaper_view = v.clamp(0, 1);
+        self.data.save();
+        self.ui().global::<Bridge>().set_wall_view(self.data.settings.wallpaper_view);
     }
 
     fn wall_thumb(&mut self, gen_: u64, path: &str, size: i32, w: u32, h: u32, px: &[u8]) {

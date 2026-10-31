@@ -192,6 +192,7 @@ Your own Stream Deck on the island: a grid of 8 × 3 keys, on up to six pages. E
 Change your desktop picture without opening Settings.
 
 * **Now and next.** The left shows the wallpaper on your screen now; the right is a gallery of Windows' own wallpapers. Click any picture to put it on the desktop: it changes right away.
+* **Carousel or grid.** The gallery opens as a 3D-style carousel: the front picture stands tall on a glossy floor with its reflection while the others step back and dim on either side. Scroll or use the arrows to slide through, click a side picture to bring it forward and the front one to set it. The switch at the top right swaps to a plain grid, and the view you pick last sticks.
 * **Your folders.** **+** adds any folder of pictures (JPG, PNG, BMP, WebP, subfolders too) as its own tab. **Open** shows it in Explorer, and right-clicking a folder tab removes it (the pictures stay where they are).
 * **Fill, Fit, Stretch, Centre or Span** sets how the picture covers the screen.
 * **Shuffle** picks a random picture from the folder, and **Change every** (15 minutes to a day) does it for you.
