@@ -141,7 +141,7 @@ Everything you copy, kept for you: text, links, colour codes, pictures and copie
 * **Find it again.** The list on the left has a search bar and **All / Text / Links / Images / Files** filters. Pictures show a thumbnail, colour codes show the colour, and each item says when you copied it.
 * **See all of it.** Pick an item and the preview on the right shows it in full: text in a scrolling viewer with line numbers, pictures fitted to the panel, copied files you can click to open, and a swatch for colour codes.
 * **Find inside it.** The preview has its own find bar: every match is highlighted, it shows "3 / 12", and the arrows (or Enter) jump from one match to the next.
-* **Use it.** **Copy** puts it back on the clipboard; **Paste** (or a double-click in the list) pastes it straight into the app you were using. **Pin** keeps an item for good, even after **Clear**.
+* **Use it.** **Copy** puts it back on the clipboard; a double-click in the list pastes it straight into the app you were using. **Pin** keeps an item for good, even after **Clear**.
 * **Private by default.** It keeps the newest 300 items plus anything pinned, on your PC only. Copies that password managers mark as private are never saved, and the pause button stops saving for as long as you like.
 
 <img src="docs/screenshots/clipboard.png" width="560" alt="Clipboard history: the list with search and filters, and a text preview with find matches highlighted">

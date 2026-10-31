@@ -203,8 +203,7 @@ export component ClipboardPage inherits Rectangle {
                     if Bridge.clip-kind == "link": IconButton { icon: Icon.globe; size: 28px; icon-size: 11px; fill: Theme.surface; tip: "Open the link"; clicked => { Bridge.clip-open(""); } }
                     IconButton { icon: "\u{E718}"; size: 28px; icon-size: 11px; fill: Bridge.clip-pinned ? Theme.orange.with-alpha(0.25) : Theme.surface; tint: Bridge.clip-pinned ? Theme.orange : Theme.text; tip: Bridge.clip-pinned ? "Unpin" : "Pin: keep it, even after Clear"; clicked => { Bridge.clip-pin(); } }
                     IconButton { icon: Icon.delete; size: 28px; icon-size: 11px; fill: Theme.surface; tint: Theme.red; tip: "Delete"; clicked => { Bridge.clip-delete(); } }
-                    IconButton { icon: Icon.copy; size: 28px; icon-size: 11px; fill: Theme.surface; tip: "Copy"; clicked => { Bridge.clip-copy(); } }
-                    Button { height: 28px; icon: "\u{E77F}"; text: "Paste"; primary: true; tip: "Paste it into the app you were using (or double-click it in the list)"; clicked => { Bridge.clip-paste(); } }
+                    Button { height: 28px; icon: Icon.copy; text: "Copy"; primary: true; tip: "Copy it again (double-click it in the list to paste it into the app you were using)"; clicked => { Bridge.clip-copy(); } }
                 }
                 // find in this text
                 if root.textual: HorizontalLayout {
