@@ -11,12 +11,14 @@ chrono = { version = "0.4.45", features = ["serde"] }
 raw-window-handle = "0.6.2"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
-# Native GPU renderer, no accessibility/qt/software extras => smaller binary, less RAM.
+# Skia drawing on the CPU (picked in main.rs): the same look as a GPU renderer (glow, shadows,
+# gradients) in a fraction of the memory, and the GPU is never woken up for it.
+# No accessibility/qt extras => smaller binary, less RAM.
 slint = { version = "1.18.1", default-features = false, features = [
     "std",
     "compat-1-2",
     "backend-winit",
-    "renderer-femtovg",
+    "renderer-skia",
     "raw-window-handle-06",
     "system-tray",
     "image-default-formats",

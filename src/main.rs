@@ -50,6 +50,11 @@ fn main() {
         let _ = windows::Win32::System::Com::CoInitializeEx(None, windows::Win32::System::Com::COINIT_APARTMENTTHREADED);
     }
 
+    // Skia's CPU rasterizer: measured lighter (≈50 MB vs ≈100 MB) and faster while animating than
+    // FemtoVG on OpenGL, with the same look. SLINT_BACKEND still overrides it (for testing).
+    if std::env::var_os("SLINT_BACKEND").is_none() {
+        let _ = slint::BackendSelector::new().backend_name("winit".into()).renderer_name("skia-software".into()).select();
+    }
     let ui = AppWindow::new().expect("create window");
     let mut data = Data::load();
     if data.settings.island_home_on_start {
@@ -378,6 +383,29 @@ fn init_window(app: Shared) {
                 a.ui().global::<Bridge>().set_perf_mode(m);
             }
             a.expand();
+        }
+        // WINKLET_DEMO_CYCLE=ms walks through every tab and opens/closes the island over and over
+        // (a soak test for memory leaks)
+        if let Some(ms) = std::env::var("WINKLET_DEMO_CYCLE").ok().and_then(|v| v.parse::<u64>().ok()) {
+            let n = std::rc::Rc::new(std::cell::Cell::new(0i32));
+            let t = Box::leak(Box::new(Timer::default()));
+            t.start(TimerMode::Repeated, Duration::from_millis(ms), move || {
+                let i = n.get();
+                n.set(i + 1);
+                with_app(|s| {
+                    let mut a = s.borrow_mut();
+                    let ui = a.ui();
+                    let b = ui.global::<Bridge>();
+                    match i % 19 {
+                        17 => a.collapse(),
+                        18 => a.expand(),
+                        tab => {
+                            b.set_tab(tab);
+                            a.refresh_tab(tab);
+                        }
+                    }
+                });
+            });
         }
         // WINKLET_DEMO_TIP=text shows the tooltip under the 5th tab (screenshots)
         if let Ok(text) = std::env::var("WINKLET_DEMO_TIP") {
