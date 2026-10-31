@@ -1,4 +1,4 @@
-import { Theme, Icon, Cars, EyeTint } from "theme.slint";
+import { Theme, Icon, Cars, EyeTint, TabList, TabDef } from "theme.slint";
 import { Bridge, TodoItem, AlarmItem, DayCell, Bar, ShelfItem, AppVolume } from "bridge.slint";
 import { Glyph, Label, IconButton, Button, Ring, WaterDrop, PageHost, Tip } from "widgets.slint";
 import { HomePage, TodoPage, CalendarPage, FocusPage, WaterPage, AlarmPage, DevPage, SettingsPage, ShelfPage, AudioPage, HealthPage, GearPage, GamePage, PowerPage, DeckPage, WallpaperPage, ClipboardPage } from "pages.slint";
@@ -560,7 +560,10 @@ component TabButton inherits Rectangle {
     in property <bool> lit;   // glows while its mode is on (Game) or something is planned (Power)
     in property <color> lit-tint: Theme.green;
     property <bool> active: Bridge.tab == index;
-    width: 28px;
+    // behind the More button: not in the bar
+    property <bool> hidden: Bridge.tab-hidden[index];
+    visible: !hidden;
+    width: hidden ? 0 : 28px;
     height: 30px;
     border-radius: 10px;
     background: !active && ta.has-hover ? Theme.surface : transparent;
@@ -603,6 +606,85 @@ component TabButton inherits Rectangle {
                 Bridge.tab-dir = TabOrder.pos(index) > TabOrder.pos(Bridge.tab) ? 1 : -1;
                 Bridge.tab = index;
                 Bridge.tab-changed(index);
+            }
+        }
+    }
+}
+
+// "More": the tabs you tucked away. Lit while one of them is on screen.
+component MoreButton inherits Rectangle {
+    property <bool> active: Bridge.tab-slot[Bridge.tab] < 0;
+    width: 28px;
+    height: 30px;
+    border-radius: 10px;
+    background: (Bridge.more-open || ta.has-hover) && !active ? Theme.surface : transparent;
+    animate background { duration: 150ms; }
+    Glyph {
+        width: 100%;
+        height: 100%;
+        text: "\u{E712}";
+        font-size: 13px;
+        color: active || Bridge.more-open ? Theme.text : Theme.text-dim;
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        changed has-hover => {
+            if self.has-hover {
+                Tip.text = "More";
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if Tip.text == "More" {
+                Tip.shown = false;
+            }
+        }
+        clicked => { Tip.shown = false; Bridge.more-open = !Bridge.more-open; }
+    }
+}
+
+// The list behind More: pick a tab and its page opens in the panel.
+component MoreMenu inherits Rectangle {
+    width: 180px;
+    height: lay.preferred-height;
+    border-radius: 14px;
+    background: Theme.popup;
+    border-width: 1px;
+    border-color: Theme.stroke;
+    drop-shadow-blur: 18px;
+    drop-shadow-color: #0009;
+    lay := VerticalLayout {
+        padding: 5px;
+        spacing: 1px;
+        for i in Bridge.more-tabs: Rectangle {
+            property <TabDef> t: TabList.all[TabOrder.pos(i)];
+            property <bool> on: Bridge.tab == i;
+            height: 30px;
+            border-radius: 9px;
+            background: on ? Theme.wash(0.12) : ra.has-hover ? Theme.surface-hover : transparent;
+            animate background { duration: 120ms; }
+            HorizontalLayout {
+                padding-left: 9px;
+                padding-right: 9px;
+                spacing: 9px;
+                if t.icon != "": Glyph { width: 16px; text: t.icon; font-size: 12px; color: on ? Theme.text : Theme.text-dim; }
+                if t.icon == "": Rectangle {
+                    width: 16px;
+                    WaterDrop { x: 2px; y: (parent.height - self.height) / 2; width: 12px; height: 12px; fill: on ? Theme.blue : Theme.text-dim; }
+                }
+                Label { text: t.name; font-size: 12px; font-weight: on ? 600 : 400; vertical-alignment: center; }
+            }
+            ra := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    Bridge.more-open = false;
+                    if Bridge.tab != i {
+                        Bridge.tab-dir = TabOrder.pos(i) > TabOrder.pos(Bridge.tab) ? 1 : -1;
+                        Bridge.tab = i;
+                        Bridge.tab-changed(i);
+                    }
+                }
             }
         }
     }
@@ -681,10 +763,11 @@ component Expanded inherits Rectangle {
     Rectangle {
         x: 14px;
         y: 34px;
-        width: 17 * 28px;
+        width: Bridge.tab-count * 28px;
         height: 30px;
         Rectangle {
-            x: TabOrder.pos(Bridge.tab) * 28px;
+            // on the tab, or on More while one of its tabs is open
+            x: (Bridge.tab-slot[Bridge.tab] < 0 ? Bridge.more-slot : Bridge.tab-slot[Bridge.tab]) * 28px;
             width: 28px;
             height: 30px;
             border-radius: 10px;
@@ -709,6 +792,7 @@ component Expanded inherits Rectangle {
             TabButton { index: 15; tip: "Wallpaper"; icon: Icon.wallpaper; }
             TabButton { index: 12; tip: "Game mode (Ctrl+Alt+G)"; icon: Icon.game; lit: Bridge.game-mode; }
             TabButton { index: 13; tip: Bridge.power-pending >= 0 ? "Power: planned for " + Bridge.power-at : "Power: lock, sleep, restart, shut down"; icon: Icon.power; lit: Bridge.power-pending >= 0; lit-tint: Theme.orange; }
+            if Bridge.more-slot >= 0: MoreButton { }
             TabButton { index: 10; tip: "Settings"; icon: Icon.settings; }
         }
     }
@@ -756,6 +840,13 @@ component Expanded inherits Rectangle {
         if Bridge.tab == 14: PageHost { dir: Bridge.tab-dir; DeckPage { } }
         if Bridge.tab == 15: PageHost { dir: Bridge.tab-dir; WallpaperPage { } }
         if Bridge.tab == 16: PageHost { dir: Bridge.tab-dir; ClipboardPage { } }
+    }
+    if Bridge.more-open: TouchArea {
+        clicked => { Bridge.more-open = false; }
+    }
+    if Bridge.more-open: MoreMenu {
+        x: min(parent.width - self.width - 16px, 14px + Bridge.more-slot * 28px);
+        y: 68px;
     }
     // short confirmations ("Link copied", "Received photo.jpg") float over the bottom of the panel
     if Bridge.toast != "": Rectangle {
@@ -836,7 +927,9 @@ export component AppWindow inherits Window {
     property <length> ball-d: ball-busy ? 58px : hover.has-hover ? 48px : 44px;
     // docked on the left or right edge the pill stands upright
     property <bool> side: (Bridge.edge == 2 || Bridge.edge == 3) && !Bridge.expanded && !Bridge.peeking && !Bridge.bubble;
-    property <length> island-w: Bridge.expanded ? 700px : Bridge.peeking ? peek-w : ball ? ball-d : side ? 40px : pill-w;
+    // the open panel fits its tab bar: narrower with fewer tabs, never too narrow for the pages
+    property <length> panel-w: max(620px, min(700px, 14px + Bridge.tab-count * 28px + 230px));
+    property <length> island-w: Bridge.expanded ? panel-w : Bridge.peeking ? peek-w : ball ? ball-d : side ? 40px : pill-w;
     property <length> island-h: Bridge.expanded ? 336px : Bridge.peeking ? 64px : ball ? ball-d : side ? 168px : 34px;
     property <length> radius: Bridge.expanded ? 32px : Bridge.peeking ? 26px : ball ? ball-d / 2 : side ? 20px : 17px;
     // every few seconds the ball does a little hop while you're around, and rests when you
@@ -965,7 +1058,7 @@ export component AppWindow inherits Window {
             }
             expanded := Expanded {
                 visible: self.opacity > 0.01;
-                width: 700px;
+                width: root.panel-w;
                 height: 336px;
                 x: (island.width - self.width) / 2;
                 y: -8px;

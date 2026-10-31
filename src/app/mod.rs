@@ -75,6 +75,9 @@ pub const TAB_POWER: i32 = 13;
 pub const TAB_DECK: i32 = 14;
 /// desktop wallpaper picker
 pub const TAB_WALL: i32 = 15;
+pub const TAB_SETTINGS: i32 = 10;
+/// the tabs in the order of the bar (matches TabOrder and TabList in the UI)
+pub const TAB_BAR: [i32; 17] = [0, 1, 2, 3, 11, 4, 5, 6, 7, 16, 8, 9, 14, 15, 12, 13, 10];
 
 pub struct App {
     pub ui: slint::Weak<AppWindow>,
@@ -385,6 +388,7 @@ impl App {
         b.set_expanded(false);
         b.set_editing(false);
         b.set_home_volume_open(false);
+        b.set_more_open(false);
         self.stop_mic_test();
         sys::restore_foreground(self.hwnd, self.prev_fg);
         self.want_pos.store(false, Ordering::Relaxed);

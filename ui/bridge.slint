@@ -461,7 +461,17 @@ export global Bridge {
     in property <string> data-dir;           // where everything is saved
     in-out property <int> theme;             // index in Theme.palettes (0 = Classic)
     in-out property <bool> theme-picking;    // Settings shows the theme picker
-    in-out property <int> settings-view;     // 0 general, 1 look
+    in-out property <int> settings-view;     // 0 general, 1 look, 2 tabs
+    // the More button: tabs you use less wait behind it instead of in the bar
+    in property <bool> more-on;
+    in property <[bool]> tab-hidden;         // by tab index: behind More
+    in property <[int]> tab-slot;            // by tab index: place in the bar (-1 = behind More)
+    in property <int> tab-count: 17;         // buttons in the bar, More included
+    in property <int> more-slot: -1;         // the More button's place in the bar (-1 = none)
+    in property <[int]> more-tabs;           // the tabs behind More, in bar order
+    in property <[bool]> more-picked;        // by tab index: picked for More (even while it's off)
+    in-out property <bool> more-open;        // its list is showing
+    callback more-pick(int);                 // Settings: put a tab behind More, or back
     in property <float> ui-scale: 1;         // size of the panel and the pill (0.8 .. 1.4)
     callback ui-scale-set(float);
     in property <float> island-alpha: 1;     // 1 = solid island, lower lets the desktop show through

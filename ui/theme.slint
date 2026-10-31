@@ -123,6 +123,36 @@ export global EyeTint {
     out property <color> glow: current.glow;
 }
 
+// One tab of the panel.
+export struct TabDef {
+    index: int,       // Bridge.tab value
+    name: string,
+    icon: string,     // "" = the water drop
+}
+
+// The tabs in the order of the bar (Settings always stays in the bar).
+export global TabList {
+    out property <[TabDef]> all: [
+        { index: 0, name: "Home", icon: "\u{E80F}" },
+        { index: 1, name: "To-do", icon: "\u{E9D5}" },
+        { index: 2, name: "Calendar", icon: "\u{E787}" },
+        { index: 3, name: "Focus", icon: "\u{E916}" },
+        { index: 11, name: "Drive modes", icon: "\u{E804}" },
+        { index: 4, name: "Health", icon: "\u{EB51}" },
+        { index: 5, name: "Water", icon: "" },
+        { index: 6, name: "Alarms", icon: "\u{EA8F}" },
+        { index: 7, name: "Shelf", icon: "\u{E7B8}" },
+        { index: 16, name: "Clipboard", icon: "\u{E77F}" },
+        { index: 8, name: "Audio", icon: "\u{E767}" },
+        { index: 9, name: "Developer", icon: "\u{E943}" },
+        { index: 14, name: "Deck", icon: "\u{F0E2}" },
+        { index: 15, name: "Wallpaper", icon: "\u{E771}" },
+        { index: 12, name: "Game", icon: "\u{E7FC}" },
+        { index: 13, name: "Power", icon: "\u{E7E8}" },
+        { index: 10, name: "Settings", icon: "\u{E713}" },
+    ];
+}
+
 // Segoe Fluent Icons code points.
 export global Icon {
     out property <string> home: "\u{E80F}";

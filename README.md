@@ -228,7 +228,7 @@ Lock, sleep, restart, sign out or shut down, right now or later. Pick an action,
 
 ### Settings
 
-Settings has two views.
+Settings has three views.
 
 **General:** launch at startup, 12- or 24-hour clock, hide during fullscreen games, videos and presentations, game mode, water reminders and their interval, where the island sits (**Move**, **Top centre**, **Top centre at start**), **Your data** (open the folder it's saved in, or **Reset all** with a second click to confirm), and **Quit Winklet**. The tray icon has Open and Quit too.
 
@@ -249,6 +249,8 @@ Settings has two views.
 **Theme** picks the colours: **Classic** (the original look, and the default), **Racing Green**, **Burgundy Sage**, **Acid Lime**, **Orchid Sunset**, **Chrome Laser**, **Coral Steel**, **Aurora** and **Graphite**. The island stays dark in every theme; each one tints it and changes the text and accent colours, and the change applies right away. Next to it, **Dark / Light** switches the open panel to a light mode in soft, warm paper tones with gentle contrast, easy on the eyes and never glaring white. The pill stays dark so the eyes still glow.
 
 <img src="docs/screenshots/themes.png" width="560" alt="Theme picker with nine colour themes">
+
+**Tabs:** turn on the **More button** and tick the tabs you use less. They leave the bar and wait behind a ⋯ button just before Settings; it opens a short list, and picking one shows its page right in the panel (the ⋯ stays lit while you're on one of them). With fewer tabs in the bar the open panel gets narrower to match. Settings always stays in the bar.
 
 ### Hotkeys
 
@@ -355,6 +357,7 @@ $env:WINKLET_DEMO_MOOD=7                          # hold an eye mood (7 = music)
 $env:WINKLET_DEMO_NO_MEDIA=1                      # ignore whatever is playing
 $env:WINKLET_DEMO_PLAYLISTS=1                     # with DEMO_TAB=0: the playlist grid
 $env:WINKLET_DEMO_VOLUME=1                        # with DEMO_TAB=0: the volume slider on the media card
+$env:WINKLET_DEMO_MORE=1                          # the More button's list of tucked-away tabs
 $env:WINKLET_DEMO_POWER=1                         # with DEMO_TAB=13: a planned shutdown (shown only, nothing is planned)
 $env:WINKLET_DEMO_DECK_EDIT=0                     # with DEMO_TAB=14: the Deck key editor for slot 0 (DECK_EDITING=1: edit mode)
 $env:WINKLET_DEMO_CLIP_FIND=word                  # with DEMO_TAB=16: find in the clipboard preview (CLIP_SEL=id picks the item)

@@ -22,6 +22,7 @@ pub fn wire(b: &Bridge, app: &Shared) {
             // the window takes the new resting size when the panel closes
             "bubble" => a.data.settings.bubble = value,
             "light" => a.data.settings.light = value,
+            "more" => a.data.settings.more_on = value,
             "stand" => a.data.settings.stand_reminders = value,
             "eyerest" => a.data.settings.eye_rest = value,
             "waitpause" => a.data.settings.wait_for_pause = value,
@@ -76,6 +77,7 @@ pub fn wire(b: &Bridge, app: &Shared) {
         sys::open("https://github.com/yazeed-01/winklet", "");
     });
     on!(b, app, on_data_reset, |a| { a.reset_all_data(); });
+    on!(b, app, on_more_pick, |a, t| { a.more_pick(t); });
     on!(b, app, on_set_theme, |a, t| {
         a.data.settings.theme = t.max(0);
         a.data.save();

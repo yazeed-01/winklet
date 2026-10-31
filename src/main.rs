@@ -300,6 +300,10 @@ fn init_window(app: Shared) {
                 b.set_game_view(v);
                 b.set_settings_view(v);
             }
+            // WINKLET_DEMO_MORE=1 opens the More button's list
+            if std::env::var_os("WINKLET_DEMO_MORE").is_some() {
+                a.ui().global::<Bridge>().set_more_open(true);
+            }
             // WINKLET_DEMO_DRINK=name opens the "New drink" editor (after the Water page exists)
             if let Ok(name) = std::env::var("WINKLET_DEMO_DRINK") {
                 slint::Timer::single_shot(std::time::Duration::from_millis(1500), move || {

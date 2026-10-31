@@ -1,6 +1,6 @@
 //! Pushes clock, water and settings state into the UI.
 
-use super::{App, s};
+use super::{App, TAB_BAR, TAB_SETTINGS, s};
 use crate::{Bar, Bridge};
 use chrono::{Duration as CDuration, Local};
 use slint::{ComponentHandle, ModelRc, VecModel};
@@ -84,5 +84,56 @@ impl App {
         b.set_pause_calls(st.pause_in_calls);
         b.set_work_hours(st.work_hours_only);
         b.set_work_hours_text(s(format!("{:02}–{:02}", st.work_start_h, st.work_end_h)));
+        self.refresh_tab_bar();
+    }
+
+    /// Which tabs sit in the bar and which wait behind More, and where each one goes.
+    pub fn refresh_tab_bar(&self) {
+        let st = &self.data.settings;
+        let picked = |i: i32| st.more_tabs.contains(&i) && i != TAB_SETTINGS;
+        let hidden = |i: i32| st.more_on && picked(i);
+        let more = TAB_BAR.iter().any(|&i| hidden(i));
+        let mut slots = vec![-1; TAB_BAR.len()];
+        let (mut n, mut more_slot) = (0, -1);
+        for &i in TAB_BAR.iter() {
+            // More sits just before Settings
+            if i == TAB_SETTINGS && more {
+                more_slot = n;
+                n += 1;
+            }
+            if !hidden(i) {
+                slots[i as usize] = n;
+                n += 1;
+            }
+        }
+        let ui = self.ui();
+        let b = ui.global::<Bridge>();
+        let bools = |f: &dyn Fn(i32) -> bool| ModelRc::new(VecModel::from((0..TAB_BAR.len() as i32).map(f).collect::<Vec<_>>()));
+        b.set_more_on(st.more_on);
+        b.set_tab_hidden(bools(&hidden));
+        b.set_more_picked(bools(&picked));
+        b.set_tab_slot(ModelRc::new(VecModel::from(slots)));
+        b.set_tab_count(n);
+        b.set_more_slot(more_slot);
+        b.set_more_tabs(ModelRc::new(VecModel::from(TAB_BAR.iter().copied().filter(|&i| hidden(i)).collect::<Vec<_>>())));
+        if !more {
+            b.set_more_open(false);
+        }
+    }
+
+    /// Settings: put a tab behind More, or back in the bar.
+    pub fn more_pick(&mut self, tab: i32) {
+        if tab == TAB_SETTINGS || !(0..TAB_BAR.len() as i32).contains(&tab) {
+            return;
+        }
+        let list = &mut self.data.settings.more_tabs;
+        match list.iter().position(|&i| i == tab) {
+            Some(p) => {
+                list.remove(p);
+            }
+            None => list.push(tab),
+        }
+        self.data.save();
+        self.refresh_tab_bar();
     }
 }

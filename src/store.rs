@@ -78,6 +78,10 @@ pub struct Settings {
     pub wallpaper_every: i32,
     /// how the pictures are shown: 0 = grid, 1 = carousel (the default; the last one picked sticks)
     pub wallpaper_view: i32,
+    /// the More button in the tab bar
+    pub more_on: bool,
+    /// tabs (by index) that wait behind More instead of in the bar
+    pub more_tabs: Vec<i32>,
     /// Clipboard tab: stop saving copies for now
     pub clip_paused: bool,
     /// Dev tools folders; empty = found automatically
@@ -150,6 +154,8 @@ impl Default for Settings {
             wallpaper_source: 0,
             wallpaper_every: 0,
             wallpaper_view: 1,
+            more_on: false,
+            more_tabs: Vec::new(),
             clip_paused: false,
             projects_dir: String::new(),
             downloads_dir: String::new(),
