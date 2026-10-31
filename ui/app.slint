@@ -825,13 +825,19 @@ export component AppWindow inherits Window {
     property <length> island-w: Bridge.expanded ? 580px : Bridge.peeking ? peek-w : ball ? ball-d : side ? 40px : pill-w;
     property <length> island-h: Bridge.expanded ? 336px : Bridge.peeking ? 64px : ball ? ball-d : side ? 168px : 34px;
     property <length> radius: Bridge.expanded ? 32px : Bridge.peeking ? 26px : ball ? ball-d / 2 : side ? 20px : 17px;
-    // the ball bobs gently while you're around, and rests when you step away
+    // every few seconds the ball does a little hop while you're around, and rests when you
+    // step away. A short hop instead of a constant float keeps it at 0 fps most of the time.
     property <bool> float-up;
-    property <length> bob: ball && float-up ? -3px : 0;
+    property <length> bob: ball && float-up ? -4px : 0;
     Timer {
-        interval: 1800ms;
+        interval: 6s;
         running: root.ball && !Bridge.user-idle && !Bridge.dragging;
-        triggered => { root.float-up = !root.float-up; }
+        triggered => { root.float-up = true; land.running = true; }
+    }
+    land := Timer {
+        interval: 380ms;
+        running: false;
+        triggered => { root.float-up = false; self.running = false; }
     }
 
     Ear {
@@ -850,7 +856,7 @@ export component AppWindow inherits Window {
         // flush against the edge it's docked to (the window itself sits on that edge)
         y: root.bob + (Bridge.edge == 1 ? parent.height - self.height - root.gap : Bridge.edge == 2 || Bridge.edge == 3 ? (parent.height - self.height) / 2 : root.gap);
         x: Bridge.edge == 2 ? root.gap : Bridge.edge == 3 ? parent.width - self.width - root.gap : (parent.width - self.width) / 2;
-        animate y { duration: 1800ms; easing: ease-in-out; }
+        animate y { duration: 380ms; easing: ease-in-out; }
         width: island-w;
         height: island-h;
         background: Theme.island.with-alpha(Bridge.island-alpha);
