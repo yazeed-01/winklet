@@ -57,8 +57,8 @@ pub const SMALL: (f32, f32) = (340.0, 44.0);
 /// game mode's pill is wider (time, FPS, CPU, eyes, GPU, RAM, battery)
 const SMALL_GAME: (f32, f32) = (444.0, 44.0);
 const BIG: (f32, f32) = (740.0, 364.0);
-/// Bubble style: the ball, a little gap off the edge and room for it to bob
-pub const BUBBLE: (f32, f32) = (64.0, 60.0);
+/// Bubble style: the ball, a little gap off the edge, room for it to bob and to grow for eye events
+pub const BUBBLE: (f32, f32) = (72.0, 70.0);
 /// the pill docked on the left or right edge stands upright
 const VERT: (f32, f32) = (52.0, 180.0);
 const BIG_CAR: (f32, f32) = (740.0, 484.0);

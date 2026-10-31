@@ -25,12 +25,16 @@ component Eyes inherits Rectangle {
     // game mode: eyes up top, a little controller held below; `playing` = thumbs tapping
     in property <bool> gaming;
     in property <bool> playing;
+    // inside the bubble's ball: the extras (notes, zzz, coffee, car) sit closer so the
+    // round edge never cuts them
+    in property <bool> compact;
     property <bool> dart;                   // quick glances while playing
     property <bool> blink;
     property <bool> beat;                   // music bob
     property <length> cx: self.width / 2;
     // eyes follow the little car while it drives past
     property <length> look-x: gaming ? (playing ? (dart ? 2px : -2px) : 0) : mood == 1 ? -4px : mood == 2 ? 4px
+        : mood == 12 && compact ? -4px
         : mood == 8 ? max(-4px, min(4px, (car.x + car.width / 2 - cx) / 14)) : 0;
     property <length> look-y: mood == 6 ? -1px : mood == 7 && beat ? -2px : 0;
     property <bool> sip;                    // coffee: cup up to the mouth
@@ -122,8 +126,8 @@ component Eyes inherits Rectangle {
     }
     note := Text {
         visible: root.mood == 7;
-        x: root.cx + 24px;
-        y: root.beat ? 2px : 16px;
+        x: root.cx + (root.compact ? 13px : 24px);
+        y: root.compact ? (root.beat ? -2px : 4px) : root.beat ? 2px : 16px;
         text: "♪";
         color: Theme.accent;
         font-size: 11px;
@@ -134,19 +138,19 @@ component Eyes inherits Rectangle {
     // --- zzz ---
     for i in 3: Text {
         visible: root.mood == 9;
-        x: root.cx + 16px + i * 6px;
-        y: root.mood == 9 ? 14px - i * 6px : 24px;
+        x: root.cx + (root.compact ? 13px + i * 4px : 16px + i * 6px);
+        y: root.mood == 9 ? (root.compact ? 12px - i * 4px : 14px - i * 6px) : 24px;
         opacity: root.mood == 9 ? 0.25 + i * 0.25 : 0;
         text: "z";
         color: #c7d2fe;
-        font-size: 7px + i * 2px;
+        font-size: root.compact ? 6px + i * 1.5px : 7px + i * 2px;
         font-weight: 700;
         animate y, opacity { duration: 1400ms; delay: i * 350ms; easing: ease-out; }
     }
 
     // --- coffee: a little mug that gets sipped, steam curling up ---
     if root.mood == 12: Rectangle {
-        x: root.cx + (root.sip ? 14px : 21px);
+        x: root.cx + (root.compact ? (root.sip ? 8px : 11px) : root.sip ? 14px : 21px);
         y: root.sip ? 15px : 15px;
         width: 15px;
         height: 14px;
@@ -227,7 +231,8 @@ component Eyes inherits Rectangle {
     // --- tiny car drives past while the eyes watch it ---
     car := Image {
         visible: root.mood == 8;
-        x: Bridge.pill-car-x * 1px;
+        // the drive is scripted across the pill; the ball gets the same drive, squeezed
+        x: root.compact ? (Bridge.pill-car-x + 48) / 270 * (root.width + 40px) - 40px : Bridge.pill-car-x * 1px;
         y: (root.height - self.height) / 2 + 1px;
         width: 40px;
         height: 18px;
@@ -826,7 +831,9 @@ export component AppWindow inherits Window {
     property <bool> ball: Bridge.bubble && !Bridge.expanded && !Bridge.peeking;
     // the ball floats a little off the screen edge (the notch sits flush against it)
     property <length> gap: Bridge.bubble ? 6px : 0;
-    property <length> ball-d: hover.has-hover ? 48px : 44px;
+    // it grows for the eye events that bring extras (!, headphones, car, zzz, coffee)
+    property <bool> ball-busy: Bridge.eye-mood == 6 || Bridge.eye-mood == 7 || Bridge.eye-mood == 8 || Bridge.eye-mood == 9 || Bridge.eye-mood == 12;
+    property <length> ball-d: ball-busy ? 58px : hover.has-hover ? 48px : 44px;
     // docked on the left or right edge the pill stands upright
     property <bool> side: (Bridge.edge == 2 || Bridge.edge == 3) && !Bridge.expanded && !Bridge.peeking && !Bridge.bubble;
     property <length> island-w: Bridge.expanded ? 700px : Bridge.peeking ? peek-w : ball ? ball-d : side ? 40px : pill-w;
@@ -963,6 +970,7 @@ export component AppWindow inherits Window {
                 sleepy: Bridge.user-idle && Bridge.eye-mood == 0 && !Bridge.expanded && !Bridge.game-mode;
                 gaming: Bridge.game-mode;
                 playing: Bridge.game-running;
+                compact: root.ball;
                 mood: Bridge.eye-mood;
                 opacity: Bridge.peeking ? 0 : 1;
                 animate opacity { duration: 160ms; }
