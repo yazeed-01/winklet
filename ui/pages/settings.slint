@@ -2,7 +2,7 @@
 
 import { Theme, Icon, Cars, Palette } from "../theme.slint";
 import { Bridge } from "../bridge.slint";
-import { Label, Button, Toggle, Stepper, Glyph, IconButton } from "../widgets.slint";
+import { Label, Button, Toggle, Stepper, Glyph, IconButton, Segmented, VolSlider } from "../widgets.slint";
 
 component SettingRow inherits HorizontalLayout {
     in property <string> title;
@@ -112,6 +112,34 @@ component ThemeCard inherits Rectangle {
     ta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.set-theme(root.index); } }
 }
 
+// A labelled slider for a value between `lo` and `hi`, shown as a percentage.
+// It applies when the drag ends: resizing the island under the pointer mid-drag would fight it.
+component SliderRow inherits HorizontalLayout {
+    in property <string> title;
+    in property <float> lo: 0;
+    in property <float> hi: 1;
+    in property <float> value;
+    callback released(float);
+    height: 30px;
+    spacing: 10px;
+    Label { text: root.title; font-size: 12px; width: 84px; }
+    s := VolSlider {
+        y: 4px;
+        horizontal-stretch: 1;
+        value: (root.value - root.lo) / (root.hi - root.lo);
+        tint: Theme.accent;
+        released(v) => { root.released(root.lo + v * (root.hi - root.lo)); }
+    }
+    Label {
+        text: round((root.lo + s.shown * (root.hi - root.lo)) * 100) + "%";
+        width: 36px;
+        horizontal-alignment: right;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: Theme.text-dim;
+    }
+}
+
 export component SettingsPage inherits Rectangle {
     property <bool> reset-armed;
     init => { Bridge.theme-picking = false; }
@@ -120,7 +148,18 @@ export component SettingsPage inherits Rectangle {
         running: false;
         triggered => { root.reset-armed = false; self.running = false; }
     }
-    HorizontalLayout {
+    Segmented {
+        x: parent.width - self.width;
+        y: 0;
+        width: 210px;
+        items: ["General", "Look", "Power"];
+        value: Bridge.settings-view;
+        picked(i) => { Bridge.settings-view = i; }
+    }
+    // ---- General: startup, clock, reminders, where it sits, your data ----
+    if Bridge.settings-view == 0: HorizontalLayout {
+        y: 34px;
+        height: parent.height - 34px;
         spacing: 18px;
         VerticalLayout {
             horizontal-stretch: 1;
@@ -133,6 +172,29 @@ export component SettingsPage inherits Rectangle {
                 height: 30px;
                 Label { text: "Remind every"; font-size: 12px; }
                 Stepper { value: Bridge.water-interval + " min"; step(d) => { Bridge.water-interval-adjust(d); } }
+            }
+            Rectangle { }
+        }
+        VerticalLayout {
+            width: 262px;
+            spacing: 6px;
+            SettingRow { title: "Top centre at start"; sub: "Each launch puts it back there"; key: "homestart"; value: Bridge.island-home-start; }
+            HorizontalLayout {
+                spacing: 6px;
+                Button {
+                    icon: Icon.drag-move;
+                    text: "Move";
+                    tip: "Pick it up, then click to drop it · docks to any screen edge, upright on the sides";
+                    horizontal-stretch: 1;
+                    clicked => { Bridge.island-move(); }
+                }
+                Button {
+                    icon: Icon.reset;
+                    text: "Top centre";
+                    tip: "Put it back at the top centre";
+                    horizontal-stretch: 1;
+                    clicked => { Bridge.island-home(); }
+                }
             }
             // your data: where it lives, open it, wipe it (two clicks so it can't happen by accident)
             HorizontalLayout {
@@ -164,6 +226,18 @@ export component SettingsPage inherits Rectangle {
                     }
                 }
             }
+            Rectangle { }
+            Button { icon: Icon.power; text: "Quit Winklet"; primary: true; tint: Theme.red; clicked => { Bridge.quit(); } }
+        }
+    }
+    // ---- Look: theme, size, eyes and the car show ----
+    if Bridge.settings-view == 1: HorizontalLayout {
+        y: 34px;
+        height: parent.height - 34px;
+        spacing: 18px;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 4px;
             HorizontalLayout {
                 height: 30px;
                 spacing: 6px;
@@ -186,6 +260,14 @@ export component SettingsPage inherits Rectangle {
                     tta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.theme-picking = true; } }
                 }
             }
+            // the panel and the pill grow and shrink together
+            SliderRow {
+                title: "Size";
+                lo: 0.8;
+                hi: 1.4;
+                value: Bridge.ui-scale;
+                released(v) => { Bridge.ui-scale-set(v); }
+            }
             Rectangle { }
         }
         VerticalLayout {
@@ -193,24 +275,6 @@ export component SettingsPage inherits Rectangle {
             spacing: 6px;
             SettingRow { title: "Lively eyes"; sub: "Look around, wink, music, zzz…"; key: "eyes"; value: Bridge.eyes-lively; }
             SettingRow { title: "Car show on open"; sub: "Drives in and drifts under the island"; key: "car"; value: Bridge.car-enabled; }
-            SettingRow { title: "Top centre at start"; sub: "Each launch puts it back there"; key: "homestart"; value: Bridge.island-home-start; }
-            HorizontalLayout {
-                spacing: 6px;
-                Button {
-                    icon: Icon.drag-move;
-                    text: "Move";
-                    tip: "Pick it up, then click to drop it · docks to any screen edge, upright on the sides";
-                    horizontal-stretch: 1;
-                    clicked => { Bridge.island-move(); }
-                }
-                Button {
-                    icon: Icon.reset;
-                    text: "Top centre";
-                    tip: "Put it back at the top centre";
-                    horizontal-stretch: 1;
-                    clicked => { Bridge.island-home(); }
-                }
-            }
             HorizontalLayout {
                 spacing: 6px;
                 CarPick { model: 0; art: Cars.jdm; name: "JDM"; }
@@ -218,11 +282,8 @@ export component SettingsPage inherits Rectangle {
                 CarPick { model: 2; art: Cars.german; name: "German"; }
                 CarPick { model: 3; art: Cars.f1; name: "F1"; }
             }
-            HorizontalLayout {
-                spacing: 6px;
-                Button { icon: Icon.play; text: "Test drive"; horizontal-stretch: 1; clicked => { Bridge.car-preview(); } }
-                Button { icon: Icon.power; text: "Quit"; primary: true; tint: Theme.red; clicked => { Bridge.quit(); } }
-            }
+            Button { icon: Icon.play; text: "Test drive"; clicked => { Bridge.car-preview(); } }
+            Rectangle { }
         }
     }
     // theme picker: covers the page, changes apply right away

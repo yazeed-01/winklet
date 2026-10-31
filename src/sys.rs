@@ -48,6 +48,12 @@ pub fn make_tool_window(hwnd: HWND) {
     }
 }
 
+/// The display scale of the monitor the window is on (1.25 at 125%).
+pub fn dpi_scale(hwnd: HWND) -> f32 {
+    let dpi = unsafe { windows::Win32::UI::HiDpi::GetDpiForWindow(hwnd) };
+    if dpi == 0 { 1.0 } else { dpi as f32 / 96.0 }
+}
+
 /// Screen edge the island sits on.
 pub const EDGE_TOP: i32 = 0;
 pub const EDGE_BOTTOM: i32 = 1;

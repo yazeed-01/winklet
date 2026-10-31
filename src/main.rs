@@ -264,6 +264,7 @@ fn init_window(app: Shared) {
                 b.set_health_view(v);
                 b.set_dev_view(v);
                 b.set_game_view(v);
+                b.set_settings_view(v);
             }
             // WINKLET_DEMO_DRINK=name opens the "New drink" editor (after the Water page exists)
             if let Ok(name) = std::env::var("WINKLET_DEMO_DRINK") {

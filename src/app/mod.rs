@@ -212,6 +212,15 @@ impl App {
 
     pub fn place(&mut self) {
         let ui = self.ui();
+        // the Size setting rides on top of the display scale: everything is laid out in
+        // logical px, so changing the factor grows the pill and the panel together
+        let want = sys::dpi_scale(self.hwnd) * self.data.settings.ui_scale.clamp(0.8, 1.4);
+        if (ui.window().scale_factor() - want).abs() > 0.001 {
+            ui.window().dispatch_event(slint::platform::WindowEvent::ScaleFactorChanged { scale_factor: want });
+            // Slint answers a new factor by resizing the window to its preferred size on the
+            // next frame; put it back once that has happened
+            Timer::single_shot(Duration::from_millis(80), || with_app(|s| s.borrow_mut().place()));
+        }
         let scale = ui.window().scale_factor();
         let anchor = self.data.settings.island_pos;
         let edge = sys::island_edge(anchor, scale);

@@ -275,8 +275,9 @@ export component VolSlider inherits Rectangle {
     in property <brush> tint: Theme.text;
     in property <bool> dim;
     callback moved(float);
+    callback released(float);           // the drag ended here
     property <float> drag-v;
-    property <float> shown: ta.pressed ? drag-v : value;
+    out property <float> shown: ta.pressed ? drag-v : value;
     height: 22px;
     Rectangle {
         y: (parent.height - self.height) / 2;
@@ -307,6 +308,9 @@ export component VolSlider inherits Rectangle {
             if e.kind == PointerEventKind.down {
                 root.drag-v = max(0, min(1, self.mouse-x / root.width));
                 root.moved(root.drag-v);
+            }
+            if e.kind == PointerEventKind.up {
+                root.released(root.drag-v);
             }
         }
         moved => {

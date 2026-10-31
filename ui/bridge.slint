@@ -412,6 +412,9 @@ export global Bridge {
     in property <string> data-dir;           // where everything is saved
     in-out property <int> theme;             // index in Theme.palettes (0 = Classic)
     in-out property <bool> theme-picking;    // Settings shows the theme picker
+    in-out property <int> settings-view;     // 0 general, 1 look, 2 power
+    in property <float> ui-scale: 1;         // size of the panel and the pill (0.8 .. 1.4)
+    callback ui-scale-set(float);
     callback set-theme(int);
     callback data-open();
     callback data-reset();

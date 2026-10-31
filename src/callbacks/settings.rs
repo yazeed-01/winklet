@@ -75,6 +75,12 @@ pub fn wire(b: &Bridge, app: &Shared) {
         a.data.save();
         a.ui().global::<Bridge>().set_theme(t.max(0));
     });
+    on!(b, app, on_ui_scale_set, |a, v| {
+        a.data.settings.ui_scale = ((v * 20.0).round() / 20.0).clamp(0.8, 1.4);
+        a.data.save();
+        a.refresh_settings();
+        a.place();
+    });
     // collapses the panel it was clicked in: let the click finish first
     b.on_island_move(|| defer(App::start_move));
     b.on_car_preview(|| {
