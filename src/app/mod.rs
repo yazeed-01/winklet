@@ -130,8 +130,8 @@ pub struct App {
     pub net_prev: Option<(Instant, u64, u64)>,
     /// the ignition sweep plays once per launch, not on every open
     pub dash_swept: bool,
-    /// right-drag in progress: (cursor, island anchor) when the button went down
-    pub drag_from: Option<((i32, i32), (i32, i32))>,
+    /// right-drag or Move in progress: where the cursor was when it started
+    pub drag_from: Option<(i32, i32)>,
     pub drag_timer: Timer,
     /// "Move" from settings: the island follows the pointer until a click drops it
     pub moving: bool,

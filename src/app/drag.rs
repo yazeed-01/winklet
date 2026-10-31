@@ -1,6 +1,6 @@
-//! Moving the island: right-drag it anywhere, or "Move" in settings (it follows the
-//! pointer until a click drops it). Near a screen edge it docks; on the left or right
-//! edge the pill stands upright.
+//! Moving the island: right-drag it anywhere (the panel closes and the pill follows the
+//! pointer), or "Move" in settings (it follows the pointer until a click drops it). Near a
+//! screen edge it docks; on the left or right edge the pill stands upright.
 
 use super::{App, Shared, schedule_collapse};
 use crate::{Bridge, sys};
@@ -15,9 +15,8 @@ impl App {
         if a.drag_from.is_some() || a.hwnd == HWND::default() {
             return;
         }
-        let scale = a.ui().window().scale_factor();
-        let p0 = a.data.settings.island_pos.unwrap_or_else(|| sys::default_anchor(scale));
-        a.drag_from = Some((sys::cursor_pos(), p0));
+        let c = sys::cursor_pos();
+        a.drag_from = Some(c);
         App::run_drag_timer(shared, &mut a);
     }
 
@@ -33,7 +32,7 @@ impl App {
         a.moving = true;
         a.move_pressed = sys::left_button_down();
         let c = sys::cursor_pos();
-        a.drag_from = Some((c, c));
+        a.drag_from = Some(c);
         a.ui().global::<Bridge>().set_dragging(true);
         a.resize(false);
         App::run_drag_timer(shared, &mut a);
@@ -50,7 +49,7 @@ impl App {
 
     pub fn drag_frame(shared: &Shared) {
         let mut a = shared.borrow_mut();
-        let Some((c0, p0)) = a.drag_from else { return };
+        let Some(c0) = a.drag_from else { return };
         let ui = a.ui();
         let b = ui.global::<Bridge>();
         let c = sys::cursor_pos();
@@ -78,11 +77,22 @@ impl App {
             return;
         }
         let (dx, dy) = (c.0 - c0.0, c.1 - c0.1);
-        if !b.get_dragging() && dx.abs().max(dy.abs()) < 6 {
-            return;
+        if !b.get_dragging() {
+            if dx.abs().max(dy.abs()) < 6 {
+                return;
+            }
+            // picked up: like "Move", the panel closes and the pill rides under the pointer
+            if b.get_expanded() || b.get_peeking() {
+                b.set_peeking(false);
+                a.collapse();
+            }
+            a.hover_timer.stop();
+            a.collapse_timer.stop();
+            a.shrink_timer.stop();
+            b.set_dragging(true);
+            a.resize(false);
         }
-        b.set_dragging(true);
-        a.data.settings.island_pos = Some((p0.0 + dx, p0.1 + dy));
+        a.data.settings.island_pos = Some(c);
         a.place();
     }
 

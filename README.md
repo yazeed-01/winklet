@@ -22,7 +22,7 @@ The resting island: clock, the current focus timer, two glowing eyes and the bat
 * **Lively eyes.** Short random moments: they look around, wink, look happy or surprised, show hearts, sip a coffee (always first thing in the morning) or watch a tiny car drive past. They wear headphones and bob along to music and show zzz when you step away. Charging makes them happy, hitting your water goal shows hearts, toggling the mic surprises them. Turn this off with **Lively eyes** to keep blinking only.
 
   <img src="docs/screenshots/eyes.png" width="760" alt="Every eye mood: look left and right, wink, happy, surprised, love, music, coffee, watching a car, tired, away and game mode">
-* **Move it.** Right-drag the island anywhere, or use **Settings → Move**: it follows the pointer until you click to drop it. It docks to any screen edge: a notch at the top, flat on the taskbar at the bottom, and standing upright (time, eyes, battery) on the left or right. **Top centre** puts it back, and **Top centre at start** (on by default) does that every launch.
+* **Move it.** Right-drag the island anywhere (even with the panel open: it closes and the pill follows the pointer), or use **Settings → Move**: it follows the pointer until you click to drop it. It docks to any screen edge: a notch at the top, flat on the taskbar at the bottom, and standing upright (time, eyes, battery) on the left or right. **Top centre** puts it back, and **Top centre at start** (on by default) does that every launch.
 * **Eye colours.** Pick the eyes' colour in **Settings → Look**: Ice, Aqua, Mint, Lime, Sun, Peach, Rose, Lilac, Sky, Ember, or Theme to match the accent.
 
   <img src="docs/screenshots/eye-colours.png" width="760" alt="The eyes in Ice, Aqua, Mint, Sun, Rose, Lilac and Ember">
