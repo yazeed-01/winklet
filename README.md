@@ -8,7 +8,7 @@ Built in **Rust + Slint**, with a native GPU renderer and no browser engine.
 
 ## Contents
 
-[The pill](#the-pill) · [Notifications](#notifications) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water and drinks](#water-and-drinks) · [Alarms](#alarms) · [Shelf](#shelf) · [Send](#send-to-phone-or-pc) · [Audio](#audio) · [Developer](#developer) · [Game mode](#game-mode) · [Power](#power) · [Settings](#settings) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
+[The pill](#the-pill) · [Notifications](#notifications) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water and drinks](#water-and-drinks) · [Alarms](#alarms) · [Shelf](#shelf) · [Send](#send-to-phone-or-pc) · [Clipboard](#clipboard) · [Audio](#audio) · [Developer](#developer) · [Deck](#deck) · [Wallpaper](#wallpaper) · [Game mode](#game-mode) · [Power](#power) · [Settings](#settings) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
 
 ## Features
 
@@ -134,6 +134,20 @@ Drag files or folders onto the island, or use the **Files** and **Folders** butt
 
 <img src="docs/screenshots/send.png" width="440" alt="The send basket with files and a folder"> <img src="docs/screenshots/send-qr.png" width="440" alt="QR code and link for the phone">
 
+### Clipboard
+
+Everything you copy, kept for you: text, links, colour codes, pictures and copied files. **Ctrl+Alt+V** opens it from anywhere.
+
+* **Find it again.** The list on the left has a search bar and **All / Text / Links / Images / Files** filters. Pictures show a thumbnail, colour codes show the colour, and each item says when you copied it.
+* **See all of it.** Pick an item and the preview on the right shows it in full: text in a scrolling viewer with line numbers, pictures fitted to the panel, copied files you can click to open, and a swatch for colour codes.
+* **Find inside it.** The preview has its own find bar: every match is highlighted, it shows "3 / 12", and the arrows (or Enter) jump from one match to the next.
+* **Use it.** **Copy** puts it back on the clipboard; **Paste** (or a double-click in the list) pastes it straight into the app you were using. **Pin** keeps an item for good, even after **Clear**.
+* **Private by default.** It keeps the newest 300 items plus anything pinned, on your PC only. Copies that password managers mark as private are never saved, and the pause button stops saving for as long as you like.
+
+<img src="docs/screenshots/clipboard.png" width="560" alt="Clipboard history: the list with search and filters, and a text preview with find matches highlighted">
+
+<img src="docs/screenshots/clipboard-image.png" width="560" alt="A copied picture in the clipboard preview">
+
 ### Audio
 
 Volume for **each app** (one slider per app even when it has many audio sessions), mute per app, master volume, and **microphone on/off** with a live **test meter**. The mic shows its full name; click it to pick another microphone, which becomes the Windows default for apps and calls.
@@ -150,6 +164,39 @@ Volume for **each app** (one slider per app even when it has many audio sessions
 
 <img src="docs/screenshots/dev.png" width="440" alt="Developer tools"> <img src="docs/screenshots/workspaces.png" width="440" alt="Workspaces">
 <img src="docs/screenshots/ports.png" width="440" alt="Port killer"> <img src="docs/screenshots/dash.png" width="440" alt="Dash">
+
+### Deck
+
+Your own Stream Deck on the island: a grid of 8 × 3 keys, on up to six pages. Each key does one thing with one click:
+
+| Key | What it does |
+|---|---|
+| **Open** | An app, file, folder or website (`https://…`, `ms-settings:`, …) |
+| **Multi** | Several at once: apps, files, folders, links, or `> a command`, one per line. A whole setup with one press |
+| **Command** | Runs a command line, hidden or in a console that stays open so you can read the output |
+| **Hotkey** | Presses a key combination in the app you were using: `ctrl+shift+esc`, `win+d`, `alt+f4`, `f5` … |
+| **Text** | Types text for you (an email address, a reply you send often), optionally pressing Enter after |
+| **Action** | Play/pause, next, previous, mute, volume up/down, mic on/off, screenshot, lock, sleep, focus timer, game mode |
+
+* **Make it yours.** Every key has a title, one of 12 colours, and either the app's own icon or one of 32 glyphs. The editor shows a live preview of the key as you change it, and **App or file** / **Folder** fill in the path (and name and icon) for you.
+* **Right-click a key** to change it, or press **Edit**: then a click edits a key, you can drag keys to new spots, and add or remove pages. Keys spring when you press them and flash when they fire.
+* New installs start with a few useful keys (Explorer, Terminal, Calculator, Task Manager, Settings, Show desktop, media keys, mic, screenshot, focus and lock) to change or remove.
+
+<img src="docs/screenshots/deck.png" width="560" alt="The Deck: colourful keys with app icons and glyphs">
+
+<img src="docs/screenshots/deck-edit.png" width="560" alt="The key editor with a live preview, the six kinds of key, colours and icons">
+
+### Wallpaper
+
+Change your desktop picture without opening Settings.
+
+* **Now and next.** The left shows the wallpaper on your screen now; the right is a gallery of Windows' own wallpapers. Click any picture to put it on the desktop: it changes right away.
+* **Your folders.** **+** adds any folder of pictures (JPG, PNG, BMP, WebP, subfolders too) as its own tab. **Open** shows it in Explorer, and right-clicking a folder tab removes it (the pictures stay where they are).
+* **Fill, Fit, Stretch, Centre or Span** sets how the picture covers the screen.
+* **Shuffle** picks a random picture from the folder, and **Change every** (15 minutes to a day) does it for you.
+* Thumbnails come from Explorer's own thumbnail cache on a background thread, so even folders of big photos load smoothly.
+
+<img src="docs/screenshots/wallpaper.png" width="560" alt="Wallpaper tab: the current wallpaper and a gallery of pictures">
 
 ### Game mode
 
@@ -210,6 +257,7 @@ Settings has two views.
 | **Ctrl+Alt+M** | Mic on/off |
 | **Ctrl+Alt+PgUp / PgDn** | Shift gear up / down |
 | **Ctrl+Alt+G** | Game mode on/off |
+| **Ctrl+Alt+V** | Clipboard history |
 
 Hover any icon button for a short label explaining what it does; it shows just above what you point at, so the cursor never covers it. Switching tabs slides the new page in from the side you're moving to, with a small spring and zoom.
 
@@ -228,7 +276,7 @@ powershell -ExecutionPolicy Bypass -File install.ps1   # install to %LOCALAPPDAT
 
 You can also turn on **Launch at startup** in Settings. It writes `HKCU\...\CurrentVersion\Run\Winklet`, the same mechanism other tray apps use, so no admin rights are needed.
 
-Your data stays on your PC in `%APPDATA%\Winklet`: `data.json` for tasks, settings, drinks, health and games, and `screen.json` for screen time. **Settings → Your data** opens that folder or wipes it. There are no accounts and nothing goes online: only **Send** talks to the network, and only to devices on your Wi-Fi while a link is open.
+Your data stays on your PC in `%APPDATA%\Winklet`: `data.json` for tasks, settings, drinks, health and games, and `screen.json` for screen time, `clips.json` and the `clips` folder for the clipboard history. **Settings → Your data** opens that folder or wipes it. There are no accounts and nothing goes online: only **Send** talks to the network, and only to devices on your Wi-Fi while a link is open.
 
 ## How it stays light
 
@@ -255,7 +303,8 @@ ui/
   bridge.slint       the `Bridge` global: every property and callback shared with Rust
   pages.slint        re-exports the dashboard tabs from ui/pages/
   pages/             one file per tab (home, todo, calendar, focus, gear, health*, water,
-                     alarms, shelf, audio, dev*, game, power, settings)
+                     alarms, shelf, send, clipboard, audio, dev*, deck, wallpaper,
+                     game, power, settings)
   widgets.slint      buttons, toggle, rings, gauges, chips, app icon, ...
   theme.slint        colors, fonts, easing curves, Segoe Fluent icon code points
 src/
@@ -269,6 +318,9 @@ src/
   fps.rs, pad.rs     game FPS (RTSS / ETW) and XInput controllers
   gpu.rs, gpu_info.rs  GPU load and VRAM (performance counters), GPU name (DXGI)
   media.rs, audio.rs, ports.rs, uptime.rs, lenovo.rs, capture.rs
+  clip.rs            clipboard watcher, reading and writing text, pictures and files
+  keys.rs            hotkeys, typed text and media keys for the Deck (SendInput)
+  wall.rs            desktop wallpaper (IDesktopWallpaper) and shell thumbnails
 docs/screenshots/    the pictures in this README
 ```
 
@@ -294,6 +346,8 @@ $env:WINKLET_DEMO_NO_MEDIA=1                      # ignore whatever is playing
 $env:WINKLET_DEMO_PLAYLISTS=1                     # with DEMO_TAB=0: the playlist grid
 $env:WINKLET_DEMO_VOLUME=1                        # with DEMO_TAB=0: the volume slider on the media card
 $env:WINKLET_DEMO_POWER=1                         # with DEMO_TAB=13: a planned shutdown (shown only, nothing is planned)
+$env:WINKLET_DEMO_DECK_EDIT=0                     # with DEMO_TAB=14: the Deck key editor for slot 0 (DECK_EDITING=1: edit mode)
+$env:WINKLET_DEMO_CLIP_FIND=word                  # with DEMO_TAB=16: find in the clipboard preview (CLIP_SEL=id picks the item)
 $env:WINKLET_TRACE=1                              # log hover / idle / media events to stdout
 $env:SLINT_DEBUG_PERFORMANCE="refresh_lazy,console"   # print frames per second
 cargo test probe -- --ignored --nocapture         # what this PC reports: app in front, GPU, controller, FPS access
