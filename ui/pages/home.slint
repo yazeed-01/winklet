@@ -160,17 +160,16 @@ component PlaylistTile inherits Rectangle {
 
 // Master volume on the media card: the speaker mutes, the slider sets the level.
 component VolumeBar inherits Rectangle {
-    property <bool> shown;
+    in property <bool> shown;
     border-radius: 18px;
     background: Theme.surface;
     border-width: 1px;
     border-color: Theme.stroke;
-    // slides out of the volume button
+    // drops out from under the transport
     opacity: shown ? 1 : 0;
-    transform-scale: shown ? 1 : 0.92;
-    animate opacity { duration: 200ms; easing: Theme.smooth; }
+    transform-scale: shown ? 1 : 0.94;
+    animate opacity { duration: 220ms; easing: Theme.smooth; }
     animate transform-scale { duration: 360ms; easing: Theme.spring-ease; }
-    init => { shown = true; }
     HorizontalLayout {
         padding-left: 3px;
         padding-right: 12px;
@@ -350,41 +349,51 @@ export component HomePage inherits Rectangle {
                         Label { text: Bridge.media-len; font-size: 10px; color: Theme.text-faint; horizontal-alignment: right; }
                     }
                 }
-                // transport, with the volume button on the right; the volume slider slides over the transport
-                transport := Rectangle {
-                    height: 42px;
-                    if !Bridge.home-volume-open: HorizontalLayout {
-                        alignment: center;
-                        spacing: 14px;
-                        IconButton { y: 4px; icon: Icon.prev; size: 34px; icon-size: 14px; tip: "Previous track"; clicked => { Bridge.media-prev(); } }
-                        IconButton {
-                            icon: Bridge.media-playing ? Icon.pause : Icon.play;
-                            size: 42px;
-                            icon-size: 16px;
-                            fill: #ffffff1f;
-                            tip: Bridge.media-playing ? "Pause" : "Play";
-                            clicked => { Bridge.media-toggle(); }
+                // transport, with the volume button on the right; the volume slider drops down below it
+                VerticalLayout {
+                    transport := Rectangle {
+                        height: 42px;
+                        HorizontalLayout {
+                            alignment: center;
+                            spacing: 14px;
+                            IconButton { y: 4px; icon: Icon.prev; size: 34px; icon-size: 14px; tip: "Previous track"; clicked => { Bridge.media-prev(); } }
+                            IconButton {
+                                icon: Bridge.media-playing ? Icon.pause : Icon.play;
+                                size: 42px;
+                                icon-size: 16px;
+                                fill: #ffffff1f;
+                                tip: Bridge.media-playing ? "Pause" : "Play";
+                                clicked => { Bridge.media-toggle(); }
+                            }
+                            IconButton { y: 4px; icon: Icon.next; size: 34px; icon-size: 14px; tip: "Next track"; clicked => { Bridge.media-next(); } }
                         }
-                        IconButton { y: 4px; icon: Icon.next; size: 34px; icon-size: 14px; tip: "Next track"; clicked => { Bridge.media-next(); } }
+                        // closed it shows the level; open it folds the drawer away, the speaker inside mutes
+                        IconButton {
+                            x: transport.width - self.width;
+                            y: 4px;
+                            icon: Bridge.home-volume-open ? Icon.chevron-up : Bridge.master-muted ? Icon.mute : Icon.volume;
+                            size: 34px;
+                            icon-size: Bridge.home-volume-open ? 11px : 13px;
+                            active: Bridge.home-volume-open;
+                            tint: !Bridge.home-volume-open && Bridge.master-muted ? Theme.red : Theme.text-dim;
+                            tip: Bridge.home-volume-open ? "Hide volume" : "Volume";
+                            clicked => {
+                                if !Bridge.home-volume-open { Bridge.master-refresh(); }
+                                Bridge.home-volume-open = !Bridge.home-volume-open;
+                            }
+                        }
                     }
-                    if Bridge.home-volume-open: VolumeBar {
-                        x: 0;
-                        y: 3px;
-                        width: transport.width - 42px;
-                        height: 36px;
-                    }
-                    IconButton {
-                        x: transport.width - self.width;
-                        y: 4px;
-                        icon: Bridge.master-muted ? Icon.mute : Icon.volume;
-                        size: 34px;
-                        icon-size: 13px;
-                        active: Bridge.home-volume-open;
-                        tint: Bridge.master-muted ? Theme.red : Theme.text-dim;
-                        tip: Bridge.home-volume-open ? "Hide volume" : "Volume";
-                        clicked => {
-                            if !Bridge.home-volume-open { Bridge.master-refresh(); }
-                            Bridge.home-volume-open = !Bridge.home-volume-open;
+                    drawer := Rectangle {
+                        height: Bridge.home-volume-open ? 46px : 0;
+                        clip: true;
+                        animate height { duration: 320ms; easing: Theme.smooth; }
+                        VolumeBar {
+                            x: 0;
+                            y: Bridge.home-volume-open ? 10px : -26px;
+                            width: drawer.width;
+                            height: 36px;
+                            shown: Bridge.home-volume-open;
+                            animate y { duration: 360ms; easing: Theme.spring-ease; }
                         }
                     }
                 }
