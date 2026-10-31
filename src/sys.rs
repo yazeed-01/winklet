@@ -501,3 +501,39 @@ pub fn net_bytes() -> (u64, u64) {
         (rx, tx)
     }
 }
+/// The Power tab: what the PC should do.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum PowerAction {
+    Lock,
+    Sleep,
+    Restart,
+    SignOut,
+    ShutDown,
+}
+
+impl PowerAction {
+    /// The order of the tiles in the Power tab.
+    pub fn from_index(i: i32) -> Option<Self> {
+        [Self::Lock, Self::Sleep, Self::Restart, Self::SignOut, Self::ShutDown].get(usize::try_from(i).ok()?).copied()
+    }
+}
+
+/// Locks, sleeps, restarts, signs out or shuts down. Restart and shut down go through
+/// shutdown.exe without /f, so apps with unsaved work still get to ask first.
+pub fn power(action: PowerAction) -> bool {
+    use windows::Win32::System::Shutdown::{EWX_LOGOFF, ExitWindowsEx, LockWorkStation, SHTDN_REASON_FLAG_PLANNED};
+    let shutdown = |flag: &str| {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        std::process::Command::new("shutdown").args([flag, "/t", "0"]).creation_flags(CREATE_NO_WINDOW).spawn().is_ok()
+    };
+    unsafe {
+        match action {
+            PowerAction::Lock => LockWorkStation().is_ok(),
+            PowerAction::Sleep => windows::Win32::System::Power::SetSuspendState(false, false, false),
+            PowerAction::SignOut => ExitWindowsEx(EWX_LOGOFF, SHTDN_REASON_FLAG_PLANNED).is_ok(),
+            PowerAction::Restart => shutdown("/r"),
+            PowerAction::ShutDown => shutdown("/s"),
+        }
+    }
+}

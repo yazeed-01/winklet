@@ -24,7 +24,7 @@ const RULES: [&[&str]; 7] = [
 
 /// Peeks the user triggered themselves (or can't miss) always show.
 fn always_shown(kind: i32) -> bool {
-    matches!(kind, 5 | 8 | 9 | 12 | 14 | 15)
+    matches!(kind, 5 | 8 | 9 | 12 | 14 | 15 | 18)
 }
 
 /// Whether a peek of `kind` may show in `gear` (see the peek-kind list in bridge.slint).

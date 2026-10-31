@@ -40,6 +40,7 @@ impl App {
             self.refresh_mic(); // catches mutes done from Teams/Discord/Windows
         }
         self.eyes_tick();
+        self.power_tick();
         self.guide_tick();
         if self.ui().global::<Bridge>().get_expanded() && self.ui().global::<Bridge>().get_tab() == 0 {
             self.refresh_big_clock();

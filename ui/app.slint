@@ -1,7 +1,7 @@
 import { Theme, Icon, Cars, EyeTint } from "theme.slint";
 import { Bridge, TodoItem, AlarmItem, DayCell, Bar, ShelfItem, AppVolume } from "bridge.slint";
-import { Glyph, Label, IconButton, Ring, WaterDrop, PageHost, Tip } from "widgets.slint";
-import { HomePage, TodoPage, CalendarPage, FocusPage, WaterPage, AlarmPage, DevPage, SettingsPage, ShelfPage, AudioPage, HealthPage, GearPage, GamePage } from "pages.slint";
+import { Glyph, Label, IconButton, Button, Ring, WaterDrop, PageHost, Tip } from "widgets.slint";
+import { HomePage, TodoPage, CalendarPage, FocusPage, WaterPage, AlarmPage, DevPage, SettingsPage, ShelfPage, AudioPage, HealthPage, GearPage, GamePage, PowerPage } from "pages.slint";
 
 export { Bridge, TodoItem, AlarmItem, DayCell, Bar, ShelfItem, AppVolume, Tip }
 
@@ -446,6 +446,7 @@ component Peek inherits Rectangle {
         : Bridge.peek-kind == 15 ? Theme.gear-tint(Bridge.gear)
         : Bridge.peek-kind == 16 ? Theme.pink
         : Bridge.peek-kind == 17 ? Theme.accent
+        : Bridge.peek-kind == 18 ? Theme.red
         : Theme.accent;
     property <string> glyph: Bridge.peek-kind == 1 || Bridge.peek-kind == 2 ? Icon.bolt
         : Bridge.peek-kind == 4 ? Icon.timer
@@ -460,6 +461,7 @@ component Peek inherits Rectangle {
         : Bridge.peek-kind == 14 ? Icon.heart
         : Bridge.peek-kind == 16 ? Icon.game
         : Bridge.peek-kind == 17 ? Icon.chart
+        : Bridge.peek-kind == 18 ? Icon.power
         : Icon.bell;
     HorizontalLayout {
         padding-left: 16px;
@@ -508,6 +510,13 @@ component Peek inherits Rectangle {
             tip: "Open the day summary";
             clicked => { Bridge.open-summary(); }
         }
+        if Bridge.peek-kind == 18 && Bridge.power-pending >= 0: Button {
+            y: (parent.height - self.height) / 2;
+            height: 32px;
+            text: "Cancel";
+            tip: "Keep working: cancel it";
+            clicked => { Bridge.power-cancel(); }
+        }
         if Bridge.peek-kind == 8: IconButton {
             y: (parent.height - self.height) / 2;
             icon: Icon.open-folder;
@@ -529,11 +538,11 @@ component Peek inherits Rectangle {
     }
 }
 
-// Where a tab sits in the bar. Drive (index 11) is drawn right after Focus;
-// it got the last index so the older tabs keep theirs.
+// Where a tab sits in the bar. Drive (index 11) is drawn right after Focus and Power (13)
+// just before Settings; newer tabs get the next index so the older ones keep theirs.
 global TabOrder {
     public pure function pos(i: int) -> int {
-        return i == 11 ? 4 : i == 12 ? 11 : i == 10 ? 12 : i >= 4 ? i + 1 : i;
+        return i == 11 ? 4 : i == 12 ? 11 : i == 13 ? 12 : i == 10 ? 13 : i >= 4 ? i + 1 : i;
     }
 }
 
@@ -542,9 +551,10 @@ component TabButton inherits Rectangle {
     in property <string> icon;
     in property <bool> drop;
     in property <string> tip;
-    in property <bool> lit;   // glows while its mode is on (Game)
+    in property <bool> lit;   // glows while its mode is on (Game) or something is planned (Power)
+    in property <color> lit-tint: Theme.green;
     property <bool> active: Bridge.tab == index;
-    width: 29px;
+    width: 28px;
     height: 30px;
     border-radius: 10px;
     background: !active && ta.has-hover ? Theme.surface : transparent;
@@ -554,7 +564,7 @@ component TabButton inherits Rectangle {
         height: 100%;
         text: icon;
         font-size: 13px;
-        color: lit ? Theme.green : active ? Theme.text : Theme.text-dim;
+        color: lit ? lit-tint : active ? Theme.text : Theme.text-dim;
         animate color { duration: 200ms; }
         // the picked tab's icon pops a little
         transform-scale: active ? 1.15 : 1;
@@ -665,18 +675,18 @@ component Expanded inherits Rectangle {
     Rectangle {
         x: 14px;
         y: 34px;
-        width: 13 * 30px;
+        width: 14 * 28px;
         height: 30px;
         Rectangle {
-            x: TabOrder.pos(Bridge.tab) * 30px;
-            width: 29px;
+            x: TabOrder.pos(Bridge.tab) * 28px;
+            width: 28px;
             height: 30px;
             border-radius: 10px;
             background: #ffffff1f;
             animate x { duration: 380ms; easing: Theme.spring-ease; }
         }
         HorizontalLayout {
-            spacing: 1px;
+            spacing: 0;
             TabButton { index: 0; tip: "Home"; icon: Icon.home; }
             TabButton { index: 1; tip: "To-do"; icon: Icon.todo; }
             TabButton { index: 2; tip: "Calendar"; icon: Icon.calendar; }
@@ -689,6 +699,7 @@ component Expanded inherits Rectangle {
             TabButton { index: 8; tip: "Audio & mic"; icon: Icon.volume; }
             TabButton { index: 9; tip: "Developer tools"; icon: Icon.code; }
             TabButton { index: 12; tip: "Game mode (Ctrl+Alt+G)"; icon: Icon.game; lit: Bridge.game-mode; }
+            TabButton { index: 13; tip: Bridge.power-pending >= 0 ? "Power: planned for " + Bridge.power-at : "Power: lock, sleep, restart, shut down"; icon: Icon.power; lit: Bridge.power-pending >= 0; lit-tint: Theme.orange; }
             TabButton { index: 10; tip: "Settings"; icon: Icon.settings; }
         }
     }
@@ -732,6 +743,7 @@ component Expanded inherits Rectangle {
         if Bridge.tab == 10: PageHost { dir: Bridge.tab-dir; SettingsPage { } }
         if Bridge.tab == 11: PageHost { dir: Bridge.tab-dir; GearPage { } }
         if Bridge.tab == 12: PageHost { dir: Bridge.tab-dir; GamePage { } }
+        if Bridge.tab == 13: PageHost { dir: Bridge.tab-dir; PowerPage { } }
     }
     // short confirmations ("Link copied", "Received photo.jpg") float over the bottom of the panel
     if Bridge.toast != "": Rectangle {

@@ -86,6 +86,8 @@ pub fn wire(b: &Bridge, app: &Shared) {
         a.data.save();
         a.refresh_settings();
     });
+    on!(b, app, on_power_go, |a, action, minutes| { a.power_go(action, minutes); });
+    on!(b, app, on_power_cancel, |a| { a.power_cancel(); });
     on!(b, app, on_set_eye_color, |a, c| {
         a.data.settings.eye_color = c.max(0);
         a.data.save();

@@ -14,6 +14,7 @@ mod history;
 mod now_playing;
 mod planner;
 mod playlists;
+mod power;
 mod refresh;
 mod screen;
 mod send;
@@ -60,6 +61,8 @@ pub const TAB_AUDIO: i32 = 8;
 pub const TAB_DEV: i32 = 9;
 /// drive modes; drawn after Focus in the tab bar but numbered last so older tabs keep their index
 pub const TAB_GEAR: i32 = 11;
+/// lock, sleep, restart, sign out, shut down
+pub const TAB_POWER: i32 = 13;
 
 pub struct App {
     pub ui: slint::Weak<AppWindow>,
@@ -131,6 +134,8 @@ pub struct App {
     pub play: Play,
     /// Shelf > Send: the basket and the open share link
     pub send: send::Send,
+    /// The Power tab: the action waiting to happen
+    pub power: Option<power::PowerPlan>,
 }
 
 pub type Shared = Rc<RefCell<App>>;
@@ -308,6 +313,7 @@ impl App {
                 self.refresh_send();
             }
             TAB_GEAR => self.refresh_gear_time(),
+            TAB_POWER => self.refresh_power(),
             TAB_GAME => {
                 self.refresh_game();
                 if self.ui().global::<Bridge>().get_game_view() == 1 {

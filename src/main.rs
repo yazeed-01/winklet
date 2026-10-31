@@ -131,6 +131,7 @@ fn main() {
         screen: app::ScreenTrack::load(),
         play: Default::default(),
         send: Default::default(),
+        power: None,
         data,
     };
     ui.global::<Bridge>().set_app_volumes(ModelRc::from(app.app_volumes.clone()));
@@ -301,6 +302,20 @@ fn init_window(app: Shared) {
             if let Ok(id) = std::env::var("WINKLET_DEMO_SIZES") {
                 slint::Timer::single_shot(std::time::Duration::from_millis(1500), move || {
                     app::with_app(|s| s.borrow_mut().drink_pick(&id))
+                });
+            }
+            // WINKLET_DEMO_POWER shows a planned shutdown on the Power tab (the UI only: nothing is planned)
+            if std::env::var_os("WINKLET_DEMO_POWER").is_some() {
+                slint::Timer::single_shot(std::time::Duration::from_millis(800), || {
+                    app::with_app(|s| {
+                        let a = s.borrow();
+                        let ui = a.ui();
+                        let b = ui.global::<Bridge>();
+                        b.set_power_pending(4);
+                        b.set_power_left(app::s("44:12"));
+                        b.set_power_at(app::s(if a.data.settings.clock_24h { "23:30" } else { "11:30 PM" }));
+                        b.set_power_delay(45);
+                    })
                 });
             }
             if std::env::var_os("WINKLET_DEMO_HISTORY").is_some() {

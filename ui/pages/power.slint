@@ -1,0 +1,150 @@
+// Power: lock, sleep, restart, sign out or shut down, now or after a while.
+// A timed one can be cancelled here, or from the warning that drops down a minute before.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge } from "../bridge.slint";
+import { Label, Button, Stepper, Glyph } from "../widgets.slint";
+
+// Names, icons and colours of the power actions (0 lock … 4 shut down).
+global PowerText {
+    public pure function name(i: int) -> string {
+        return i == 0 ? "Lock" : i == 1 ? "Sleep" : i == 2 ? "Restart" : i == 3 ? "Sign out" : "Shut down";
+    }
+    public pure function icon(i: int) -> string {
+        return i == 0 ? Icon.lock : i == 1 ? Icon.sleep : i == 2 ? Icon.restart : i == 3 ? Icon.sign-out : Icon.power;
+    }
+    public pure function tint(i: int) -> color {
+        return i == 0 ? Theme.blue : i == 1 ? #a78bfa : i == 2 ? Theme.orange : i == 3 ? Theme.green : Theme.red;
+    }
+    // 0 → "Now", 45 → "45 min", 90 → "1 h 30"
+    public pure function delay(m: int) -> string {
+        return m == 0 ? "Now" : m < 60 ? m + " min" : mod(m, 60) == 0 ? floor(m / 60) + " h" : floor(m / 60) + " h " + mod(m, 60);
+    }
+}
+
+// One power action: a tinted icon over its name; the picked one glows.
+component PowerTile inherits Rectangle {
+    in property <int> index;
+    in property <string> name;
+    in property <string> icon;
+    in property <color> tint;
+    property <bool> on: Bridge.power-action == index;
+    horizontal-stretch: 1;
+    border-radius: 16px;
+    background: on ? tint.with-alpha(0.16) : ta.has-hover ? Theme.surface-hover : Theme.surface;
+    border-width: on ? 1.5px : 1px;
+    border-color: on ? tint.with-alpha(0.7) : Theme.stroke;
+    animate background, border-color { duration: 160ms; }
+    VerticalLayout {
+        alignment: center;
+        spacing: 8px;
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: 40px;
+                height: 40px;
+                border-radius: 20px;
+                background: root.tint.with-alpha(root.on ? 0.28 : 0.14);
+                transform-scale: root.on ? 1.08 : 1;
+                animate transform-scale { duration: 320ms; easing: Theme.spring-ease; }
+                Glyph { text: root.icon; font-size: 17px; color: root.tint; }
+            }
+        }
+        Label {
+            text: root.name;
+            font-size: 12px;
+            font-weight: root.on ? 700 : 600;
+            horizontal-alignment: center;
+            color: root.on ? Theme.text : Theme.text-dim;
+        }
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.power-action = root.index; } }
+}
+
+// A quick pick for the delay: Now, 5 min … 2 h.
+component DelayChip inherits Rectangle {
+    in property <int> minutes;
+    property <bool> on: Bridge.power-delay == minutes;
+    width: t.preferred-width + 18px;
+    border-radius: 13px;
+    background: on ? Theme.accent.with-alpha(0.22) : ta.has-hover ? Theme.surface-hover : Theme.surface;
+    animate background { duration: 120ms; }
+    t := Text {
+        text: PowerText.delay(root.minutes);
+        font-family: Theme.font;
+        font-size: 11px;
+        font-weight: 600;
+        color: root.on ? Theme.text : Theme.text-dim;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.power-delay = root.minutes; } }
+}
+
+export component PowerPage inherits Rectangle {
+    in-out property <bool> power-armed;
+    power-disarm := Timer {
+        interval: 4s;
+        running: false;
+        triggered => { root.power-armed = false; self.running = false; }
+    }
+    VerticalLayout {
+        spacing: 12px;
+        HorizontalLayout {
+            height: 92px;
+            spacing: 8px;
+            PowerTile { index: 0; name: "Lock"; icon: Icon.lock; tint: Theme.blue; }
+            PowerTile { index: 1; name: "Sleep"; icon: Icon.sleep; tint: #a78bfa; }
+            PowerTile { index: 2; name: "Restart"; icon: Icon.restart; tint: Theme.orange; }
+            PowerTile { index: 3; name: "Sign out"; icon: Icon.sign-out; tint: Theme.green; }
+            PowerTile { index: 4; name: "Shut down"; icon: Icon.power; tint: Theme.red; }
+        }
+        HorizontalLayout {
+            height: 26px;
+            spacing: 6px;
+            Label { text: "When"; font-size: 12px; width: 40px; }
+            for m in [0, 5, 15, 30, 60, 120]: DelayChip { minutes: m; }
+            Rectangle { horizontal-stretch: 1; }
+            Stepper {
+                value: PowerText.delay(Bridge.power-delay);
+                step(d) => { Bridge.power-delay = max(0, min(24 * 60, Bridge.power-delay + d * 5)); root.power-armed = false; }
+            }
+        }
+        // what's planned, with a live countdown
+        if Bridge.power-pending >= 0: Rectangle {
+            height: 40px;
+            border-radius: 12px;
+            background: PowerText.tint(Bridge.power-pending).with-alpha(0.14);
+            border-width: 1px;
+            border-color: PowerText.tint(Bridge.power-pending).with-alpha(0.4);
+            HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 5px;
+                spacing: 10px;
+                Glyph { text: PowerText.icon(Bridge.power-pending); font-size: 13px; color: PowerText.tint(Bridge.power-pending); width: 16px; }
+                Label { text: PowerText.name(Bridge.power-pending) + " at " + Bridge.power-at; font-size: 12.5px; font-weight: 600; horizontal-stretch: 1; }
+                Label { text: Bridge.power-left; font-size: 15px; font-weight: 700; font-family: Theme.font-display; color: PowerText.tint(Bridge.power-pending); }
+                Button { y: 4px; height: 30px; text: "Cancel"; clicked => { Bridge.power-cancel(); } }
+            }
+        }
+        // restart, sign out and shut down right now take a second click
+        Button {
+            height: 36px;
+            icon: PowerText.icon(Bridge.power-action);
+            primary: true;
+            tint: PowerText.tint(Bridge.power-action);
+            text: root.power-armed ? "Sure? Click again"
+                : Bridge.power-delay == 0 ? PowerText.name(Bridge.power-action) + " now"
+                : PowerText.name(Bridge.power-action) + " in " + PowerText.delay(Bridge.power-delay);
+            clicked => {
+                if Bridge.power-delay == 0 && Bridge.power-action >= 2 && !root.power-armed {
+                    root.power-armed = true;
+                    power-disarm.running = true;
+                } else {
+                    root.power-armed = false;
+                    Bridge.power-go(Bridge.power-action, Bridge.power-delay);
+                }
+            }
+        }
+        Rectangle { }
+    }}

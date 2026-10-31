@@ -192,8 +192,8 @@ export component SettingsPage inherits Rectangle {
         visible: !Bridge.theme-picking;
         x: parent.width - self.width;
         y: 0;
-        width: 210px;
-        items: ["General", "Look", "Power"];
+        width: 150px;
+        items: ["General", "Look"];
         value: Bridge.settings-view;
         picked(i) => { Bridge.settings-view = i; }
     }
