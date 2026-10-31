@@ -26,6 +26,7 @@ pub fn take_screenshot(shared: &Shared) {
             a.resize(false);
             if !a.hidden {
                 sys::set_visible(a.hwnd, true);
+                a.repaint_all();
             }
         });
         let Some(shot) = shot else { return };

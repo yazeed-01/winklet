@@ -860,6 +860,14 @@ export component AppWindow inherits Window {
         triggered => { root.float-up = false; self.running = false; }
     }
 
+    // an invisible change over the whole window whenever Rust flips `repaint`, so the next
+    // frame redraws all of it (see App::repaint_all)
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: Bridge.repaint ? #ffffff00 : #00000000;
+    }
+
     Ear {
         visible: Bridge.docked && !Bridge.bubble;
         x: island.x - self.width + 0.5px;

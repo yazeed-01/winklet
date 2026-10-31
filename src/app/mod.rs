@@ -277,6 +277,16 @@ impl App {
         b.set_rest_w(rest.0);
         b.set_rest_h(rest.1);
         b.set_open_up(at.open_up);
+        self.repaint_all();
+    }
+
+    /// The next frame repaints the whole window. Slint redraws only what changed since the
+    /// last frame, but Windows may have wiped the window meanwhile (resized away and back
+    /// before a frame, hidden and shown), which left stray bits of the panel on screen.
+    pub fn repaint_all(&self) {
+        let ui = self.ui();
+        let b = ui.global::<Bridge>();
+        b.set_repaint(!b.get_repaint());
     }
 
     /// "Top centre" in settings: back to where it started.

@@ -125,6 +125,7 @@ impl App {
         if hide != self.hidden {
             self.hidden = hide;
             sys::set_visible(self.hwnd, !hide);
+            self.repaint_all();
             if hide {
                 self.play.topped = false;
             }
