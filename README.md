@@ -8,7 +8,7 @@ Built in **Rust + Slint**, with a native GPU renderer and no browser engine.
 
 ## Contents
 
-[The pill](#the-pill) · [Notifications](#notifications) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water and drinks](#water-and-drinks) · [Alarms](#alarms) · [Shelf](#shelf) · [Send](#send-to-phone-or-pc) · [Audio](#audio) · [Developer](#developer) · [Game mode](#game-mode) · [Settings](#settings) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
+[The pill](#the-pill) · [Notifications](#notifications) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water and drinks](#water-and-drinks) · [Alarms](#alarms) · [Shelf](#shelf) · [Send](#send-to-phone-or-pc) · [Audio](#audio) · [Developer](#developer) · [Game mode](#game-mode) · [Power](#power) · [Settings](#settings) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
 
 ## Features
 
@@ -23,7 +23,13 @@ The resting island: clock, the current focus timer, two glowing eyes and the bat
 
   <img src="docs/screenshots/eyes.png" width="760" alt="Every eye mood: look left and right, wink, happy, surprised, love, music, coffee, watching a car, tired, away and game mode">
 * **Move it.** Right-drag the island anywhere, or use **Settings → Move**: it follows the pointer until you click to drop it. It docks to any screen edge: a notch at the top, flat on the taskbar at the bottom, and standing upright (time, eyes, battery) on the left or right. **Top centre** puts it back, and **Top centre at start** (on by default) does that every launch.
-* **Car show.** When the island opens, a car drives in underneath, drifts a donut with tyre smoke and skid marks, then speeds off. Pick JDM, Muscle, German or F1 in Settings, or turn it off.
+* **Eye colours.** Pick the eyes' colour in **Settings → Look**: Ice, Aqua, Mint, Lime, Sun, Peach, Rose, Lilac, Sky, Ember, or Theme to match the accent.
+
+  <img src="docs/screenshots/eye-colours.png" width="760" alt="The eyes in Ice, Aqua, Mint, Sun, Rose, Lilac and Ember">
+* **Bubble style.** Prefer something smaller than a notch? **Settings → Look → Island style → Bubble** turns the resting island into a floating ball with just the eyes. It bobs gently while you're at the PC and settles when you step away, grows a little under the pointer, shows a running focus timer as a ring around the eyes, and opens into the full panel just like the notch (rounded all round, a few pixels off the screen edge).
+
+  <img src="docs/screenshots/bubble.png" width="200" alt="Bubble style: a floating ball with the eyes"> <img src="docs/screenshots/bubble-open.png" width="560" alt="The bubble opened into the panel">
+* **Car show.** When the island opens, a car drives in underneath, drifts a donut with tyre smoke and skid marks, then speeds off. Pick JDM, Muscle, German or F1 in **Settings → Look**, or turn it off.
 
 <img src="docs/screenshots/car-show.png" width="560" alt="The car drifting under the open island">
 
@@ -161,11 +167,35 @@ Turn it on in the **Game** tab, in Settings or with **Ctrl+Alt+G**, or let it sw
 
 <img src="docs/screenshots/game.png" width="440" alt="Game tab live view"> <img src="docs/screenshots/game-library.png" width="440" alt="Game library">
 
+### Power
+
+Lock, sleep, restart, sign out or shut down, right now or later. Pick an action, then when: **Now**, **5 min**, **15 min**, **30 min**, **1 h**, **2 h**, or any delay in 5-minute steps with − and +.
+
+* **Change your mind any time.** A planned action shows the time it will happen and a live countdown, with **Cancel** next to it. The Power tab icon glows orange while something is waiting.
+* **A minute's warning.** A minute before, a notification drops down from the pill ("Shutting down in a minute") with its own **Cancel**, so you can stop it without opening the island.
+* **No accidents.** Restart, sign out and shut down *right now* take a second click. Restart and shut down never force apps closed, so anything with unsaved work still gets to ask. If the PC was asleep when the time came, the action is skipped instead of happening the moment it wakes up.
+
+<img src="docs/screenshots/power.png" width="560" alt="Power tab: five actions, a delay and a planned shutdown with a countdown and Cancel">
+
 ### Settings
 
-Launch at startup, 12- or 24-hour clock, hide during fullscreen games, videos and presentations, game mode, water reminders and their interval, lively eyes, car show and car model, the colour theme, where the island sits (**Move**, **Top centre**, **Top centre at start**), **Your data** (open the folder it's saved in, or **Reset all** with a second click to confirm), and Quit. The tray icon has Open and Quit too.
+Settings has two views.
 
-<img src="docs/screenshots/settings.png" width="560" alt="Settings">
+**General:** launch at startup, 12- or 24-hour clock, hide during fullscreen games, videos and presentations, game mode, water reminders and their interval, where the island sits (**Move**, **Top centre**, **Top centre at start**), **Your data** (open the folder it's saved in, or **Reset all** with a second click to confirm), and **Quit Winklet**. The tray icon has Open and Quit too.
+
+<img src="docs/screenshots/settings.png" width="560" alt="Settings, General view">
+
+**Look:** how the island looks and moves.
+
+* **Island style.** **Notch** (the original, against the screen edge) or **Bubble** (a floating ball with just the eyes, see [The pill](#the-pill)).
+* **Size.** One slider from 80% to 140% makes the open panel and the resting pill bigger or smaller together. It applies when you let go of the slider, on top of the Windows display scale.
+* **Transparency.** From solid to 60% see-through. Only the island's background fades: text, icons and cards stay sharp, so it reads like frosted glass over your wallpaper.
+* **Eye colour.** Eleven colours for the eyes: **Ice** (the original white), **Aqua**, **Mint**, **Lime**, **Sun**, **Peach**, **Rose**, **Lilac**, **Sky**, **Ember**, and **Theme**, which follows the theme's accent. The eyes smile when you pick one so you see it right away.
+* **Lively eyes**, **Car show** with its car model and **Test drive**, and the **Theme** picker.
+
+<img src="docs/screenshots/settings-look.png" width="560" alt="Settings, Look view: island style, size, transparency and eye colour">
+
+<img src="docs/screenshots/transparency.png" width="560" alt="The island at 45% transparency over a colourful wallpaper">
 
 **Theme** picks the colours: **Classic** (the original look, and the default), **Racing Green**, **Burgundy Sage**, **Acid Lime**, **Orchid Sunset**, **Chrome Laser**, **Coral Steel**, **Aurora** and **Graphite**. The island stays dark in every theme; each one tints it and changes the text and accent colours, and the change applies right away.
 
@@ -203,14 +233,14 @@ Your data stays on your PC in `%APPDATA%\Winklet`: `data.json` for tasks, settin
 
 Measured on this machine (1920×1080 at 125%, release build):
 
-* **Idle rendering: 0 frames per second.** Slint only redraws when a property changes. The clock updates once a minute, and the eye blink costs a few frames every 6 s. In game mode the pill updates every 2 s.
+* **Idle rendering: 0 frames per second.** Slint only redraws when a property changes. The clock updates once a minute, and the eye blink costs a few frames every 6 s. In game mode the pill updates every 2 s. In Bubble style the ball bobs while you're active and stops after 60 s without input.
 * **Working set: about 3 MB** after the first 20 s, when Winklet hands unused pages back to Windows with `EmptyWorkingSet`. Most of the committed memory belongs to the OpenGL driver.
 * **Executable: about 15 MB.** It has no runtime dependencies and nothing to install.
 
 The design choices behind these numbers:
 
 1. **No web view.** Electron or Tauri would load a whole browser engine (about 80–200 MB). Winklet uses Slint, a native, declarative UI toolkit that compiles `.slint` files to Rust at build time.
-2. **The window hugs the pill.** When the island is collapsed, the window is only 340×44 px (444×44 in game mode), so it never blocks clicks on the apps underneath. It grows just before the expand animation starts and shrinks just after the collapse animation ends.
+2. **The window hugs the pill.** When the island is collapsed, the window is only 340×44 px (444×44 in game mode, 64×60 as a bubble), so it never blocks clicks on the apps underneath. It grows just before the expand animation starts and shrinks just after the collapse animation ends.
 3. **Change-only updates.** The heartbeat only *sets* a UI property when the value actually changed, which matters because each change can trigger a redraw.
 4. **Background work is cheap.** Media info comes from a small thread that polls the Windows media session every 2 s. Screen time reads only which program is in front, every 2 s. CPU, RAM and GPU sampling run only while the Developer tab is open or game mode is on.
 5. **Steps aside in fullscreen.** `SHQueryUserNotificationState` detects games, videos and presentations, and the island hides while they run (unless game mode is on).
@@ -224,7 +254,7 @@ ui/
   bridge.slint       the `Bridge` global: every property and callback shared with Rust
   pages.slint        re-exports the dashboard tabs from ui/pages/
   pages/             one file per tab (home, todo, calendar, focus, gear, health*, water,
-                     alarms, shelf, audio, dev*, game, settings)
+                     alarms, shelf, audio, dev*, game, power, settings)
   widgets.slint      buttons, toggle, rings, gauges, chips, app icon, ...
   theme.slint        colors, fonts, easing curves, Segoe Fluent icon code points
 src/
@@ -261,6 +291,8 @@ $env:WINKLET_DEMO_GUIDE=1                         # the 60-second stretch guide
 $env:WINKLET_DEMO_MOOD=7                          # hold an eye mood (7 = music)
 $env:WINKLET_DEMO_NO_MEDIA=1                      # ignore whatever is playing
 $env:WINKLET_DEMO_PLAYLISTS=1                     # with DEMO_TAB=0: the playlist grid
+$env:WINKLET_DEMO_VOLUME=1                        # with DEMO_TAB=0: the volume slider on the media card
+$env:WINKLET_DEMO_POWER=1                         # with DEMO_TAB=13: a planned shutdown (shown only, nothing is planned)
 $env:WINKLET_TRACE=1                              # log hover / idle / media events to stdout
 $env:SLINT_DEBUG_PERFORMANCE="refresh_lazy,console"   # print frames per second
 cargo test probe -- --ignored --nocapture         # what this PC reports: app in front, GPU, controller, FPS access
