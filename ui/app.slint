@@ -269,7 +269,7 @@ component Ear inherits Path {
     height: 12px;
     viewbox-width: 12;
     viewbox-height: 12;
-    fill: Theme.island;
+    fill: Theme.island.with-alpha(Bridge.island-alpha);
     commands: mirrored ? "M0 0 L12 0 A12 12 0 0 0 0 12 Z" : "M0 0 L12 0 L12 12 A12 12 0 0 0 0 0 Z";
 }
 
@@ -827,7 +827,7 @@ export component AppWindow inherits Window {
         x: Bridge.edge == 2 ? 0 : Bridge.edge == 3 ? parent.width - self.width : (parent.width - self.width) / 2;
         width: island-w;
         height: island-h;
-        background: Theme.island;
+        background: Theme.island.with-alpha(Bridge.island-alpha);
         // square corners on the docked side, round everywhere else
         border-top-left-radius: Bridge.edge == 0 || Bridge.edge == 2 ? 0 : radius;
         border-top-right-radius: Bridge.edge == 0 || Bridge.edge == 3 ? 0 : radius;
@@ -835,7 +835,8 @@ export component AppWindow inherits Window {
         border-bottom-right-radius: Bridge.edge == 1 || Bridge.edge == 3 ? 0 : radius;
         drop-shadow-blur: Bridge.expanded ? 24px : 8px;
         drop-shadow-offset-y: 4px;
-        drop-shadow-color: #00000080;
+        // a see-through island would show its own shadow through it, so the shadow fades with it
+        drop-shadow-color: Colors.black.with-alpha(0.5 * Bridge.island-alpha * Bridge.island-alpha);
         clip: true;
         animate width { duration: Theme.spring; easing: Theme.spring-ease; }
         animate height { duration: Theme.spring; easing: Theme.spring-ease; }

@@ -62,6 +62,8 @@ pub struct Settings {
     pub theme: i32,
     /// size of the panel and the pill, on top of the Windows display scale (0.8 .. 1.4)
     pub ui_scale: f32,
+    /// opacity of the island's background (0.4 .. 1); text and icons stay solid
+    pub island_alpha: f32,
     /// Dev tools folders; empty = found automatically
     pub projects_dir: String,
     pub downloads_dir: String,
@@ -124,6 +126,7 @@ impl Default for Settings {
             island_home_on_start: true,
             theme: 0,
             ui_scale: 1.0,
+            island_alpha: 1.0,
             projects_dir: String::new(),
             downloads_dir: String::new(),
             stand_reminders: true,

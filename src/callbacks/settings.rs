@@ -81,6 +81,11 @@ pub fn wire(b: &Bridge, app: &Shared) {
         a.refresh_settings();
         a.place();
     });
+    on!(b, app, on_island_alpha_set, |a, v| {
+        a.data.settings.island_alpha = ((v * 20.0).round() / 20.0).clamp(0.4, 1.0);
+        a.data.save();
+        a.refresh_settings();
+    });
     // collapses the panel it was clicked in: let the click finish first
     b.on_island_move(|| defer(App::start_move));
     b.on_car_preview(|| {

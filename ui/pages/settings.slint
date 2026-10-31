@@ -149,6 +149,7 @@ export component SettingsPage inherits Rectangle {
         triggered => { root.reset-armed = false; self.running = false; }
     }
     Segmented {
+        visible: !Bridge.theme-picking;
         x: parent.width - self.width;
         y: 0;
         width: 210px;
@@ -157,7 +158,7 @@ export component SettingsPage inherits Rectangle {
         picked(i) => { Bridge.settings-view = i; }
     }
     // ---- General: startup, clock, reminders, where it sits, your data ----
-    if Bridge.settings-view == 0: HorizontalLayout {
+    if Bridge.settings-view == 0 && !Bridge.theme-picking: HorizontalLayout {
         y: 34px;
         height: parent.height - 34px;
         spacing: 18px;
@@ -231,7 +232,7 @@ export component SettingsPage inherits Rectangle {
         }
     }
     // ---- Look: theme, size, eyes and the car show ----
-    if Bridge.settings-view == 1: HorizontalLayout {
+    if Bridge.settings-view == 1 && !Bridge.theme-picking: HorizontalLayout {
         y: 34px;
         height: parent.height - 34px;
         spacing: 18px;
@@ -268,6 +269,14 @@ export component SettingsPage inherits Rectangle {
                 value: Bridge.ui-scale;
                 released(v) => { Bridge.ui-scale-set(v); }
             }
+            // how much of the desktop shows through the island (the text stays solid)
+            SliderRow {
+                title: "Transparency";
+                lo: 0;
+                hi: 0.6;
+                value: 1 - Bridge.island-alpha;
+                released(v) => { Bridge.island-alpha-set(1 - v); }
+            }
             Rectangle { }
         }
         VerticalLayout {
@@ -288,7 +297,6 @@ export component SettingsPage inherits Rectangle {
     }
     // theme picker: covers the page, changes apply right away
     if Bridge.theme-picking: Rectangle {
-        background: Theme.island;
         TouchArea { }
         VerticalLayout {
             spacing: 10px;
