@@ -105,15 +105,35 @@ impl App {
     }
 
     pub fn refresh_dev(&self) {
+        self.refresh_dev_live();
         let ui = self.ui();
         let b = ui.global::<Bridge>();
-        let (load, used, total) = sys::memory();
-        b.set_cpu(sys::cpu_usage());
-        b.set_ram(load);
-        b.set_ram_text(s(format!("{used:.1} / {total:.0} GB")));
-        b.set_uptime(s(sys::uptime()));
         b.set_ip_text(s(sys::local_ip()));
         b.set_projects_dir(s(super::folder_for(self, "projects")));
         b.set_downloads_dir(s(super::folder_for(self, "downloads")));
+    }
+
+    /// Just the live numbers (every 2 s while Developer > Tools is open). Rounded and set only
+    /// when they change, since every change animates the bars.
+    pub fn refresh_dev_live(&self) {
+        let ui = self.ui();
+        let b = ui.global::<Bridge>();
+        let (load, used, total) = sys::memory();
+        let cpu = (sys::cpu_usage() * 100.0).round() / 100.0;
+        let ram = (load * 200.0).round() / 200.0;
+        if b.get_cpu() != cpu {
+            b.set_cpu(cpu);
+        }
+        if b.get_ram() != ram {
+            b.set_ram(ram);
+        }
+        let ram_text = format!("{used:.1} / {total:.0} GB");
+        if b.get_ram_text() != ram_text.as_str() {
+            b.set_ram_text(s(ram_text));
+        }
+        let up = sys::uptime();
+        if b.get_uptime() != up.as_str() {
+            b.set_uptime(s(up));
+        }
     }
 }

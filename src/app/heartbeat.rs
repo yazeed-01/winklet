@@ -60,8 +60,13 @@ impl App {
         let ui = self.ui();
 
         let b = ui.global::<Bridge>();
-        if b.get_expanded() && self.ticks % 2 == 0 && (b.get_tab() == TAB_DEV || b.get_tab() == TAB_AUDIO) {
-            self.refresh_tab(b.get_tab());
+        // live numbers on the open tab (the full refresh_tab only runs when a tab opens)
+        if b.get_expanded() && self.ticks % 2 == 0 {
+            if b.get_tab() == TAB_DEV && b.get_dev_view() == 0 {
+                self.refresh_dev_live();
+            } else if b.get_tab() == TAB_AUDIO {
+                self.refresh_audio();
+            }
         }
 
         // Give memory back after the island has been quiet for a long while
