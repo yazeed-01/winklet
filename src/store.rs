@@ -68,6 +68,12 @@ pub struct Settings {
     pub eye_color: i32,
     /// island style: a floating ball with just the eyes instead of the notch
     pub bubble: bool,
+    /// Wallpaper tab: your own picture folders (Windows' wallpapers are always there)
+    pub wallpaper_dirs: Vec<String>,
+    /// the folder shown: 0 = Windows' wallpapers, then wallpaper_dirs
+    pub wallpaper_source: i32,
+    /// change the wallpaper to a random one from that folder every N minutes (0 = off)
+    pub wallpaper_every: i32,
     /// Dev tools folders; empty = found automatically
     pub projects_dir: String,
     pub downloads_dir: String,
@@ -133,6 +139,9 @@ impl Default for Settings {
             island_alpha: 1.0,
             eye_color: 0,
             bubble: false,
+            wallpaper_dirs: Vec::new(),
+            wallpaper_source: 0,
+            wallpaper_every: 0,
             projects_dir: String::new(),
             downloads_dir: String::new(),
             stand_reminders: true,

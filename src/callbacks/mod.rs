@@ -28,6 +28,7 @@ mod player;
 mod settings;
 mod shelf;
 mod sound;
+mod wallpaper;
 mod water;
 mod window;
 
@@ -48,4 +49,5 @@ pub fn wire_callbacks(ui: &AppWindow, app: &Shared) {
     shelf::wire(&b, app);
     sound::wire(&b, app);
     health::wire(&b, app);
+    wallpaper::wire(&b, app);
 }

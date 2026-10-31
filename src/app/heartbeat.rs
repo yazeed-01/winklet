@@ -21,6 +21,7 @@ impl App {
             self.check_alarms();
             self.check_reminders();
             self.check_summary();
+            self.wall_tick();
             self.refresh_alarms();
         }
 

@@ -1,0 +1,222 @@
+// Wallpaper: your desktop picture now, and a gallery to pick the next one from.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge, WallItem } from "../bridge.slint";
+import { Label, Button, Glyph, IconButton, Segmented, Stepper, Tip } from "../widgets.slint";
+
+// One picture in the gallery: click to put it on the desktop.
+component WallThumb inherits Rectangle {
+    in property <WallItem> item;
+    border-radius: 12px;
+    background: Theme.surface;
+    clip: true;
+    // waiting for the thumbnail: a soft shimmer
+    if !root.item.loaded: Rectangle {
+        property <bool> on;
+        background: @linear-gradient(110deg, #ffffff06 0%, #ffffff12 50%, #ffffff06 100%);
+        opacity: on ? 1 : 0.4;
+        animate opacity { duration: 700ms; easing: ease-in-out; }
+        Timer { interval: 700ms; running: !root.item.loaded; triggered => { parent.on = !parent.on; } }
+    }
+    if root.item.loaded: Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.item.thumb;
+        image-fit: cover;
+        transform-scale: ta.has-hover ? 1.08 : 1;
+        animate transform-scale { duration: 420ms; easing: Theme.smooth; }
+    }
+    // name on hover
+    Rectangle {
+        y: parent.height - 22px;
+        height: 22px;
+        background: @linear-gradient(180deg, #00000000 0%, #000000b0 100%);
+        opacity: ta.has-hover ? 1 : 0;
+        animate opacity { duration: 160ms; }
+        Text {
+            x: 7px;
+            width: parent.width - 14px;
+            text: root.item.name;
+            font-family: Theme.font;
+            font-size: 9.5px;
+            font-weight: 600;
+            color: white;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+    // on the desktop now
+    if root.item.current: Rectangle {
+        border-radius: 12px;
+        border-width: 2px;
+        border-color: Theme.accent;
+        Rectangle {
+            x: parent.width - 22px;
+            y: 6px;
+            width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            background: Theme.accent;
+            Glyph { text: Icon.check; font-size: 8px; color: #0b0b12; }
+        }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { Bridge.wall-set(root.item.path); }
+    }
+}
+
+// A folder to browse: Windows' wallpapers or one of yours (right-click to remove yours).
+component SourceChip inherits Rectangle {
+    in property <string> name;
+    in property <int> index;
+    property <bool> on: Bridge.wall-source == index;
+    width: t.preferred-width + 30px;
+    height: 26px;
+    border-radius: 13px;
+    background: on ? Theme.accent.with-alpha(0.22) : ta.has-hover ? Theme.surface-hover : Theme.surface;
+    border-width: on ? 1px : 0;
+    border-color: Theme.accent.with-alpha(0.6);
+    animate background { duration: 120ms; }
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        spacing: 5px;
+        Glyph { text: root.index == 0 ? Icon.monitor : Icon.folder; font-size: 9.5px; color: root.on ? Theme.text : Theme.text-dim; }
+        t := Text {
+            text: root.name;
+            font-family: Theme.font;
+            font-size: 11px;
+            font-weight: 600;
+            color: root.on ? Theme.text : Theme.text-dim;
+            vertical-alignment: center;
+        }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { Bridge.wall-source-set(root.index); }
+        pointer-event(e) => {
+            if e.button == PointerEventButton.right && e.kind == PointerEventKind.up && root.index > 0 && !Bridge.dragging {
+                Bridge.wall-remove-folder(root.index);
+            }
+        }
+        changed has-hover => {
+            if self.has-hover && root.index > 0 {
+                Tip.text = "Right-click to remove this folder";
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if !self.has-hover && Tip.text == "Right-click to remove this folder" {
+                Tip.shown = false;
+            }
+        }
+    }
+}
+
+export component WallpaperPage inherits Rectangle {
+    HorizontalLayout {
+        spacing: 16px;
+        // the desktop now
+        VerticalLayout {
+            width: 248px;
+            spacing: 8px;
+            Rectangle {
+                height: 140px;
+                border-radius: 16px;
+                background: Theme.surface;
+                border-width: 1px;
+                border-color: Theme.stroke;
+                clip: true;
+                drop-shadow-blur: 14px;
+                drop-shadow-color: #0008;
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: Bridge.wall-current;
+                    image-fit: cover;
+                }
+                // little screen bezel feel: a dark band with the name
+                Rectangle {
+                    y: parent.height - 30px;
+                    height: 30px;
+                    background: @linear-gradient(180deg, #00000000 0%, #000000c0 100%);
+                    HorizontalLayout {
+                        padding-left: 10px;
+                        padding-right: 10px;
+                        spacing: 6px;
+                        Rectangle {
+                            y: (parent.height - self.height) / 2;
+                            width: 34px;
+                            height: 16px;
+                            border-radius: 8px;
+                            background: Theme.accent;
+                            Text { text: "NOW"; font-family: Theme.font; font-size: 8px; font-weight: 800; letter-spacing: 0.6px; color: #0b0b12; horizontal-alignment: center; vertical-alignment: center; width: 100%; height: 100%; }
+                        }
+                        Label { text: Bridge.wall-current-name; font-size: 11px; font-weight: 600; color: white; }
+                    }
+                }
+            }
+            Segmented {
+                items: ["Fill", "Fit", "Stretch", "Centre", "Span"];
+                value: Bridge.wall-fit;
+                picked(i) => { Bridge.wall-fit-set(i); }
+            }
+            HorizontalLayout {
+                height: 28px;
+                spacing: 6px;
+                Button { height: 28px; icon: Icon.refresh; text: "Shuffle"; horizontal-stretch: 1; tip: "A random picture from this folder"; clicked => { Bridge.wall-shuffle(); } }
+                Button { height: 28px; icon: Icon.open-folder; text: "Open"; tip: Bridge.wall-dir; clicked => { Bridge.wall-open-folder(); } }
+            }
+            HorizontalLayout {
+                height: 26px;
+                VerticalLayout {
+                    alignment: center;
+                    horizontal-stretch: 1;
+                    Label { text: "Change every"; font-size: 12px; }
+                }
+                Stepper { value: Bridge.wall-every-text; step(d) => { Bridge.wall-every-adjust(d); } }
+            }
+        }
+        // the gallery
+        VerticalLayout {
+            width: root.width - 248px - 16px;
+            spacing: 10px;
+            Flickable {
+                height: 26px;
+                interactive: false;
+                content-width: chips.preferred-width;
+                chips := HorizontalLayout {
+                    spacing: 6px;
+                    for name[i] in Bridge.wall-sources: SourceChip { name: name; index: i; }
+                    IconButton { icon: Icon.add; size: 26px; icon-size: 10px; fill: Theme.surface; tip: "Add a folder of your pictures"; clicked => { Bridge.wall-add-folder(); } }
+                }
+            }
+            grid := Rectangle {
+                vertical-stretch: 1;
+                property <int> cols: 3;
+                property <length> gap: 9px;
+                property <length> tw: (self.width - (cols - 1) * gap) / cols;
+                property <length> th: tw * 9 / 16;
+                Flickable {
+                    content-height: ceil(Bridge.walls.length / grid.cols) * (grid.th + grid.gap);
+                    for w[i] in Bridge.walls: WallThumb {
+                        x: mod(i, grid.cols) * (grid.tw + grid.gap);
+                        y: floor(i / grid.cols) * (grid.th + grid.gap);
+                        width: grid.tw;
+                        height: grid.th;
+                        item: w;
+                    }
+                }
+                if Bridge.walls.length == 0: VerticalLayout {
+                    alignment: center;
+                    spacing: 6px;
+                    Glyph { text: Icon.monitor; font-size: 22px; color: Theme.text-faint; }
+                    Label { text: "No pictures in this folder"; horizontal-alignment: center; color: Theme.text-dim; font-size: 12px; }
+                    Label { text: "JPG, PNG, BMP and WebP in it and its subfolders show up here."; horizontal-alignment: center; color: Theme.text-faint; font-size: 10px; }
+                }
+            }
+        }
+    }
+}

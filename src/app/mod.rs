@@ -23,6 +23,7 @@ mod shelf;
 mod sound;
 mod summary;
 mod tools;
+mod wallpaper;
 mod wellbeing;
 mod workspaces;
 
@@ -32,6 +33,7 @@ pub use focus::Focus;
 pub use game::{Play, TAB_GAME, games_pick};
 pub use send::send_pick;
 pub use screen::ScreenTrack;
+pub use wallpaper::wall_add_folder;
 pub use tools::{folder_for, open_folder, pick_folder, pick_workspace, take_screenshot};
 pub use wellbeing::Wellbeing;
 pub use workspaces::ws_browse;
@@ -69,6 +71,8 @@ pub const TAB_GEAR: i32 = 11;
 pub const TAB_POWER: i32 = 13;
 /// Stream Deck style keys
 pub const TAB_DECK: i32 = 14;
+/// desktop wallpaper picker
+pub const TAB_WALL: i32 = 15;
 
 pub struct App {
     pub ui: slint::Weak<AppWindow>,
@@ -140,6 +144,8 @@ pub struct App {
     pub play: Play,
     /// Shelf > Send: the basket and the open share link
     pub send: send::Send,
+    /// Wallpaper tab: the pictures on screen and their thumbnails
+    pub wall: wallpaper::Walls,
     /// The Power tab: the action waiting to happen
     pub power: Option<power::PowerPlan>,
 }
@@ -327,6 +333,7 @@ impl App {
             TAB_GEAR => self.refresh_gear_time(),
             TAB_POWER => self.refresh_power(),
             TAB_DECK => self.refresh_deck(),
+            TAB_WALL => self.refresh_wallpaper(),
             TAB_GAME => {
                 self.refresh_game();
                 if self.ui().global::<Bridge>().get_game_view() == 1 {

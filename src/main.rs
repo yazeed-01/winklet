@@ -18,6 +18,7 @@ mod share;
 mod store;
 mod sys;
 mod uptime;
+mod wall;
 
 use app::{APP, App, CAR_PUFFS, CAR_SKIDS, Focus, SMALL, Shared, Wellbeing, s, schedule_collapse, schedule_shrink, take_screenshot, with_app};
 use callbacks::{wire_callbacks, wire_file_drop};
@@ -133,6 +134,7 @@ fn main() {
         play: Default::default(),
         send: Default::default(),
         power: None,
+        wall: Default::default(),
         data,
     };
     ui.global::<Bridge>().set_app_volumes(ModelRc::from(app.app_volumes.clone()));

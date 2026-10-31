@@ -154,6 +154,14 @@ export struct DeckSlot {
     empty: bool,
 }
 
+export struct WallItem {
+    path: string,
+    name: string,
+    thumb: image,
+    loaded: bool,      // the thumbnail has arrived
+    current: bool,     // on the desktop now
+}
+
 export struct PortItem {
     port: int,
     label: string,     // "Metro (React Native)", "" if unknown
@@ -489,6 +497,24 @@ export global Bridge {
     callback deck-page-set(int);
     callback deck-page-add();
     callback deck-page-remove();
+
+    // ---- Wallpaper ----
+    in property <[WallItem]> walls;
+    in property <[string]> wall-sources;       // "Windows", then your folders
+    in property <int> wall-source;
+    in property <string> wall-dir;             // the folder on screen
+    in property <image> wall-current;          // the wallpaper now, bigger
+    in property <string> wall-current-name;
+    in property <int> wall-fit;                // 0 fill, 1 fit, 2 stretch, 3 centre, 4 span
+    in property <string> wall-every-text: "Off";
+    callback wall-set(string);
+    callback wall-fit-set(int);
+    callback wall-source-set(int);
+    callback wall-add-folder();
+    callback wall-remove-folder(int);
+    callback wall-shuffle();
+    callback wall-every-adjust(int);
+    callback wall-open-folder();
 
     // ---- playlists (Home media card) ----
     in property <[PlaylistItem]> playlists;
