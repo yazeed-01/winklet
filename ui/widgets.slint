@@ -562,3 +562,52 @@ export component AppIcon inherits Rectangle {
     if img.width > 0: Image { width: 100%; height: 100%; source: img; image-fit: contain; }
     if img.width == 0: Glyph { width: 100%; height: 100%; text: root.fallback; font-size: root.height * 0.5; color: Theme.text-dim; }
 }
+
+// A search box that reports every keystroke, with a clear button.
+export component SearchBox inherits Rectangle {
+    in property <string> placeholder;
+    in-out property <string> text <=> input.text;
+    callback edited(string);
+    callback accepted(string);
+    height: 30px;
+    border-radius: 10px;
+    background: input.has-focus ? #ffffff14 : Theme.surface;
+    border-width: 1px;
+    border-color: input.has-focus ? Theme.accent : Theme.stroke;
+    animate border-color, background { duration: 160ms; }
+    changed has-focus => { Bridge.editing = self.has-focus; }
+    out property <bool> has-focus: input.has-focus;
+    Glyph { x: 10px; width: 12px; text: Icon.search; font-size: 10px; color: Theme.text-faint; }
+    Text {
+        x: 30px;
+        width: parent.width - 56px;
+        height: 100%;
+        visible: input.text == "";
+        text: root.placeholder;
+        color: Theme.text-faint;
+        font-family: Theme.font;
+        font-size: 11.5px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    input := TextInput {
+        x: 30px;
+        width: parent.width - 56px;
+        height: 100%;
+        color: Theme.text;
+        font-family: Theme.font;
+        font-size: 11.5px;
+        vertical-alignment: center;
+        single-line: true;
+        selection-background-color: Theme.accent.with-alpha(0.5);
+        edited => { root.edited(self.text); }
+        accepted => { root.accepted(self.text); }
+    }
+    if input.text != "": TouchArea {
+        x: parent.width - 26px;
+        width: 22px;
+        mouse-cursor: pointer;
+        clicked => { input.text = ""; root.edited(""); }
+        Glyph { text: Icon.close; font-size: 8px; color: Theme.text-faint; }
+    }
+}

@@ -423,6 +423,7 @@ pub const HOTKEY_ISLAND: i32 = 3;
 pub const HOTKEY_GEAR_UP: i32 = 4;
 pub const HOTKEY_GEAR_DOWN: i32 = 5;
 pub const HOTKEY_GAME: i32 = 6;
+pub const HOTKEY_CLIP: i32 = 7;
 
 /// Global hotkeys on a dedicated thread that sleeps in GetMessage (0% CPU).
 /// Ctrl+Alt+S screenshot, Ctrl+Alt+M mic mute, Ctrl+Alt+Space open the island,
@@ -443,6 +444,7 @@ pub fn spawn_hotkeys(on_hotkey: impl Fn(i32) + Send + 'static) {
             let _ = RegisterHotKey(None, HOTKEY_GEAR_UP, mods, VK_PRIOR.0 as u32);
             let _ = RegisterHotKey(None, HOTKEY_GEAR_DOWN, mods, VK_NEXT.0 as u32);
             let _ = RegisterHotKey(None, HOTKEY_GAME, mods, b'G' as u32);
+            let _ = RegisterHotKey(None, HOTKEY_CLIP, mods, b'V' as u32);
             let mut msg = MSG::default();
             while GetMessageW(&mut msg, None, 0, 0).as_bool() {
                 if msg.message == WM_HOTKEY {

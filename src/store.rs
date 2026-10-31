@@ -74,6 +74,8 @@ pub struct Settings {
     pub wallpaper_source: i32,
     /// change the wallpaper to a random one from that folder every N minutes (0 = off)
     pub wallpaper_every: i32,
+    /// Clipboard tab: stop saving copies for now
+    pub clip_paused: bool,
     /// Dev tools folders; empty = found automatically
     pub projects_dir: String,
     pub downloads_dir: String,
@@ -142,6 +144,7 @@ impl Default for Settings {
             wallpaper_dirs: Vec::new(),
             wallpaper_source: 0,
             wallpaper_every: 0,
+            clip_paused: false,
             projects_dir: String::new(),
             downloads_dir: String::new(),
             stand_reminders: true,

@@ -2,6 +2,7 @@
 //! peeking and expanded. Each feature adds its own `impl App` in a submodule.
 
 mod car;
+mod clipboard;
 mod deck;
 mod dev;
 mod drag;
@@ -28,6 +29,7 @@ mod wellbeing;
 mod workspaces;
 
 pub use car::{CAR_PUFFS, CAR_SKIDS};
+pub use clipboard::{Clips, TAB_CLIP, start_watch};
 pub use deck::deck_browse;
 pub use focus::Focus;
 pub use game::{Play, TAB_GAME, games_pick};
@@ -144,6 +146,8 @@ pub struct App {
     pub play: Play,
     /// Shelf > Send: the basket and the open share link
     pub send: send::Send,
+    /// Clipboard tab: the history and what's selected
+    pub clips: Clips,
     /// Wallpaper tab: the pictures on screen and their thumbnails
     pub wall: wallpaper::Walls,
     /// The Power tab: the action waiting to happen
@@ -334,6 +338,7 @@ impl App {
             TAB_POWER => self.refresh_power(),
             TAB_DECK => self.refresh_deck(),
             TAB_WALL => self.refresh_wallpaper(),
+            TAB_CLIP => self.refresh_clips(),
             TAB_GAME => {
                 self.refresh_game();
                 if self.ui().global::<Bridge>().get_game_view() == 1 {

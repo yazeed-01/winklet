@@ -1,7 +1,7 @@
 import { Theme, Icon, Cars, EyeTint } from "theme.slint";
 import { Bridge, TodoItem, AlarmItem, DayCell, Bar, ShelfItem, AppVolume } from "bridge.slint";
 import { Glyph, Label, IconButton, Button, Ring, WaterDrop, PageHost, Tip } from "widgets.slint";
-import { HomePage, TodoPage, CalendarPage, FocusPage, WaterPage, AlarmPage, DevPage, SettingsPage, ShelfPage, AudioPage, HealthPage, GearPage, GamePage, PowerPage, DeckPage, WallpaperPage } from "pages.slint";
+import { HomePage, TodoPage, CalendarPage, FocusPage, WaterPage, AlarmPage, DevPage, SettingsPage, ShelfPage, AudioPage, HealthPage, GearPage, GamePage, PowerPage, DeckPage, WallpaperPage, ClipboardPage } from "pages.slint";
 
 export { Bridge, TodoItem, AlarmItem, DayCell, Bar, ShelfItem, AppVolume, Tip }
 
@@ -539,11 +539,11 @@ component Peek inherits Rectangle {
 }
 
 // Where a tab sits in the bar, by tab index. New tabs get the next index so older ones keep
-// theirs: Drive (11) sits after Focus, Deck (14) and Wallpaper (15) after Developer, Power (13)
-// before Settings.
+// theirs: Drive (11) sits after Focus, Clipboard (16) after Shelf, Deck (14) and Wallpaper (15)
+// after Developer, Power (13) before Settings.
 global TabOrder {
     public pure function pos(i: int) -> int {
-        return [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 15, 4, 13, 14, 11, 12][max(0, min(15, i))];
+        return [0, 1, 2, 3, 5, 6, 7, 8, 10, 11, 16, 4, 14, 15, 12, 13, 9][max(0, min(16, i))];
     }
 }
 
@@ -676,7 +676,7 @@ component Expanded inherits Rectangle {
     Rectangle {
         x: 14px;
         y: 34px;
-        width: 16 * 28px;
+        width: 17 * 28px;
         height: 30px;
         Rectangle {
             x: TabOrder.pos(Bridge.tab) * 28px;
@@ -697,6 +697,7 @@ component Expanded inherits Rectangle {
             TabButton { index: 5; tip: "Water"; drop: true; }
             TabButton { index: 6; tip: "Alarms"; icon: Icon.alarm; }
             TabButton { index: 7; tip: "Shelf"; icon: Icon.shelf; }
+            TabButton { index: 16; tip: "Clipboard history (Ctrl+Alt+V)"; icon: Icon.clipboard; }
             TabButton { index: 8; tip: "Audio & mic"; icon: Icon.volume; }
             TabButton { index: 9; tip: "Developer tools"; icon: Icon.code; }
             TabButton { index: 14; tip: "Deck: your keys for apps, commands and shortcuts"; icon: Icon.deck; }
@@ -749,6 +750,7 @@ component Expanded inherits Rectangle {
         if Bridge.tab == 13: PageHost { dir: Bridge.tab-dir; PowerPage { } }
         if Bridge.tab == 14: PageHost { dir: Bridge.tab-dir; DeckPage { } }
         if Bridge.tab == 15: PageHost { dir: Bridge.tab-dir; WallpaperPage { } }
+        if Bridge.tab == 16: PageHost { dir: Bridge.tab-dir; ClipboardPage { } }
     }
     // short confirmations ("Link copied", "Received photo.jpg") float over the bottom of the panel
     if Bridge.toast != "": Rectangle {

@@ -4,6 +4,7 @@ mod app;
 mod audio;
 mod callbacks;
 mod capture;
+mod clip;
 mod fg;
 mod fps;
 mod games_scan;
@@ -135,6 +136,7 @@ fn main() {
         send: Default::default(),
         power: None,
         wall: Default::default(),
+        clips: app::Clips::load(data.settings.clip_paused),
         data,
     };
     ui.global::<Bridge>().set_app_volumes(ModelRc::from(app.app_volumes.clone()));
@@ -162,6 +164,7 @@ fn main() {
     }
 
     APP.with(|a| *a.borrow_mut() = Rc::downgrade(&app));
+    app::start_watch(app.borrow().clips.paused.clone());
     wire_callbacks(&ui, &app);
     wire_file_drop(&ui);
 
@@ -185,6 +188,22 @@ fn main() {
                 let mut a = s.borrow_mut();
                 let on = !a.data.settings.game_mode;
                 a.set_game_mode(on, false);
+            }),
+            // Ctrl+Alt+V: the clipboard history
+            sys::HOTKEY_CLIP => with_app(|s| {
+                let mut a = s.borrow_mut();
+                let ui = a.ui();
+                let b = ui.global::<Bridge>();
+                if b.get_tab() != app::TAB_CLIP {
+                    b.set_tab_dir(1);
+                    b.set_tab(app::TAB_CLIP);
+                }
+                if b.get_expanded() {
+                    a.refresh_clips();
+                } else {
+                    a.expand();
+                }
+                schedule_collapse(s, &mut a, 8000);
             }),
             sys::HOTKEY_ISLAND => with_app(|s| {
                 let mut a = s.borrow_mut();
@@ -334,6 +353,19 @@ fn init_window(app: Shared) {
             }
             if std::env::var_os("WINKLET_DEMO_DECK_EDITING").is_some() {
                 a.ui().global::<Bridge>().set_deck_editing(true);
+            }
+            // WINKLET_DEMO_CLIP_FIND=word types it into the Clipboard preview's find bar (WINKLET_DEMO_CLIP_SEL=id picks the item)
+            if let Ok(q) = std::env::var("WINKLET_DEMO_CLIP_FIND") {
+                slint::Timer::single_shot(std::time::Duration::from_millis(900), move || {
+                    app::with_app(|s| {
+                        let mut a = s.borrow_mut();
+                        if let Ok(id) = std::env::var("WINKLET_DEMO_CLIP_SEL") {
+                            a.clip_select(&id);
+                        }
+                        a.ui().global::<Bridge>().set_clip_find_query(q.as_str().into());
+                        a.clip_find(&q);
+                    })
+                });
             }
             if std::env::var_os("WINKLET_DEMO_HISTORY").is_some() {
                 a.ui().global::<Bridge>().set_health_view(3);

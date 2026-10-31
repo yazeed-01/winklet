@@ -162,6 +162,27 @@ export struct WallItem {
     current: bool,     // on the desktop now
 }
 
+export struct ClipItem {
+    id: string,
+    kind: string,      // "text", "link", "color", "image", "files"
+    title: string,
+    meta: string,      // "2 min ago · 340 chars"
+    thumb: image,
+    has-thumb: bool,
+    color: color,      // colours: the colour itself
+    pinned: bool,
+}
+
+// One wrapped line of the clipboard preview; a find match splits it into pre / hit / post.
+export struct ClipLine {
+    num: string,       // line number, "" when it continues the line above
+    pre: string,
+    hit: string,
+    post: string,
+    has-hit: bool,
+    current: bool,     // the match the find bar is on
+}
+
 export struct PortItem {
     port: int,
     label: string,     // "Metro (React Native)", "" if unknown
@@ -497,6 +518,37 @@ export global Bridge {
     callback deck-page-set(int);
     callback deck-page-add();
     callback deck-page-remove();
+
+    // ---- Clipboard history ----
+    in property <[ClipItem]> clips;
+    in property <string> clip-selected;
+    in property <int> clip-filter;             // 0 all, 1 text, 2 links, 3 images, 4 files
+    in property <string> clip-count-text;
+    in property <bool> clip-paused;
+    in property <string> clip-kind;            // of the selected item ("" = nothing selected)
+    in property <string> clip-when;
+    in property <string> clip-info;            // "1,204 characters · 32 lines", "1920 × 1080 px"
+    in property <[ClipLine]> clip-lines;
+    in property <image> clip-image;
+    in property <[string]> clip-files;
+    in property <color> clip-color;
+    in property <bool> clip-pinned;
+    in property <string> clip-find-text;       // "3 / 12", "No matches"
+    in property <int> clip-find-row: -1;       // the line to scroll to
+    callback clip-search(string);
+    callback clip-filter-set(int);
+    callback clip-select(string);
+    callback clip-copy();
+    callback clip-paste();
+    callback clip-pin();
+    callback clip-delete();
+    callback clip-clear();
+    callback clip-pause-toggle();
+    in-out property <string> clip-find-query;  // what the preview's find bar holds
+    callback clip-find(string);
+    callback clip-find-step(int);
+    callback clip-cols(int);                   // characters that fit on a preview line
+    callback clip-open(string);                // a copied file; "" = the selected link
 
     // ---- Wallpaper ----
     in property <[WallItem]> walls;
