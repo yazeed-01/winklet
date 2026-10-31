@@ -162,8 +162,18 @@ export component WaterPage inherits Rectangle {
                 border-color: Bridge.water-top.with-alpha(0.35);
                 background: #38bdf80d;
                 clip: true;
-                // time in ms, drives the waves and bubbles while the page is open
-                property <float> t: animation-tick() / 1ms;
+                // time in ms, drives the waves and bubbles. They play for a few seconds when the
+                // page opens and after each drink, then rest: animation-tick() redraws every frame.
+                property <bool> live: true;
+                property <float> frozen;
+                property <float> t: live ? animation-tick() / 1ms : frozen;
+                property <int> ml: Bridge.water-ml;
+                changed ml => { self.live = true; rest.running = false; rest.running = true; }
+                rest := Timer {
+                    interval: 6s;
+                    running: true;
+                    triggered => { bottle.frozen = animation-tick() / 1ms; bottle.live = false; self.running = false; }
+                }
                 water := Rectangle {
                     y: parent.height - self.height;
                     height: parent.height * root.pct;
