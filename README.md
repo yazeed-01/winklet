@@ -2,7 +2,7 @@
 
 A small notch at the top of your screen. It shows the clock, battery, live activities (music, focus timer, game stats) and notifications. Hover over it to open a dashboard with productivity, health, developer and gaming tools.
 
-Built in **Rust + Slint**, with a native GPU renderer and no browser engine.
+Built in **Rust + Slint**, with no browser engine: about 11 MB of memory at rest and no GPU use.
 
 <p align="center"><img src="docs/screenshots/home.png" width="720" alt="Winklet open on the Home tab"></p>
 
@@ -280,20 +280,28 @@ Your data stays on your PC in `%APPDATA%\Winklet`: `data.json` for tasks, settin
 
 ## How it stays light
 
-Measured on this machine (1920×1080 at 125%, release build):
+Measured on this machine (1920×1080 at 125%, Intel UHD + RTX 3060 laptop, release build):
 
-* **Idle rendering: 0 frames per second.** Slint only redraws when a property changes. The clock updates once a minute, and the eye blink costs a few frames every 6 s. In game mode the pill updates every 2 s. In Bubble style the ball bobs while you're active and stops after 60 s without input.
-* **Working set: about 3 MB** after the first 20 s, when Winklet hands unused pages back to Windows with `EmptyWorkingSet`. Most of the committed memory belongs to the OpenGL driver.
-* **Executable: about 15 MB.** It has no runtime dependencies and nothing to install.
+| | CPU (of one core) | Private memory | Working set | GPU |
+|---|---|---|---|---|
+| Resting pill | 0–0.5% | about 11 MB | about 40 MB | none |
+| Panel open (most tabs) | 0–1% | about 20 MB | about 52 MB | none |
+| Health or Game tab open | under 5% | about 37 MB | about 80 MB | none |
+
+* **Idle rendering: 0 frames per second.** Slint only redraws when a property changes. The clock updates once a minute, and the eye blink costs a few frames every 6 s. In game mode the pill updates every 2 s. In Bubble style the ball does a short hop every 6 s while you're active.
+* **No GPU at all.** Winklet draws with Skia on the CPU. For a window this small that is cheaper than a GPU renderer: switching from FemtoVG on OpenGL cut memory from about 100 MB to about 11 MB at rest (opening the panel used to peak at over 400 MB in the OpenGL driver), made animations about three times cheaper, and never wakes the graphics card.
+* **No leaks.** A soak test that switches tabs and opens and closes the island hundreds of times (`WINKLET_DEMO_CYCLE`) levels off instead of growing.
+* **Executable: about 33 MB.** It has no runtime dependencies and nothing to install.
 
 The design choices behind these numbers:
 
 1. **No web view.** Electron or Tauri would load a whole browser engine (about 80–200 MB). Winklet uses Slint, a native, declarative UI toolkit that compiles `.slint` files to Rust at build time.
 2. **The window hugs the pill.** When the island is collapsed, the window is only 340×44 px (444×44 in game mode, 64×60 as a bubble), so it never blocks clicks on the apps underneath. It grows just before the expand animation starts and shrinks just after the collapse animation ends.
-3. **Change-only updates.** The heartbeat only *sets* a UI property when the value actually changed, which matters because each change can trigger a redraw.
-4. **Background work is cheap.** Media info comes from a small thread that polls the Windows media session every 2 s. Screen time reads only which program is in front, every 2 s. CPU, RAM and GPU sampling run only while the Developer tab is open or game mode is on.
-5. **Steps aside in fullscreen.** `SHQueryUserNotificationState` detects games, videos and presentations, and the island hides while they run (unless game mode is on).
-6. **Release profile.** The build uses LTO, `codegen-units=1`, `panic=abort` and `strip`. Slint is compiled without accessibility, Qt or the software renderer.
+3. **Change-only updates.** The heartbeat only *sets* a UI property when the value actually changed, and live views (Developer, Health, Audio) refresh just the numbers that move, because each change can trigger a redraw.
+4. **Animations end.** Nothing animates forever: the water waves play for a few seconds when you open the tab or log a drink, eye moods last a few seconds, and the bubble rests when you step away.
+5. **Background work is cheap.** Media info comes from a small thread that polls the Windows media session every 2 s. Screen time reads only which program is in front, every 2 s. The clipboard watcher only compares a counter Windows keeps. CPU, RAM and GPU sampling run only while the Developer tab is open or game mode is on, and wallpaper thumbnails come from Explorer's cache on a worker thread.
+6. **Steps aside in fullscreen.** `SHQueryUserNotificationState` detects games, videos and presentations, and the island hides while they run (unless game mode is on).
+7. **Release profile.** Thin LTO, `panic=abort` and `strip`; Slint is compiled without accessibility or Qt.
 
 ## Project layout
 
@@ -348,8 +356,10 @@ $env:WINKLET_DEMO_VOLUME=1                        # with DEMO_TAB=0: the volume 
 $env:WINKLET_DEMO_POWER=1                         # with DEMO_TAB=13: a planned shutdown (shown only, nothing is planned)
 $env:WINKLET_DEMO_DECK_EDIT=0                     # with DEMO_TAB=14: the Deck key editor for slot 0 (DECK_EDITING=1: edit mode)
 $env:WINKLET_DEMO_CLIP_FIND=word                  # with DEMO_TAB=16: find in the clipboard preview (CLIP_SEL=id picks the item)
+$env:WINKLET_DEMO_CYCLE=400                       # with DEMO_TAB: walk every tab and open/close the island (memory soak test)
 $env:WINKLET_TRACE=1                              # log hover / idle / media events to stdout
 $env:SLINT_DEBUG_PERFORMANCE="refresh_lazy,console"   # print frames per second
+$env:SLINT_BACKEND="winit-femtovg"                # try another renderer (default: Skia on the CPU)
 cargo test probe -- --ignored --nocapture         # what this PC reports: app in front, GPU, controller, FPS access
 ```
 
