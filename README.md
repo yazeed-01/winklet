@@ -221,7 +221,8 @@ Grab `winklet.exe` from the [latest release](https://github.com/yazeed-01/winkle
 
 
 ```powershell
-cargo run --release                                    # try it
+cargo run --profile fast                               # try it (quick optimised build)
+cargo build --release                                  # the exe you ship
 powershell -ExecutionPolicy Bypass -File install.ps1   # install to %LOCALAPPDATA%\Winklet + start with Windows
 ```
 
@@ -281,7 +282,7 @@ docs/screenshots/    the pictures in this README
 ### Debug helpers
 
 ```powershell
-$env:WINKLET_DEMO_TAB=4; cargo run --release      # open on a tab and stay open (screenshots)
+$env:WINKLET_DEMO_TAB=4; cargo run --profile fast # open on a tab and stay open (screenshots)
 $env:WINKLET_DEMO_VIEW=2                          # with DEMO_TAB: sub-view (Health 0-3, Developer 0-2, Game 0-1, Settings 0-2)
 $env:WINKLET_DEMO_GAME=1                          # start in game mode
 $env:WINKLET_DEMO_DASH=3                          # Developer > Dash in a Lenovo mode (1-3)

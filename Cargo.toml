@@ -79,10 +79,19 @@ features = [
 [build-dependencies]
 slint-build = "1.18.1"
 
+# The exe you ship. Thin LTO and parallel codegen build several times faster than fat LTO
+# with one codegen unit, for a slightly bigger exe and no speed difference you can feel.
 [profile.release]
 opt-level = 3
-lto = true
-codegen-units = 1
+lto = "thin"
+codegen-units = 16
 panic = "abort"
 strip = true
+
+# Day-to-day testing: optimised enough to feel like the real thing, rebuilds in a fraction
+# of the time. `cargo run --profile fast`
+[profile.fast]
+inherits = "release"
+lto = false
+incremental = true
 
