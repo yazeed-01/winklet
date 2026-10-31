@@ -33,9 +33,9 @@ component Shifter inherits Rectangle {
     width: 200px;
     height: 224px;
     border-radius: 20px;
-    background: @linear-gradient(180deg, #ffffff0c 0%, #ffffff05 100%);
+    background: @linear-gradient(180deg, Theme.wash(0.05) 0%, Theme.wash(0.02) 100%);
     border-width: 1px;
-    border-color: #ffffff10;
+    border-color: Theme.wash(0.06);
 
     // gate slots
     for c in 3: Rectangle {
@@ -46,7 +46,7 @@ component Shifter inherits Rectangle {
         border-radius: 5px;
         background: #00000080;
         border-width: 1px;
-        border-color: #ffffff0d;
+        border-color: Theme.wash(0.05);
     }
     Rectangle {
         x: root.cols[0] - 5px;

@@ -68,6 +68,8 @@ pub struct Settings {
     pub eye_color: i32,
     /// island style: a floating ball with just the eyes instead of the notch
     pub bubble: bool,
+    /// light mode: the open panel in soft, low-glare light colours (the pill stays dark)
+    pub light: bool,
     /// Wallpaper tab: your own picture folders (Windows' wallpapers are always there)
     pub wallpaper_dirs: Vec<String>,
     /// the folder shown: 0 = Windows' wallpapers, then wallpaper_dirs
@@ -141,6 +143,7 @@ impl Default for Settings {
             island_alpha: 1.0,
             eye_color: 0,
             bubble: false,
+            light: false,
             wallpaper_dirs: Vec::new(),
             wallpaper_source: 0,
             wallpaper_every: 0,

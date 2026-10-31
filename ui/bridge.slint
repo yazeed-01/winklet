@@ -445,6 +445,7 @@ export global Bridge {
     // island touches the top screen edge (notch look); false after it's dragged elsewhere
     in property <bool> docked: true;
     in property <bool> bubble;               // island style: false = notch, true = floating ball
+    in property <bool> light-mode;           // the open panel in soft light colours
     in property <int> edge;                  // 0 top, 1 bottom, 2 left, 3 right, 4 floating
     // the resting pill's spot in the window (the window grows around it to open)
     in property <length> rest-x;

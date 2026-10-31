@@ -73,6 +73,7 @@ impl App {
         b.set_island_alpha(st.island_alpha);
         b.set_eye_color(st.eye_color);
         b.set_bubble(st.bubble);
+        b.set_light_mode(st.light);
         b.set_data_dir(s(crate::store::data_dir().to_string_lossy().to_string()));
         b.set_car_model(st.car_model);
         b.set_eyes_lively(st.eyes_lively);

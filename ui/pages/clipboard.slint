@@ -39,7 +39,7 @@ component ClipRow inherits Rectangle {
             clip: true;
             background: root.item.kind == "color" ? root.item.color : ClipLook.tint(root.item.kind).with-alpha(0.16);
             border-width: root.item.kind == "color" ? 1px : 0;
-            border-color: #ffffff30;
+            border-color: Theme.wash(0.19);
             if root.item.has-thumb: Image { width: parent.width; height: parent.height; source: root.item.thumb; image-fit: cover; }
             if !root.item.has-thumb && root.item.kind != "color": Glyph { text: ClipLook.glyph(root.item.kind); font-size: 13px; color: ClipLook.tint(root.item.kind); }
         }
@@ -224,13 +224,13 @@ export component ClipboardPage inherits Rectangle {
                     border-radius: 10px;
                     background: Bridge.clip-color;
                     border-width: 1px;
-                    border-color: #ffffff30;
+                    border-color: Theme.wash(0.19);
                 }
                 if root.textual: TextView { vertical-stretch: 1; }
                 if Bridge.clip-kind == "image": Rectangle {
                     vertical-stretch: 1;
                     border-radius: 10px;
-                    background: #ffffff08;
+                    background: Theme.wash(0.03);
                     clip: true;
                     Image { width: parent.width; height: parent.height; source: Bridge.clip-image; image-fit: contain; }
                 }

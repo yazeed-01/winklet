@@ -11,13 +11,13 @@ component HeatSquare inherits Rectangle {
     height: 14px;
     border-radius: 3px;
     visible: !cell.future;
-    background: cell.level == 0 ? #ffffff10
+    background: cell.level == 0 ? Theme.wash(0.06)
         : cell.level == 1 ? #0e4429
         : cell.level == 2 ? #006d32
         : cell.level == 3 ? #26a641
         : #39d353;
     border-width: ta.has-hover ? 1px : 0;
-    border-color: #ffffffaa;
+    border-color: Theme.wash(0.67);
     ta := TouchArea {
         changed has-hover => {
             if self.has-hover {
@@ -81,7 +81,7 @@ export component HistoryView inherits Rectangle {
             spacing: 3px;
             Rectangle { horizontal-stretch: 1; }
             Label { text: "Less"; font-size: 9.5px; color: Theme.text-faint; }
-            for c in [#ffffff10, #0e4429, #006d32, #26a641, #39d353]: Rectangle {
+            for c in [Theme.wash(0.06), #0e4429, #006d32, #26a641, #39d353]: Rectangle {
                 width: 11px;
                 height: 11px;
                 y: 1.5px;

@@ -153,7 +153,7 @@ export component AudioPage inherits Rectangle {
                             border-radius: 2px;
                             background: i / 20 < Bridge.mic-level
                                 ? (i < 13 ? Theme.green : i < 17 ? Theme.orange : Theme.red)
-                                : #ffffff14;
+                                : Theme.wash(0.08);
                         }
                     }
                     Button {
@@ -202,7 +202,7 @@ export component AudioPage inherits Rectangle {
         width: 300px;
         height: min(parent.height - self.y, miclist.preferred-height);
         border-radius: 14px;
-        background: #1c1c22;
+        background: Theme.popup;
         border-width: 1px;
         border-color: Theme.stroke;
         drop-shadow-blur: 18px;

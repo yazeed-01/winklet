@@ -63,7 +63,7 @@ export component DayPicker inherits Rectangle {
     width: 232px;
     height: lay.preferred-height;
     border-radius: 14px;
-    background: #1c1c22;
+    background: Theme.popup;
     border-width: 1px;
     border-color: Theme.stroke;
     drop-shadow-blur: 18px;
@@ -104,14 +104,14 @@ export component DayPicker inherits Rectangle {
                 width: root.cell;
                 height: 22px;
                 border-radius: 8px;
-                background: c.selected ? Theme.accent : c.today ? #ffffff1f : cta.has-hover && !c.future ? Theme.surface-hover : transparent;
+                background: c.selected ? Theme.accent : c.today ? Theme.wash(0.12) : cta.has-hover && !c.future ? Theme.surface-hover : transparent;
                 animate background { duration: 120ms; }
                 Text {
                     text: c.day;
                     font-family: Theme.font;
                     font-size: 11px;
                     font-weight: c.today || c.selected ? 700 : 400;
-                    color: c.selected ? #0b0b12 : c.future ? #ffffff2a : c.in-month ? Theme.text : Theme.text-faint;
+                    color: c.selected ? #0b0b12 : c.future ? Theme.wash(0.16) : c.in-month ? Theme.text : Theme.text-faint;
                     horizontal-alignment: center;
                     vertical-alignment: center;
                 }
@@ -157,7 +157,7 @@ component AppRow inherits Rectangle {
                 y: (parent.height - self.height) / 2;
                 height: 5px;
                 border-radius: 2.5px;
-                background: #ffffff12;
+                background: Theme.wash(0.07);
                 Rectangle {
                     x: 0;
                     width: max(3px, parent.width * root.item.frac);
@@ -217,7 +217,7 @@ export component AppsView inherits Rectangle {
                     Rectangle {
                         height: 12px;
                         border-radius: 4px;
-                        background: #ffffff10;
+                        background: Theme.wash(0.06);
                         clip: true;
                         for sp in Bridge.screen-spans: Rectangle {
                             x: parent.width * sp.start;

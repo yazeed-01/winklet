@@ -35,7 +35,7 @@ export component CalendarPage inherits Rectangle {
                     width: 28px;
                     height: 26px;
                     border-radius: 9px;
-                    background: c.selected ? Theme.accent : c.today ? #ffffff1f : cta.has-hover ? Theme.surface : transparent;
+                    background: c.selected ? Theme.accent : c.today ? Theme.wash(0.12) : cta.has-hover ? Theme.surface : transparent;
                     animate background { duration: 120ms; }
                     Text {
                         text: c.day;

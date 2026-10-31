@@ -126,7 +126,7 @@ export component DashView inherits Rectangle {
             height: 10px;
             y: 4px;
             border-radius: 2px;
-            background: !on ? #ffffff14 : Bridge.battery <= 20 ? Theme.orange : root.tint;
+            background: !on ? Theme.wash(0.08) : Bridge.battery <= 20 ? Theme.orange : root.tint;
         }
         Text { text: "F"; font-size: 10px; font-weight: 700; color: Theme.text-dim; vertical-alignment: center; font-family: Theme.font-display; }
         Text {
@@ -173,7 +173,7 @@ export component DashView inherits Rectangle {
             property <bool> on: Bridge.perf-mode == i + 1;
             width: 26px;
             border-radius: 6px;
-            background: on ? root.tint : #ffffff10;
+            background: on ? root.tint : Theme.wash(0.06);
             drop-shadow-blur: on ? 10px : 0;
             drop-shadow-color: root.tint;
             Text {

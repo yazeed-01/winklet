@@ -128,7 +128,7 @@ export component Field inherits Rectangle {
     callback accepted(string);
     height: 34px;
     border-radius: 11px;
-    background: input.has-focus ? #ffffff14 : Theme.surface;
+    background: input.has-focus ? Theme.wash(0.08) : Theme.surface;
     border-width: 1px;
     border-color: input.has-focus ? Theme.accent : Theme.stroke;
     animate border-color, background { duration: 160ms; }
@@ -173,7 +173,7 @@ export component Toggle inherits Rectangle {
     width: 38px;
     height: 22px;
     border-radius: 11px;
-    background: checked ? Theme.accent : #ffffff22;
+    background: checked ? Theme.accent : Theme.wash(0.13);
     animate background { duration: 180ms; }
     Rectangle {
         width: 16px;
@@ -200,7 +200,7 @@ export component Ring inherits Rectangle {
     in property <float> progress;
     in property <length> thickness: 6px;
     in property <brush> tint: Theme.accent;
-    in property <brush> track: #ffffff14;
+    in property <brush> track: Theme.wash(0.08);
     property <float> p: max(0.0001, min(progress, 0.9999));
     property <float> r: 50 - thickness / 1px;
 
@@ -283,7 +283,7 @@ export component VolSlider inherits Rectangle {
         y: (parent.height - self.height) / 2;
         height: 5px;
         border-radius: 2.5px;
-        background: #ffffff1a;
+        background: Theme.wash(0.1);
         Rectangle {
             x: 0;
             width: parent.width * max(0, min(1, root.shown));
@@ -351,7 +351,7 @@ export component Segmented inherits Rectangle {
         width: root.cell - 4px;
         height: root.height - 4px;
         border-radius: 10px;
-        background: #ffffff24;
+        background: Theme.wash(0.14);
         animate x { duration: 280ms; easing: Theme.spring-ease; }
     }
     for label[i] in root.items: Text {
@@ -401,7 +401,7 @@ export component Gauge inherits Rectangle {
     Path {
         viewbox-width: 100;
         viewbox-height: 100;
-        stroke: #ffffff12;
+        stroke: Theme.wash(0.07);
         stroke-width: 3px;
         MoveTo { x: 50 + 44 * cos(135deg); y: 50 + 44 * sin(135deg); }
         ArcTo { radius-x: 44; radius-y: 44; x: 50 + 44 * cos(45deg); y: 50 + 44 * sin(45deg); sweep: true; large-arc: true; }
@@ -446,7 +446,7 @@ export component Gauge inherits Rectangle {
             width: major ? root.r * 0.13 : root.r * 0.07;
             height: major ? 2px : 1px;
             border-radius: 1px;
-            background: f >= root.red-from ? #ef4444 : major ? #ffffffdd : #ffffff66;
+            background: f >= root.red-from ? #ef4444 : major ? Theme.wash(0.87) : Theme.wash(0.4);
         }
     }
     // numbers
@@ -473,7 +473,7 @@ export component Gauge inherits Rectangle {
         font-family: "Cascadia Mono";
         font-size: root.compact ? 12px : max(10px, root.r * 0.2);
         font-weight: 700;
-        color: white;
+        color: Theme.text;
         horizontal-alignment: center;
     }
     Text {
@@ -493,7 +493,7 @@ export component Gauge inherits Rectangle {
         font-size: max(8px, root.r * 0.1);
         font-weight: 700;
         letter-spacing: 1px;
-        color: #ffffff88;
+        color: Theme.wash(0.53);
         horizontal-alignment: center;
     }
     // needle: rotates around the centre with a little overshoot, like a real one
@@ -571,7 +571,7 @@ export component SearchBox inherits Rectangle {
     callback accepted(string);
     height: 30px;
     border-radius: 10px;
-    background: input.has-focus ? #ffffff14 : Theme.surface;
+    background: input.has-focus ? Theme.wash(0.08) : Theme.surface;
     border-width: 1px;
     border-color: input.has-focus ? Theme.accent : Theme.stroke;
     animate border-color, background { duration: 160ms; }

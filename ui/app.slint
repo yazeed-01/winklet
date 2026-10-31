@@ -688,7 +688,7 @@ component Expanded inherits Rectangle {
             width: 28px;
             height: 30px;
             border-radius: 10px;
-            background: #ffffff1f;
+            background: Theme.wash(0.12);
             animate x { duration: 380ms; easing: Theme.spring-ease; }
         }
         HorizontalLayout {
@@ -764,7 +764,7 @@ component Expanded inherits Rectangle {
         x: (parent.width - self.width) / 2;
         y: parent.height - 46px;
         border-radius: 14px;
-        background: #1a1a21f5;
+        background: Theme.popup.with-alpha(0.96);
         border-width: 1px;
         border-color: #34d39955;
         drop-shadow-blur: 14px;
@@ -886,6 +886,7 @@ export component AppWindow inherits Window {
         width: island-w;
         height: island-h;
         background: Theme.island.with-alpha(Bridge.island-alpha);
+        animate background { duration: 280ms; }
         // square corners on the docked side, round everywhere else (a bubble floats: round all over)
         border-top-left-radius: !Bridge.bubble && (Bridge.edge == 0 || Bridge.edge == 2) ? 0 : radius;
         border-top-right-radius: !Bridge.bubble && (Bridge.edge == 0 || Bridge.edge == 3) ? 0 : radius;
@@ -1025,9 +1026,9 @@ export component AppWindow inherits Window {
         // above what you're pointing at, so the cursor never covers it (below only at the very top)
         y: Tip.ay - 30px < 0 ? Tip.ay + Tip.ah + 6px : Tip.ay - 30px;
         border-radius: 8px;
-        background: #26262dF2;
+        background: Theme.popup.with-alpha(0.95);
         border-width: 1px;
-        border-color: #ffffff1f;
+        border-color: Theme.wash(0.12);
         drop-shadow-blur: 10px;
         drop-shadow-color: #0009;
         opacity: 0;

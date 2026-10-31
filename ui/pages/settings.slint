@@ -313,6 +313,14 @@ export component SettingsPage inherits Rectangle {
                 height: 30px;
                 spacing: 6px;
                 Label { text: "Theme"; font-size: 12px; horizontal-stretch: 1; }
+                // light: a soft, warm, low-glare panel; the pill stays dark so the eyes still glow
+                Segmented {
+                    y: 3px;
+                    width: 104px;
+                    items: ["Dark", "Light"];
+                    value: Bridge.light-mode ? 1 : 0;
+                    picked(i) => { Bridge.set-setting("light", i == 1); }
+                }
                 Rectangle {
                     width: tl.preferred-width + 54px;
                     height: 28px;

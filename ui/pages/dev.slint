@@ -20,7 +20,7 @@ component Meter inherits VerticalLayout {
     Rectangle {
         height: 6px;
         border-radius: 3px;
-        background: #ffffff14;
+        background: Theme.wash(0.08);
         Rectangle {
             x: 0;
             width: parent.width * max(0.0, min(1.0, level));

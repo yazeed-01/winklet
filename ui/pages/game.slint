@@ -12,7 +12,7 @@ component Switch inherits Rectangle {
     width: 38px;
     height: 22px;
     border-radius: 11px;
-    background: on ? Theme.green : #ffffff22;
+    background: on ? Theme.green : Theme.wash(0.13);
     animate background { duration: 180ms; }
     Rectangle {
         width: 16px;
@@ -142,7 +142,7 @@ component LiveView inherits Rectangle {
                             viewbox-width: 100;
                             viewbox-height: 30;
                             commands: Bridge.game-fps-path == "" ? "M0 29 L100 29" : Bridge.game-fps-path;
-                            stroke: Bridge.game-fps-path == "" ? #ffffff1a : root.fps-tint;
+                            stroke: Bridge.game-fps-path == "" ? Theme.wash(0.1) : root.fps-tint;
                             stroke-width: 1.6px;
                             stroke-line-cap: round;
                         }
@@ -215,7 +215,7 @@ component GameRow inherits Rectangle {
                 y: (parent.height - self.height) / 2;
                 height: 5px;
                 border-radius: 2.5px;
-                background: #ffffff12;
+                background: Theme.wash(0.07);
                 Rectangle { x: 0; width: max(3px, parent.width * root.item.frac); border-radius: 2.5px; background: Theme.pink; }
             }
         }

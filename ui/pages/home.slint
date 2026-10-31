@@ -335,7 +335,7 @@ export component HomePage inherits Rectangle {
                     Rectangle {
                         height: 4px;
                         border-radius: 2px;
-                        background: #ffffff1a;
+                        background: Theme.wash(0.1);
                         Rectangle {
                             x: 0;
                             width: parent.width * Bridge.media-progress;
@@ -361,7 +361,7 @@ export component HomePage inherits Rectangle {
                                 icon: Bridge.media-playing ? Icon.pause : Icon.play;
                                 size: 42px;
                                 icon-size: 16px;
-                                fill: #ffffff1f;
+                                fill: Theme.wash(0.12);
                                 tip: Bridge.media-playing ? "Pause" : "Play";
                                 clicked => { Bridge.media-toggle(); }
                             }

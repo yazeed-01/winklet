@@ -75,7 +75,7 @@ component ShelfTile inherits Rectangle {
         width: 22px;
         height: 22px;
         border-radius: 11px;
-        background: xa.has-hover ? Theme.red : #ffffff2e;
+        background: xa.has-hover ? Theme.red : Theme.wash(0.18);
         opacity: ta.has-hover || xa.has-hover ? 1 : 0;
         animate opacity, background { duration: 120ms; }
         Glyph { width: 100%; height: 100%; text: Icon.close; font-size: 8px; }

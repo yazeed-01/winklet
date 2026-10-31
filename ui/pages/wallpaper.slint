@@ -13,7 +13,7 @@ component WallThumb inherits Rectangle {
     // waiting for the thumbnail: a soft shimmer
     if !root.item.loaded: Rectangle {
         property <bool> on;
-        background: @linear-gradient(110deg, #ffffff06 0%, #ffffff12 50%, #ffffff06 100%);
+        background: @linear-gradient(110deg, Theme.wash(0.02) 0%, Theme.wash(0.07) 50%, Theme.wash(0.02) 100%);
         opacity: on ? 1 : 0.4;
         animate opacity { duration: 700ms; easing: ease-in-out; }
         Timer { interval: 700ms; running: !root.item.loaded; triggered => { parent.on = !parent.on; } }

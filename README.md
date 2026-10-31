@@ -26,7 +26,7 @@ The resting island: clock, the current focus timer, two glowing eyes and the bat
 * **Eye colours.** Pick the eyes' colour in **Settings → Look**: Ice, Aqua, Mint, Lime, Sun, Peach, Rose, Lilac, Sky, Ember, or Theme to match the accent.
 
   <img src="docs/screenshots/eye-colours.png" width="760" alt="The eyes in Ice, Aqua, Mint, Sun, Rose, Lilac and Ember">
-* **Bubble style.** Prefer something smaller than a notch? **Settings → Look → Island style → Bubble** turns the resting island into a floating ball with just the eyes. It bobs gently while you're at the PC and settles when you step away, grows a little under the pointer, shows a running focus timer as a ring around the eyes, and opens into the full panel just like the notch (rounded all round, a few pixels off the screen edge).
+* **Bubble style.** Prefer something smaller than a notch? **Settings → Look → Island style → Bubble** turns the resting island into a floating ball with just the eyes. It bobs gently while you're at the PC and settles when you step away, grows a little under the pointer (and a bit more for eye events, so the headphones, zzz, coffee or car always fit inside), shows a running focus timer as a ring around the eyes, and opens into the full panel just like the notch (rounded all round, a few pixels off the screen edge).
 
   <img src="docs/screenshots/bubble.png" width="200" alt="Bubble style: a floating ball with the eyes"> <img src="docs/screenshots/bubble-open.png" width="560" alt="The bubble opened into the panel">
 * **Car show.** When the island opens, a car drives in underneath, drifts a donut with tyre smoke and skid marks, then speeds off. Pick JDM, Muscle, German or F1 in **Settings → Look**, or turn it off.
@@ -245,7 +245,7 @@ Settings has two views.
 
 <img src="docs/screenshots/transparency.png" width="560" alt="The island at 45% transparency over a colourful wallpaper">
 
-**Theme** picks the colours: **Classic** (the original look, and the default), **Racing Green**, **Burgundy Sage**, **Acid Lime**, **Orchid Sunset**, **Chrome Laser**, **Coral Steel**, **Aurora** and **Graphite**. The island stays dark in every theme; each one tints it and changes the text and accent colours, and the change applies right away.
+**Theme** picks the colours: **Classic** (the original look, and the default), **Racing Green**, **Burgundy Sage**, **Acid Lime**, **Orchid Sunset**, **Chrome Laser**, **Coral Steel**, **Aurora** and **Graphite**. The island stays dark in every theme; each one tints it and changes the text and accent colours, and the change applies right away. Next to it, **Dark / Light** switches the open panel to a light mode in soft, warm paper tones with gentle contrast, easy on the eyes and never glaring white. The pill stays dark so the eyes still glow.
 
 <img src="docs/screenshots/themes.png" width="560" alt="Theme picker with nine colour themes">
 

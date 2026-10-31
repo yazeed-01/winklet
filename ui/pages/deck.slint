@@ -212,7 +212,7 @@ component DeckInput inherits Rectangle {
     in-out property <string> text <=> input.text;
     callback edited();
     border-radius: 10px;
-    background: input.has-focus ? #ffffff14 : Theme.surface;
+    background: input.has-focus ? Theme.wash(0.08) : Theme.surface;
     border-width: 1px;
     border-color: input.has-focus ? Theme.accent : Theme.stroke;
     animate border-color, background { duration: 160ms; }

@@ -76,7 +76,7 @@ export component HealthPage inherits Rectangle {
                                 y: parent.height - self.height;
                                 height: max(2px, parent.height * v);
                                 border-radius: 2px;
-                                background: v > 0.83 ? Theme.orange : v > 0 ? Theme.accent : #ffffff14;
+                                background: v > 0.83 ? Theme.orange : v > 0 ? Theme.accent : Theme.wash(0.08);
                                 animate height { duration: 500ms; }
                             }
                         }

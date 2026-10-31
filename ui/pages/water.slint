@@ -315,7 +315,7 @@ export component WaterPage inherits Rectangle {
                             height: max(3px, parent.height * min(1.0, b.value));
                             width: 14px;
                             border-radius: 4px;
-                            background: b.today ? Theme.blue : b.value >= 1 ? #38bdf899 : #ffffff22;
+                            background: b.today ? Theme.blue : b.value >= 1 ? #38bdf899 : Theme.wash(0.13);
                             animate height { duration: 600ms; easing: Theme.smooth; }
                         }
                     }
@@ -337,7 +337,7 @@ export component WaterPage inherits Rectangle {
         width: parent.width - self.x;
         height: sheet.preferred-height;
         border-radius: 16px;
-        background: #1c1c22;
+        background: Theme.popup;
         border-width: 1px;
         border-color: Theme.stroke;
         drop-shadow-blur: 20px;
@@ -415,7 +415,7 @@ export component WaterPage inherits Rectangle {
         width: 300px;
         height: form.preferred-height;
         border-radius: 16px;
-        background: #1c1c22;
+        background: Theme.popup;
         border-width: 1px;
         border-color: Theme.stroke;
         drop-shadow-blur: 20px;
