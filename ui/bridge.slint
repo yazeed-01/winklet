@@ -446,6 +446,12 @@ export global Bridge {
     in property <bool> docked: true;
     in property <bool> bubble;               // island style: false = notch, true = floating ball
     in property <int> edge;                  // 0 top, 1 bottom, 2 left, 3 right, 4 floating
+    // the resting pill's spot in the window (the window grows around it to open)
+    in property <length> rest-x;
+    in property <length> rest-y;
+    in property <length> rest-w: 340px;
+    in property <length> rest-h: 44px;
+    in property <bool> open-up;              // floating low on the screen: the panel opens upwards
     in property <bool> island-home-start: true;
     in property <string> projects-dir;       // Dev tools folders ("" = not known yet)
     in property <string> downloads-dir;

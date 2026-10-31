@@ -94,27 +94,60 @@ pub fn island_edge(anchor: Option<(i32, i32)>, scale: f32) -> i32 {
         .unwrap_or(EDGE_FLOAT)
 }
 
-/// Places the island window (size in physical px) flush against `edge`, centred on the
-/// anchor along that edge (top and bottom snap to the middle when close). Floating, the
-/// pill's centre sits on the anchor and the panel opens downwards.
-pub fn place_island(hwnd: HWND, w: i32, h: i32, anchor: Option<(i32, i32)>, edge: i32, scale: f32) {
+/// Where the island window sits (physical px).
+pub struct IslandPlace {
+    /// the resting pill's window, relative to the window being placed
+    pub rest_x: i32,
+    pub rest_y: i32,
+    /// floating too low for the panel to fit under the pill: it opens upwards
+    pub open_up: bool,
+    /// room from the top of the resting pill to the bottom of the work area
+    pub below: i32,
+}
+
+/// Places the island window (size `w` × `h`, physical px). The resting pill (`rest`) sits
+/// flush against `edge`, centred on the anchor along it (top and bottom snap to the middle
+/// when close); floating, the pill's centre sits on the anchor. A bigger window (the open
+/// panel, a peek) is laid around the resting pill so the pill never moves: it grows from
+/// the pill, opening downwards, or upwards when floating with too little room below
+/// (`big_h` is the open panel's height), and is kept on the screen.
+pub fn place_island(hwnd: HWND, (w, h): (i32, i32), rest: (i32, i32), big_h: i32, anchor: Option<(i32, i32)>, edge: i32, scale: f32) -> IslandPlace {
     let (cx, cy) = anchor.unwrap_or_else(|| default_anchor(scale));
     let (m, wk) = monitor_rects(Some((cx, cy)));
     let mid = (m.left + m.right) / 2;
     let snap = (28.0 * scale) as i32;
     let ccx = if (cx - mid).abs() < snap { mid } else { cx };
-    let (x, y) = match edge {
-        EDGE_TOP => (ccx - w / 2, m.top),
-        EDGE_BOTTOM => (ccx - w / 2, wk.bottom - h),
-        EDGE_LEFT => (wk.left, cy - h / 2),
-        EDGE_RIGHT => (wk.right - w, cy - h / 2),
-        _ => (cx - w / 2, cy - (17.0 * scale) as i32),
+    let clamp_x = |x: i32, w: i32| x.clamp(wk.left, (wk.right - w).max(wk.left));
+    let clamp_y = |y: i32, h: i32| y.clamp(wk.top, (wk.bottom - h).max(wk.top));
+    // the resting pill
+    let (rw, rh) = rest;
+    let (rx, ry) = match edge {
+        EDGE_TOP => (ccx - rw / 2, m.top),
+        EDGE_BOTTOM => (ccx - rw / 2, wk.bottom - rh),
+        EDGE_LEFT => (wk.left, cy - rh / 2),
+        EDGE_RIGHT => (wk.right - rw, cy - rh / 2),
+        _ => (cx - rw / 2, cy - (17.0 * scale) as i32),
     };
-    let x = x.clamp(wk.left, (wk.right - w).max(wk.left));
-    let y = if edge == EDGE_TOP { y } else { y.clamp(wk.top, (wk.bottom - h).max(wk.top)) };
+    let rx = clamp_x(rx, rw);
+    let ry = if edge == EDGE_TOP { ry } else { clamp_y(ry, rh) };
+    let open_up = edge == EDGE_FLOAT && ry + big_h > wk.bottom;
+    // the window around it, centred on it along the edge
+    let x = match edge {
+        EDGE_LEFT => wk.left,
+        EDGE_RIGHT => wk.right - w,
+        _ => clamp_x(rx + rw / 2 - w / 2, w),
+    };
+    let y = match edge {
+        EDGE_TOP => m.top,
+        EDGE_BOTTOM => wk.bottom - h,
+        EDGE_LEFT | EDGE_RIGHT => clamp_y(ry + rh / 2 - h / 2, h),
+        _ if open_up => clamp_y(ry + rh - h, h),
+        _ => clamp_y(ry, h),
+    };
     unsafe {
         let _ = SetWindowPos(hwnd, Some(HWND_TOPMOST), x, y, w, h, SWP_NOACTIVATE);
     }
+    IslandPlace { rest_x: rx - x, rest_y: ry - y, open_up, below: wk.bottom - ry }
 }
 
 pub fn cursor_pos() -> (i32, i32) {

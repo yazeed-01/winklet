@@ -836,6 +836,12 @@ export component AppWindow inherits Window {
     // step away. A short hop instead of a constant float keeps it at 0 fps most of the time.
     property <bool> float-up;
     property <length> bob: ball && float-up ? -4px : 0;
+    animate bob { duration: 380ms; easing: ease-in-out; }
+    // the resting pill's centre and height: the island grows from it, so opening, peeking or
+    // hovering never moves the pill (the window is laid around it)
+    property <length> rest-cx: Bridge.rest-x + Bridge.rest-w / 2;
+    property <length> rest-cy: Bridge.rest-y + Bridge.rest-h / 2;
+    property <length> rest-pill-h: Bridge.bubble ? 44px : 34px;
     Timer {
         interval: 6s;
         running: root.ball && !Bridge.user-idle && !Bridge.dragging;
@@ -860,10 +866,16 @@ export component AppWindow inherits Window {
     }
 
     island := Rectangle {
-        // flush against the edge it's docked to (the window itself sits on that edge)
-        y: root.bob + (Bridge.edge == 1 ? parent.height - self.height - root.gap : Bridge.edge == 2 || Bridge.edge == 3 ? (parent.height - self.height) / 2 : root.gap);
-        x: Bridge.edge == 2 ? root.gap : Bridge.edge == 3 ? parent.width - self.width - root.gap : (parent.width - self.width) / 2;
-        animate y { duration: 380ms; easing: ease-in-out; }
+        // flush against the edge it's docked to (the window itself sits on that edge), centred on
+        // the resting pill along it and kept inside the window; floating it grows down from the
+        // pill, or up when it sits low on the screen
+        y: root.bob + (Bridge.edge == 0 ? root.gap
+            : Bridge.edge == 1 ? parent.height - self.height - root.gap
+            : Bridge.edge == 2 || Bridge.edge == 3 ? max(0px, min(parent.height - self.height, root.rest-cy - self.height / 2))
+            : Bridge.open-up ? max(0px, Bridge.rest-y + root.gap + root.rest-pill-h - self.height)
+            : min(parent.height - self.height, Bridge.rest-y + root.gap));
+        x: Bridge.edge == 2 ? root.gap : Bridge.edge == 3 ? parent.width - self.width - root.gap
+            : max(0px, min(parent.width - self.width, root.rest-cx - self.width / 2));
         width: island-w;
         height: island-h;
         background: Theme.island.with-alpha(Bridge.island-alpha);

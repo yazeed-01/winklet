@@ -108,6 +108,8 @@ pub struct App {
     pub mic_test_started: Instant,
     pub last_shot: Option<std::path::PathBuf>,
     pub cur_size: (f32, f32),
+    /// the panel has room to open downwards with the car show under it
+    pub car_room: bool,
     pub car: Option<CarShow>,
     pub car_timer: Timer,
     pub last_car_show: Option<Instant>,
@@ -251,12 +253,30 @@ impl App {
         let scale = ui.window().scale_factor();
         let anchor = self.data.settings.island_pos;
         let edge = sys::island_edge(anchor, scale);
+        let side = edge == sys::EDGE_LEFT || edge == sys::EDGE_RIGHT;
+        // the resting pill: the window is laid around it, so opening never moves it
+        let rest = if self.data.settings.bubble {
+            BUBBLE
+        } else if side {
+            VERT
+        } else if self.data.settings.game_mode {
+            SMALL_GAME
+        } else {
+            SMALL
+        };
         let pill = self.cur_size == SMALL || self.cur_size == SMALL_GAME;
-        let (w, h) = if pill && (edge == sys::EDGE_LEFT || edge == sys::EDGE_RIGHT) { VERT } else { self.cur_size };
-        sys::place_island(self.hwnd, (w * scale).round() as i32, (h * scale).round() as i32, anchor, edge, scale);
+        let (w, h) = if pill { rest } else { self.cur_size };
+        let px = |(w, h): (f32, f32)| ((w * scale).round() as i32, (h * scale).round() as i32);
+        let at = sys::place_island(self.hwnd, px((w, h)), px(rest), px(BIG).1, anchor, edge, scale);
+        self.car_room = (edge == sys::EDGE_TOP || edge == sys::EDGE_FLOAT) && at.below >= px(BIG_CAR).1;
         let b = ui.global::<Bridge>();
         b.set_edge(edge);
         b.set_docked(edge == sys::EDGE_TOP);
+        b.set_rest_x(at.rest_x as f32 / scale);
+        b.set_rest_y(at.rest_y as f32 / scale);
+        b.set_rest_w(rest.0);
+        b.set_rest_h(rest.1);
+        b.set_open_up(at.open_up);
     }
 
     /// "Top centre" in settings: back to where it started.
@@ -296,7 +316,7 @@ impl App {
         }
         self.refresh_tab(b.get_tab());
         let cooled = self.last_car_show.is_none_or(|t| t.elapsed() > Duration::from_secs(10));
-        if self.data.settings.car_show && cooled && self.car.is_none() {
+        if self.data.settings.car_show && cooled && self.car.is_none() && self.car_room {
             self.last_car_show = Some(Instant::now());
             defer(App::start_car_show);
         }

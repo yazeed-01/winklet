@@ -112,6 +112,7 @@ fn main() {
         mic_test_started: Instant::now(),
         last_shot: None,
         cur_size: (0.0, 0.0),
+        car_room: true,
         car: None,
         car_timer: Timer::default(),
         last_car_show: None,
