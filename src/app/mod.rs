@@ -50,12 +50,12 @@ use windows::Win32::Foundation::HWND;
 pub const SMALL: (f32, f32) = (340.0, 44.0);
 /// game mode's pill is wider (time, FPS, CPU, eyes, GPU, RAM, battery)
 const SMALL_GAME: (f32, f32) = (444.0, 44.0);
-const BIG: (f32, f32) = (620.0, 364.0);
+const BIG: (f32, f32) = (740.0, 364.0);
 /// Bubble style: the ball, a little gap off the edge and room for it to bob
 pub const BUBBLE: (f32, f32) = (64.0, 60.0);
 /// the pill docked on the left or right edge stands upright
 const VERT: (f32, f32) = (52.0, 180.0);
-const BIG_CAR: (f32, f32) = (620.0, 484.0);
+const BIG_CAR: (f32, f32) = (740.0, 484.0);
 
 pub const TAB_HEALTH: i32 = 4;
 pub const TAB_SHELF: i32 = 7;

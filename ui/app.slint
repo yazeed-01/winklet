@@ -538,11 +538,11 @@ component Peek inherits Rectangle {
     }
 }
 
-// Where a tab sits in the bar. Drive (index 11) is drawn right after Focus and Power (13)
-// just before Settings; newer tabs get the next index so the older ones keep theirs.
+// Where a tab sits in the bar, by tab index. New tabs get the next index so older ones keep
+// theirs: Drive (11) sits after Focus and Power (13) before Settings.
 global TabOrder {
     public pure function pos(i: int) -> int {
-        return i == 11 ? 4 : i == 12 ? 11 : i == 13 ? 12 : i == 10 ? 13 : i >= 4 ? i + 1 : i;
+        return [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 13, 4, 11, 12][max(0, min(13, i))];
     }
 }
 
@@ -822,7 +822,7 @@ export component AppWindow inherits Window {
     property <length> ball-d: hover.has-hover ? 48px : 44px;
     // docked on the left or right edge the pill stands upright
     property <bool> side: (Bridge.edge == 2 || Bridge.edge == 3) && !Bridge.expanded && !Bridge.peeking && !Bridge.bubble;
-    property <length> island-w: Bridge.expanded ? 580px : Bridge.peeking ? peek-w : ball ? ball-d : side ? 40px : pill-w;
+    property <length> island-w: Bridge.expanded ? 700px : Bridge.peeking ? peek-w : ball ? ball-d : side ? 40px : pill-w;
     property <length> island-h: Bridge.expanded ? 336px : Bridge.peeking ? 64px : ball ? ball-d : side ? 168px : 34px;
     property <length> radius: Bridge.expanded ? 32px : Bridge.peeking ? 26px : ball ? ball-d / 2 : side ? 20px : 17px;
     // every few seconds the ball does a little hop while you're around, and rests when you
@@ -930,7 +930,7 @@ export component AppWindow inherits Window {
             }
             expanded := Expanded {
                 visible: self.opacity > 0.01;
-                width: 580px;
+                width: 700px;
                 height: 336px;
                 x: (island.width - self.width) / 2;
                 y: -8px;
@@ -981,10 +981,11 @@ export component AppWindow inherits Window {
         ]
     }
 
+    // the drive is scripted on a 620 px wide stage, centred under the panel
     if Bridge.car-active: CarStage {
-        x: 0;
+        x: (parent.width - 620px) / 2;
         y: 320px;
-        width: parent.width;
+        width: 620px;
         height: 160px;
     }
 
