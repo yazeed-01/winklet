@@ -362,6 +362,8 @@ export global Bridge {
     in property <string> mic-name;
     in property <bool> mic-testing;
     in property <float> mic-level;
+    in-out property <bool> home-volume-open;   // the Home media card shows its volume slider
+    callback master-refresh();                 // read the master volume again
     callback master-set(float);
     callback master-mute-toggle();
     callback app-volume-set(string, float);

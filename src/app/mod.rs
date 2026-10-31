@@ -329,6 +329,7 @@ impl App {
         let b = ui.global::<Bridge>();
         b.set_expanded(false);
         b.set_editing(false);
+        b.set_home_volume_open(false);
         self.stop_mic_test();
         sys::restore_foreground(self.hwnd, self.prev_fg);
         self.want_pos.store(false, Ordering::Relaxed);

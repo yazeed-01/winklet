@@ -2,7 +2,7 @@
 
 import { Theme, Icon } from "../theme.slint";
 import { Bridge, PlaylistItem } from "../bridge.slint";
-import { Glyph, Label, IconButton, Card, WaterDrop, Field, Tip } from "../widgets.slint";
+import { Glyph, Label, IconButton, Card, WaterDrop, Field, Tip, VolSlider } from "../widgets.slint";
 
 // A playlist cover: the service's colours, a soft sheen and a note.
 // `small` = the mini row on the player (name in a tooltip, no label).
@@ -158,6 +158,51 @@ component PlaylistTile inherits Rectangle {
     }
 }
 
+// Master volume on the media card: the speaker mutes, the slider sets the level.
+component VolumeBar inherits Rectangle {
+    property <bool> shown;
+    border-radius: 18px;
+    background: Theme.surface;
+    border-width: 1px;
+    border-color: Theme.stroke;
+    // slides out of the volume button
+    opacity: shown ? 1 : 0;
+    transform-scale: shown ? 1 : 0.92;
+    animate opacity { duration: 200ms; easing: Theme.smooth; }
+    animate transform-scale { duration: 360ms; easing: Theme.spring-ease; }
+    init => { shown = true; }
+    HorizontalLayout {
+        padding-left: 3px;
+        padding-right: 12px;
+        spacing: 8px;
+        IconButton {
+            y: 3px;
+            icon: Bridge.master-muted ? Icon.mute : Icon.volume;
+            size: 30px;
+            icon-size: 12px;
+            tint: Bridge.master-muted ? Theme.red : Theme.text;
+            tip: Bridge.master-muted ? "Unmute" : "Mute";
+            clicked => { Bridge.master-mute-toggle(); }
+        }
+        s := VolSlider {
+            y: 7px;
+            horizontal-stretch: 1;
+            value: Bridge.master-volume;
+            dim: Bridge.master-muted;
+            tint: Theme.accent;
+            moved(v) => { Bridge.master-set(v); }
+        }
+        Label {
+            width: 32px;
+            text: Bridge.master-muted ? "Muted" : round(s.shown * 100) + "%";
+            font-size: 11px;
+            font-weight: 600;
+            color: Bridge.master-muted ? Theme.red : Theme.text-dim;
+            horizontal-alignment: right;
+        }
+    }
+}
+
 // The media card's other side: paste a link, scroll your playlists.
 component PlaylistGrid inherits VerticalLayout {
     property <int> cols: 3;
@@ -305,19 +350,43 @@ export component HomePage inherits Rectangle {
                         Label { text: Bridge.media-len; font-size: 10px; color: Theme.text-faint; horizontal-alignment: right; }
                     }
                 }
-                HorizontalLayout {
-                    alignment: center;
-                    spacing: 14px;
-                    IconButton { icon: Icon.prev; size: 34px; icon-size: 14px; tip: "Previous track"; clicked => { Bridge.media-prev(); } }
-                    IconButton {
-                        icon: Bridge.media-playing ? Icon.pause : Icon.play;
-                        size: 42px;
-                        icon-size: 16px;
-                        fill: #ffffff1f;
-                        tip: Bridge.media-playing ? "Pause" : "Play";
-                        clicked => { Bridge.media-toggle(); }
+                // transport, with the volume button on the right; the volume slider slides over the transport
+                transport := Rectangle {
+                    height: 42px;
+                    if !Bridge.home-volume-open: HorizontalLayout {
+                        alignment: center;
+                        spacing: 14px;
+                        IconButton { y: 4px; icon: Icon.prev; size: 34px; icon-size: 14px; tip: "Previous track"; clicked => { Bridge.media-prev(); } }
+                        IconButton {
+                            icon: Bridge.media-playing ? Icon.pause : Icon.play;
+                            size: 42px;
+                            icon-size: 16px;
+                            fill: #ffffff1f;
+                            tip: Bridge.media-playing ? "Pause" : "Play";
+                            clicked => { Bridge.media-toggle(); }
+                        }
+                        IconButton { y: 4px; icon: Icon.next; size: 34px; icon-size: 14px; tip: "Next track"; clicked => { Bridge.media-next(); } }
                     }
-                    IconButton { icon: Icon.next; size: 34px; icon-size: 14px; tip: "Next track"; clicked => { Bridge.media-next(); } }
+                    if Bridge.home-volume-open: VolumeBar {
+                        x: 0;
+                        y: 3px;
+                        width: transport.width - 42px;
+                        height: 36px;
+                    }
+                    IconButton {
+                        x: transport.width - self.width;
+                        y: 4px;
+                        icon: Bridge.master-muted ? Icon.mute : Icon.volume;
+                        size: 34px;
+                        icon-size: 13px;
+                        active: Bridge.home-volume-open;
+                        tint: Bridge.master-muted ? Theme.red : Theme.text-dim;
+                        tip: Bridge.home-volume-open ? "Hide volume" : "Volume";
+                        clicked => {
+                            if !Bridge.home-volume-open { Bridge.master-refresh(); }
+                            Bridge.home-volume-open = !Bridge.home-volume-open;
+                        }
+                    }
                 }
             }
             if Bridge.show-playlists: PlaylistGrid { }

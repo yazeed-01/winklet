@@ -23,6 +23,7 @@ pub fn wire(b: &Bridge, app: &Shared) {
         }
         a.refresh_audio();
     });
+    on!(b, app, on_master_refresh, |a| { a.refresh_master(); });
     on!(b, app, on_app_volume_set, |a, name, v| {
         if let Some(au) = &a.audio {
             au.set_app_volume(&name, v);

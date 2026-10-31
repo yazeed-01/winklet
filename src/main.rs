@@ -258,6 +258,11 @@ fn init_window(app: Shared) {
             if std::env::var_os("WINKLET_DEMO_PLAYLISTS").is_some() {
                 a.ui().global::<Bridge>().set_show_playlists(true);
             }
+            // WINKLET_DEMO_VOLUME opens the volume slider on the Home media card
+            if std::env::var_os("WINKLET_DEMO_VOLUME").is_some() {
+                a.refresh_master();
+                a.ui().global::<Bridge>().set_home_volume_open(true);
+            }
             // WINKLET_DEMO_VIEW=n picks the sub-view (Health, Developer and Game tabs)
             if let Some(v) = std::env::var("WINKLET_DEMO_VIEW").ok().and_then(|v| v.parse::<i32>().ok()) {
                 let ui = a.ui();

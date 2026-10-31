@@ -38,6 +38,16 @@ impl App {
         self.refresh_mic();
     }
 
+    /// Just the master volume (the Home card's slider), without the per-app list.
+    pub fn refresh_master(&self) {
+        let Some(audio) = &self.audio else { return };
+        let ui = self.ui();
+        let b = ui.global::<Bridge>();
+        let (vol, muted) = audio.master();
+        b.set_master_volume(vol);
+        b.set_master_muted(muted);
+    }
+
     pub fn refresh_mic(&self) {
         let ui = self.ui();
         let b = ui.global::<Bridge>();
