@@ -64,6 +64,8 @@ pub struct Settings {
     pub ui_scale: f32,
     /// opacity of the island's background (0.4 .. 1); text and icons stay solid
     pub island_alpha: f32,
+    /// colour of the eyes (0 = Ice, the original white)
+    pub eye_color: i32,
     /// Dev tools folders; empty = found automatically
     pub projects_dir: String,
     pub downloads_dir: String,
@@ -127,6 +129,7 @@ impl Default for Settings {
             theme: 0,
             ui_scale: 1.0,
             island_alpha: 1.0,
+            eye_color: 0,
             projects_dir: String::new(),
             downloads_dir: String::new(),
             stand_reminders: true,

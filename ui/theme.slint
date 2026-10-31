@@ -84,6 +84,33 @@ export global Theme {
     }
 }
 
+// One colour for the eyes: what they're filled with and the glow around them.
+export struct EyeColor {
+    name: string,
+    fill: color,
+    glow: color,
+}
+
+// Eye colours picked in Settings > Look. Ice is the original look; Theme follows the accent.
+export global EyeTint {
+    out property <[EyeColor]> colors: [
+        { name: "Ice", fill: #ffffff, glow: #7cc8ff },
+        { name: "Aqua", fill: #b8fbff, glow: #22d3ee },
+        { name: "Mint", fill: #b4ffd8, glow: #10b981 },
+        { name: "Lime", fill: #e6ff8a, glow: #84cc16 },
+        { name: "Sun", fill: #ffe08a, glow: #f59e0b },
+        { name: "Peach", fill: #ffc9a8, glow: #ff7a45 },
+        { name: "Rose", fill: #ffb3cf, glow: #f43f5e },
+        { name: "Lilac", fill: #ddd0ff, glow: #8b5cf6 },
+        { name: "Sky", fill: #c2dcff, glow: #3b82f6 },
+        { name: "Ember", fill: #ffb0a3, glow: #ef4444 },
+        { name: "Theme", fill: Theme.accent.mix(#ffffff, 0.45), glow: Theme.accent },
+    ];
+    out property <EyeColor> current: colors[max(0, min(colors.length - 1, Bridge.eye-color))];
+    out property <color> fill: current.fill;
+    out property <color> glow: current.glow;
+}
+
 // Segoe Fluent Icons code points.
 export global Icon {
     out property <string> home: "\u{E80F}";

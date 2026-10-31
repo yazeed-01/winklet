@@ -1,4 +1,4 @@
-import { Theme, Icon, Cars } from "theme.slint";
+import { Theme, Icon, Cars, EyeTint } from "theme.slint";
 import { Bridge, TodoItem, AlarmItem, DayCell, Bar, ShelfItem, AppVolume } from "bridge.slint";
 import { Glyph, Label, IconButton, Ring, WaterDrop, PageHost, Tip } from "widgets.slint";
 import { HomePage, TodoPage, CalendarPage, FocusPage, WaterPage, AlarmPage, DevPage, SettingsPage, ShelfPage, AudioPage, HealthPage, GearPage, GamePage } from "pages.slint";
@@ -48,9 +48,9 @@ component Eyes inherits Rectangle {
         width: w;
         height: h;
         border-radius: min(w, h) / 2;
-        background: white;
+        background: EyeTint.fill;
         drop-shadow-blur: 8px;
-        drop-shadow-color: #7cc8ffcc;
+        drop-shadow-color: EyeTint.glow.with-alpha(0.8);
         animate x, y, width, height { duration: 120ms; easing: ease-in-out; }
     }
 
@@ -64,7 +64,7 @@ component Eyes inherits Rectangle {
         viewbox-width: 10;
         viewbox-height: 8;
         commands: "M1 7 Q5 -1 9 7";
-        stroke: white;
+        stroke: EyeTint.fill;
         stroke-width: 2.4px;
         stroke-line-cap: round;
         animate y { duration: 180ms; easing: ease-in-out; }

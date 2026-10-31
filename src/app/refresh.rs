@@ -71,6 +71,7 @@ impl App {
         b.set_theme(st.theme);
         b.set_ui_scale(st.ui_scale);
         b.set_island_alpha(st.island_alpha);
+        b.set_eye_color(st.eye_color);
         b.set_data_dir(s(crate::store::data_dir().to_string_lossy().to_string()));
         b.set_car_model(st.car_model);
         b.set_eyes_lively(st.eyes_lively);

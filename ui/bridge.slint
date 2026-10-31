@@ -417,6 +417,8 @@ export global Bridge {
     callback ui-scale-set(float);
     in property <float> island-alpha: 1;     // 1 = solid island, lower lets the desktop show through
     callback island-alpha-set(float);
+    in-out property <int> eye-color;         // index in EyeTint.colors (0 = Ice)
+    callback set-eye-color(int);
     callback set-theme(int);
     callback data-open();
     callback data-reset();

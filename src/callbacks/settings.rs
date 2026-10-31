@@ -86,6 +86,13 @@ pub fn wire(b: &Bridge, app: &Shared) {
         a.data.save();
         a.refresh_settings();
     });
+    on!(b, app, on_set_eye_color, |a, c| {
+        a.data.settings.eye_color = c.max(0);
+        a.data.save();
+        a.refresh_settings();
+        // a happy look so you see the new colour on the eyes right away
+        a.eye_event(4, 1.5);
+    });
     // collapses the panel it was clicked in: let the click finish first
     b.on_island_move(|| defer(App::start_move));
     b.on_car_preview(|| {

@@ -1,8 +1,8 @@
 // Settings page.
 
-import { Theme, Icon, Cars, Palette } from "../theme.slint";
+import { Theme, Icon, Cars, Palette, EyeTint, EyeColor } from "../theme.slint";
 import { Bridge } from "../bridge.slint";
-import { Label, Button, Toggle, Stepper, Glyph, IconButton, Segmented, VolSlider } from "../widgets.slint";
+import { Label, Button, Toggle, Stepper, Glyph, IconButton, Segmented, VolSlider, Tip } from "../widgets.slint";
 
 component SettingRow inherits HorizontalLayout {
     in property <string> title;
@@ -110,6 +110,46 @@ component ThemeCard inherits Rectangle {
     }
     if on: Glyph { x: parent.width - 22px; y: 6px; width: 16px; height: 16px; text: Icon.check; font-size: 10px; color: pal.accent; }
     ta := TouchArea { mouse-cursor: pointer; clicked => { Bridge.set-theme(root.index); } }
+}
+
+// One eye colour: a glowing dot, ringed when it's the one in use.
+component EyeSwatch inherits Rectangle {
+    in property <EyeColor> eye;
+    in property <int> index;
+    property <bool> on: Bridge.eye-color == index;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    background: transparent;
+    border-width: on ? 1.5px : 0;
+    border-color: eye.glow;
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: ta.has-hover || root.on ? 12px : 10px;
+        height: self.width;
+        border-radius: self.width / 2;
+        background: eye.fill;
+        drop-shadow-blur: 6px;
+        drop-shadow-color: eye.glow;
+        animate width { duration: 160ms; easing: Theme.spring-ease; }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { Tip.shown = false; Bridge.set-eye-color(root.index); }
+        changed has-hover => {
+            if self.has-hover {
+                Tip.text = root.eye.name;
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if Tip.text == root.eye.name {
+                Tip.shown = false;
+            }
+        }
+    }
 }
 
 // A labelled slider for a value between `lo` and `hi`, shown as a percentage.
@@ -276,6 +316,17 @@ export component SettingsPage inherits Rectangle {
                 hi: 0.6;
                 value: 1 - Bridge.island-alpha;
                 released(v) => { Bridge.island-alpha-set(1 - v); }
+            }
+            HorizontalLayout {
+                height: 30px;
+                spacing: 6px;
+                Label { text: "Eye colour"; font-size: 12px; horizontal-stretch: 1; }
+                Label { text: EyeTint.current.name; font-size: 11px; color: Theme.text-faint; horizontal-alignment: right; }
+            }
+            HorizontalLayout {
+                spacing: 4px;
+                alignment: space-between;
+                for e[i] in EyeTint.colors: EyeSwatch { eye: e; index: i; }
             }
             Rectangle { }
         }
