@@ -363,11 +363,15 @@ component DeckEditor inherits Rectangle {
                 }
                 if Bridge.deck-edit-kind == 3: VerticalLayout {
                     spacing: 6px;
-                    Segmented {
-                        width: 160px;
-                        items: ["PowerShell", "Batch"];
-                        value: Bridge.deck-edit-lang;
-                        picked(i) => { Bridge.deck-edit-lang = i; }
+                    // in a row so its fixed width doesn't narrow the whole column
+                    HorizontalLayout {
+                        Segmented {
+                            width: 160px;
+                            items: ["PowerShell", "Batch"];
+                            value: Bridge.deck-edit-lang;
+                            picked(i) => { Bridge.deck-edit-lang = i; }
+                        }
+                        Rectangle { horizontal-stretch: 1; }
                     }
                     DeckInput {
                         height: 84px;
