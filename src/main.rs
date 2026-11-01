@@ -28,6 +28,7 @@ mod media;
 mod pad;
 #[cfg_attr(not(windows), path = "linux/ports.rs")]
 mod ports;
+mod deck_remote;
 mod share;
 mod snip;
 mod store;
@@ -163,6 +164,7 @@ fn main() {
         screen: app::ScreenTrack::load(),
         play: Default::default(),
         send: Default::default(),
+        phone: Default::default(),
         power: None,
         wall: Default::default(),
         clips: app::Clips::load(data.settings.clip_paused),
@@ -194,6 +196,8 @@ fn main() {
 
     APP.with(|a| *a.borrow_mut() = Rc::downgrade(&app));
     app::start_watch(app.borrow().clips.paused.clone());
+    // the phone deck keeps serving while Winklet runs (when it's on)
+    app.borrow_mut().phone_deck_start();
     wire_callbacks(&ui, &app);
     wire_file_drop(&ui);
 

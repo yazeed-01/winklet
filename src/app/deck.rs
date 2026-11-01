@@ -142,10 +142,22 @@ fn run_script(id: &str, body: &str, lang: &str, show: bool) -> bool {
     c.spawn().is_ok()
 }
 
+/// Whether the key shows its program's icon (an "open" key without a glyph).
+pub fn shows_icon(k: &store::DeckKey) -> bool {
+    k.kind == "open" && k.glyph.is_empty() && !is_link(&k.target)
+}
+
+/// What a key shows: its title and glyph, filled in when left empty.
+pub fn face(k: &store::DeckKey) -> (String, String) {
+    let title = if k.title.is_empty() { default_title(&k.kind, &k.target) } else { k.title.clone() };
+    let glyph = if k.glyph.is_empty() { kind_glyph(&k.kind, &k.target).to_string() } else { k.glyph.clone() };
+    (title, glyph)
+}
+
 impl App {
     /// The program's icon when the key shows one (an "open" key without a glyph).
     fn deck_icon(&mut self, k: &store::DeckKey) -> Image {
-        if k.kind == "open" && k.glyph.is_empty() && !is_link(&k.target) { self.icon_for(k.target.trim()) } else { Image::default() }
+        if shows_icon(k) { self.icon_for(k.target.trim()) } else { Image::default() }
     }
 
     pub fn refresh_deck(&mut self) {
@@ -174,6 +186,9 @@ impl App {
         b.set_deck_pages(self.data.deck_pages);
         b.set_deck_keys(ModelRc::new(VecModel::from(slots)));
         b.set_deck_palette(ModelRc::new(VecModel::from(PALETTE.iter().map(|c| hex_color(c)).collect::<Vec<_>>())));
+        // the phone deck follows every change
+        self.phone_deck_sync();
+        self.refresh_phone_deck();
     }
 
     fn deck_key(&self, slot: i32) -> Option<store::DeckKey> {
@@ -181,59 +196,20 @@ impl App {
         self.data.deck.iter().find(|k| k.page == page && k.slot == slot).cloned()
     }
 
-    /// A key was pressed. Hotkeys and text go to the app you were in, so the island steps aside first.
+    /// A key was pressed. An empty slot opens the editor.
     pub fn deck_press(shared: &Shared, slot: i32) {
-        let mut a = shared.borrow_mut();
-        let Some(k) = a.deck_key(slot) else {
-            drop(a);
-            return with_editor(shared, slot);
-        };
-        let target = k.target.trim().to_string();
-        let title = if k.title.is_empty() { default_title(&k.kind, &target) } else { k.title.clone() };
-        match k.kind.as_str() {
-            "open" => {
-                if !sys::open(&target, "") {
-                    a.toast(&format!("Couldn't open {title}"));
-                }
-            }
-            "multi" => {
-                let mut failed = 0;
-                for line in target.lines().map(str::trim).filter(|l| !l.is_empty()) {
-                    let ok = match line.strip_prefix('>') {
-                        Some(cmd) => run_command(cmd.trim(), false),
-                        None => sys::open(line, ""),
-                    };
-                    failed += usize::from(!ok);
-                }
-                a.toast(&if failed == 0 { format!("{title} · opened") } else { format!("{title} · {failed} failed") });
-            }
-            "command" => {
-                if !run_command(&target, k.flag) {
-                    a.toast("Couldn't run the command");
-                }
-            }
-            "script" => {
-                if !run_script(&k.id, &target, &k.lang, k.flag) {
-                    a.toast("Couldn't run the script");
-                }
-            }
-            "hotkey" | "text" => {
-                let (kind, flag) = (k.kind.clone(), k.flag);
-                a.collapse();
-                schedule_shrink(shared, &mut a);
-                // give the app you were in the focus back before the keys arrive
-                Timer::single_shot(Duration::from_millis(180), move || {
-                    let ok = if kind == "text" { keys::type_text(&target, flag) } else { keys::combo(&target).unwrap_or(false) };
-                    if !ok {
-                        defer(|s| s.borrow_mut().toast("Couldn't send the keys"));
-                    }
-                });
-            }
-            "action" => {
-                drop(a);
-                return deck_action(shared, &target);
-            }
-            _ => {}
+        let key = shared.borrow().deck_key(slot);
+        match key {
+            Some(k) => run_key(shared, k),
+            None => with_editor(shared, slot),
+        }
+    }
+
+    /// A key pressed on the phone deck: found by its id, on any page.
+    pub fn deck_press_id(shared: &Shared, id: &str) {
+        let key = shared.borrow().data.deck.iter().find(|k| k.id == id).cloned();
+        if let Some(k) = key {
+            run_key(shared, k);
         }
     }
 
@@ -372,6 +348,58 @@ impl App {
         self.data.deck_pages -= 1;
         self.data.save();
         self.deck_page_set(page.min(self.data.deck_pages - 1));
+    }
+}
+
+/// Does what a key does. Hotkeys and text go to the app you were in, so the island steps aside first.
+fn run_key(shared: &Shared, k: store::DeckKey) {
+    let mut a = shared.borrow_mut();
+    let target = k.target.trim().to_string();
+    let title = if k.title.is_empty() { default_title(&k.kind, &target) } else { k.title.clone() };
+    match k.kind.as_str() {
+        "open" => {
+            if !sys::open(&target, "") {
+                a.toast(&format!("Couldn't open {title}"));
+            }
+        }
+        "multi" => {
+            let mut failed = 0;
+            for line in target.lines().map(str::trim).filter(|l| !l.is_empty()) {
+                let ok = match line.strip_prefix('>') {
+                    Some(cmd) => run_command(cmd.trim(), false),
+                    None => sys::open(line, ""),
+                };
+                failed += usize::from(!ok);
+            }
+            a.toast(&if failed == 0 { format!("{title} · opened") } else { format!("{title} · {failed} failed") });
+        }
+        "command" => {
+            if !run_command(&target, k.flag) {
+                a.toast("Couldn't run the command");
+            }
+        }
+        "script" => {
+            if !run_script(&k.id, &target, &k.lang, k.flag) {
+                a.toast("Couldn't run the script");
+            }
+        }
+        "hotkey" | "text" => {
+            let (kind, flag) = (k.kind.clone(), k.flag);
+            a.collapse();
+            schedule_shrink(shared, &mut a);
+            // give the app you were in the focus back before the keys arrive
+            Timer::single_shot(Duration::from_millis(180), move || {
+                let ok = if kind == "text" { keys::type_text(&target, flag) } else { keys::combo(&target).unwrap_or(false) };
+                if !ok {
+                    defer(|s| s.borrow_mut().toast("Couldn't send the keys"));
+                }
+            });
+        }
+        "action" => {
+            drop(a);
+            return deck_action(shared, &target);
+        }
+        _ => {}
     }
 }
 

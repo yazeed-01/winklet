@@ -4,6 +4,7 @@
 mod car;
 mod clipboard;
 mod deck;
+mod phone_deck;
 mod dev;
 mod drag;
 mod drinks;
@@ -151,6 +152,8 @@ pub struct App {
     pub play: Play,
     /// Shelf > Send: the basket and the open share link
     pub send: send::Send,
+    /// Deck > Phone: the link the Winklet phone app uses
+    pub phone: phone_deck::PhoneDeck,
     /// Clipboard tab: the history and what's selected
     pub clips: Clips,
     /// Wallpaper tab: the pictures on screen and their thumbnails

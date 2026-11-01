@@ -542,6 +542,15 @@ export global Bridge {
     callback deck-page-set(int);
     callback deck-page-add();
     callback deck-page-remove();
+    // Deck > Phone: the Winklet phone app as a Deck
+    in-out property <bool> deck-phone-open;
+    in property <bool> deck-phone-on;
+    in property <image> deck-phone-qr;
+    in property <string> deck-phone-url;
+    in property <string> deck-phone-status;
+    callback deck-phone-toggle();
+    callback deck-phone-reset();
+    callback deck-phone-refresh();
 
     // ---- Clipboard history ----
     in property <[ClipItem]> clips;

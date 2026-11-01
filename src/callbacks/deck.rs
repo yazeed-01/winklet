@@ -15,4 +15,7 @@ pub fn wire(b: &Bridge, app: &Shared) {
     on!(b, app, on_deck_page_add, |a| { a.deck_page_add(); });
     on!(b, app, on_deck_page_remove, |a| { a.deck_page_remove(); });
     b.on_deck_browse(|folders| defer(move |s| deck_browse(s, folders)));
+    on!(b, app, on_deck_phone_toggle, |a| { a.phone_deck_toggle(); });
+    on!(b, app, on_deck_phone_reset, |a| { a.phone_deck_reset(); });
+    on!(b, app, on_deck_phone_refresh, |a| { a.refresh_phone_deck(); });
 }

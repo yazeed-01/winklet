@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The PC deck talks to Winklet on the PC over the local Wi-Fi (http://192.168.x.x),
+     behind a long secret. Plain http is allowed for that; nothing else goes online. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

@@ -203,7 +203,7 @@ fn shown_url(url: &str) -> String {
 }
 
 /// QR code as a crisp black-on-white image (2-module quiet zone, 8 px per module).
-fn qr_image(url: &str) -> Image {
+pub(super) fn qr_image(url: &str) -> Image {
     let Ok(code) = qrcode::QrCode::new(url.as_bytes()) else { return Image::default() };
     let n = code.width();
     let dark: Vec<bool> = code.to_colors().into_iter().map(|c| c == qrcode::Color::Dark).collect();

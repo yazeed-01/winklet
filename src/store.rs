@@ -120,6 +120,12 @@ pub struct Settings {
     pub summary_on: bool,
     /// hour the end-of-day summary pops up
     pub summary_h: u32,
+    /// Deck > Phone: serve the Deck to the Winklet phone app
+    pub phone_deck: bool,
+    /// the phone deck's secret (kept so a paired phone reconnects; "New link" replaces it)
+    pub phone_deck_token: String,
+    /// the port it last used, tried first so the phone finds it again
+    pub phone_deck_port: u16,
     /// bumped when defaults change; 0 = file from before versioning
     #[serde(default)]
     pub version: u32,
@@ -177,6 +183,9 @@ impl Default for Settings {
             game_ignore: Vec::new(),
             summary_on: true,
             summary_h: 18,
+            phone_deck: false,
+            phone_deck_token: String::new(),
+            phone_deck_port: 0,
             version: SETTINGS_VERSION,
         }
     }

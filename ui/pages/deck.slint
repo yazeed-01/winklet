@@ -509,6 +509,80 @@ component DeckEditor inherits Rectangle {
     }
 }
 
+// Deck > Phone: a QR code for the Winklet phone app, which then shows this Deck and presses
+// its keys over the Wi-Fi. The link stays the same until "New link".
+component DeckPhone inherits Rectangle {
+    // the status follows the phone checking in
+    Timer {
+        interval: 3s;
+        running: true;
+        triggered => { Bridge.deck-phone-refresh(); }
+    }
+    HorizontalLayout {
+        spacing: 18px;
+        alignment: center;
+        Rectangle {
+            width: min(root.height, 190px);
+            VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    height: parent.width;
+                    border-radius: 18px;
+                    background: Bridge.deck-phone-on ? white : Theme.surface;
+                    animate background { duration: 300ms; }
+                    if Bridge.deck-phone-on: Image {
+                        x: 8px;
+                        y: 8px;
+                        width: parent.width - 16px;
+                        height: parent.height - 16px;
+                        source: Bridge.deck-phone-qr;
+                        image-rendering: pixelated;
+                    }
+                    if !Bridge.deck-phone-on: Glyph { text: Icon.qr; font-size: 30px; color: Theme.text-faint; }
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 9px;
+            max-width: 330px;
+            Text {
+                text: "Your phone as this Deck";
+                font-family: Theme.font-display;
+                font-size: 17px;
+                font-weight: 700;
+                color: Theme.text;
+            }
+            Label {
+                text: "In the Winklet app on your phone, tap Connect PC deck and scan this code. The phone shows these keys and presses them over the Wi-Fi, and keeps its screen on while the Deck is open.";
+                font-size: 11.5px;
+                color: Theme.text-dim;
+                wrap: word-wrap;
+            }
+            Label { text: Bridge.deck-phone-status; font-size: 12px; font-weight: 600; color: Bridge.deck-phone-status == "Phone connected" ? Theme.green : Theme.text; wrap: word-wrap; }
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                Toggle {
+                    y: 3px;
+                    checked: Bridge.deck-phone-on;
+                    toggled => { Bridge.deck-phone-toggle(); }
+                }
+                Label { text: "Phone deck"; font-size: 12px; vertical-alignment: center; }
+                Rectangle { width: 8px; }
+                if Bridge.deck-phone-on: Button {
+                    height: 28px;
+                    icon: Icon.refresh;
+                    text: "New link";
+                    tip: "A new code: phones paired before have to scan again";
+                    clicked => { Bridge.deck-phone-reset(); }
+                }
+            }
+            Label { text: "Same Wi-Fi only. The first time, Windows may ask to let Winklet receive connections: allow it on private networks."; font-size: 10.5px; color: Theme.text-faint; wrap: word-wrap; }
+        }
+    }
+}
+
 export component DeckPage inherits Rectangle {
     property <length> gap: 10px;
     // keys as big as fit: 8 across, 3 down
@@ -547,13 +621,22 @@ export component DeckPage inherits Rectangle {
         }
         Button {
             height: 28px;
+            icon: Icon.qr;
+            text: "Phone";
+            primary: Bridge.deck-phone-open;
+            tip: "Use the Winklet phone app as this Deck";
+            clicked => { Bridge.deck-phone-open = !Bridge.deck-phone-open; Bridge.deck-phone-refresh(); }
+        }
+        Button {
+            height: 28px;
             icon: Bridge.deck-editing ? Icon.check : Icon.edit;
             text: Bridge.deck-editing ? "Done" : "Edit";
             primary: Bridge.deck-editing;
             clicked => { Bridge.deck-editing = !Bridge.deck-editing; }
         }
     }
-    if !Bridge.deck-edit-open: grid := Rectangle {
+    if !Bridge.deck-edit-open && Bridge.deck-phone-open: DeckPhone { y: 38px; height: parent.height - 38px; }
+    if !Bridge.deck-edit-open && !Bridge.deck-phone-open: grid := Rectangle {
         y: 38px;
         width: 8 * root.key + 7 * root.gap;
         height: 3 * root.key + 2 * root.gap;

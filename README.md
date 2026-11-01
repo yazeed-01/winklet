@@ -1,14 +1,14 @@
-# Winklet: a tiny winking Dynamic Island for Windows and Linux
+# Winklet: a tiny winking Dynamic Island for Windows, Linux and Android
 
 A small notch at the top of your screen. It shows the clock, battery, live activities (music, focus timer, game stats) and notifications. Hover over it to open a dashboard with productivity, health, developer and gaming tools.
 
-Built in **Rust + Slint**, with no browser engine: about 11 MB of memory at rest and no GPU use.
+Built in **Rust + Slint**, with no browser engine: about 11 MB of memory at rest and no GPU use. On **Android** it's a floating bubble with the same eyes, written in Kotlin, and your phone can be a wireless Stream Deck for the PC ([Android](#android)).
 
 <p align="center"><img src="docs/screenshots/home.png" width="720" alt="Winklet open on the Home tab"></p>
 
 ## Contents
 
-[The pill](#the-pill) · [Notifications](#notifications) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water and drinks](#water-and-drinks) · [Alarms](#alarms) · [Shelf](#shelf) · [Send](#send-to-phone-or-pc) · [Clipboard](#clipboard) · [Audio](#audio) · [Developer](#developer) · [Deck](#deck) · [Wallpaper](#wallpaper) · [Game mode](#game-mode) · [Power](#power) · [Settings](#settings) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
+[The pill](#the-pill) · [Notifications](#notifications) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water and drinks](#water-and-drinks) · [Alarms](#alarms) · [Shelf](#shelf) · [Send](#send-to-phone-or-pc) · [Clipboard](#clipboard) · [Audio](#audio) · [Developer](#developer) · [Deck](#deck) · [Wallpaper](#wallpaper) · [Game mode](#game-mode) · [Power](#power) · [Settings](#settings) · [Android](#android) · [PC deck](#pc-deck) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
 
 ## Features
 
@@ -188,6 +188,7 @@ Your own Stream Deck on the island: a grid of 8 × 3 keys, on up to six pages. E
 * **Make it yours.** Every key has a title, one of 12 colours, and either the app's own icon or one of 32 glyphs. The editor shows a live preview of the key as you change it, and **App or file** / **Folder** fill in the path (and name and icon) for you.
 * **Right-click a key** to change it, or press **Edit**: then a click edits a key, you can drag keys to new spots, and add or remove pages. Keys spring when you press them and flash when they fire.
 * New installs start with a few useful keys (Explorer, Terminal, Calculator, Task Manager, Settings, Show desktop, media keys, mic, screenshot, focus and lock) to change or remove.
+* **On your phone.** **Phone** shows a QR code for the Winklet Android app, which then shows these keys and presses them over the Wi-Fi. See [PC deck](#pc-deck).
 
 <img src="docs/screenshots/deck.png" width="560" alt="The Deck: colourful keys with app icons and glyphs">
 
@@ -271,7 +272,37 @@ Settings has three views.
 
 Hover any icon button for a short label explaining what it does; it shows just above what you point at, so the cursor never covers it. Switching tabs slides the new page in from the side you're moving to, with a small spring and zoom.
 
+## Android
+
+Winklet also comes as an Android app: a floating bubble with the same winking eyes that sits on the edge of the screen over your other apps. Tap it and it grows into a panel; tap outside (or Back) and it shrinks back. Get the APK from the [latest release](https://github.com/yazeed-01/winklet/releases/latest).
+
+<p align="center"><img src="docs/screenshots/android-panel.png" width="300" alt="Winklet on Android: the panel opened from the bubble"></p>
+
+* **The bubble.** A dark ball with the eyes, bobbing gently. Drag it anywhere and it snaps to the nearest side; long-press it to tuck it into the notification (tap the notification to bring it back). It stays out of the way while the PC deck is open.
+* **Lively eyes.** Look left and right, wink, happy, surprised, love, morning coffee, the orange car driving past, headphones when music plays, tired late at night or on a low battery, and zzz after midnight. Try each one in Settings.
+* **Home.** A clock with seconds, battery, the next task, water, steps and screen time, plus **+ cup of water**, **Deck** and **Hide bubble**.
+* **To-do.** The same `@18:30`, `@tomorrow 7am` and `@2026-11-02 09:00` reminders as the desktop, as notifications with a **Done** button.
+* **Water.** The desktop's 12 drinks and your own, the drawn cups (shot to big bottle) or any amount, a bottle that fills in drink-coloured layers, and a 7-day chart. **Smart reminders** spread your goal over your day, nudge you only when you fall a cup behind and move back each time you drink.
+* **Health.** Steps from the phone's step counter, distance, screen time and unlocks, steps by hour, 7 days, and an optional 20-20-20 eye-rest reminder. Only counted on the phone; nothing is uploaded.
+* **Device.** Live CPU, RAM, storage, battery, CPU / GPU / battery temperatures, thermal state, charging current, network speed and refresh rate.
+* **Themes.** All nine desktop themes, eleven eye colours, and Light mode in the same warm paper tones as the desktop.
+* **PC deck.** Your phone as the [Deck](#deck) of Winklet on your PC, below.
+
+### PC deck
+
+Use the phone as a wireless Stream Deck for the PC. On the PC open **Deck → Phone** and turn on **Phone deck**; on the phone tap **Settings → Connect PC deck** and scan the QR code. The phone shows the same keys, colours, icons and pages (8 × 3 in landscape, 4 across in portrait), presses them over the Wi-Fi with a tap and a little buzz, follows changes you make on the PC within a few seconds, and keeps its screen on while it's open. The link stays the same, so the phone reconnects by itself; **New link** on the PC replaces it.
+
+<p align="center"><img src="docs/screenshots/android-deck.png" width="720" alt="The PC deck on a phone in landscape"></p>
+
+It only works on the same Wi-Fi, behind a long random secret, and the phone can only press keys that are on your Deck. The connection is plain http on your network, like **Send**.
+
+### Install
+
+Download `Winklet-<version>.apk` from the release and open it. Android asks once to allow installs from your browser or file manager. Then open Winklet, allow **Display over other apps**, and tap **Show the bubble**. Android 8 or newer.
+
 ## Download
+
+**Android:** grab `Winklet-<version>.apk` from the [latest release](https://github.com/yazeed-01/winklet/releases/latest) and open it (see [Install](#install)).
 
 **Windows:** grab `winklet.exe` from the [latest release](https://github.com/yazeed-01/winklet/releases/latest) and run it: it's a single file with nothing to install (Windows 10/11, x64). Turn on **Launch at startup** in Settings to keep it around. The exe isn't code-signed yet, so SmartScreen may ask once: choose **More info → Run anyway**.
 
@@ -312,9 +343,17 @@ docker run --rm -v "$PWD:/src" -v winklet-target:/target -e CARGO_TARGET_DIR=/ta
 
 Publishing a GitHub release also builds the AppImage and attaches it (`.github/workflows/linux-appimage.yml`).
 
+The Android app lives in `android/` (Kotlin + Jetpack Compose, JDK 17 and the Android SDK):
+
+```sh
+cd android
+./gradlew installDebug       # build and install on a connected phone
+./gradlew assembleRelease    # app/build/outputs/apk/release/app-release.apk
+```
+
 You can also turn on **Launch at startup** in Settings. It writes `HKCU\...\CurrentVersion\Run\Winklet`, the same mechanism other tray apps use, so no admin rights are needed.
 
-Your data stays on your PC in `%APPDATA%\Winklet`: `data.json` for tasks, settings, drinks, health and games, and `screen.json` for screen time, `clips.json` and the `clips` folder for the clipboard history. **Settings → Your data** opens that folder or wipes it. There are no accounts and nothing goes online: only **Send** talks to the network, and only to devices on your Wi-Fi while a link is open.
+Your data stays on your PC in `%APPDATA%\Winklet`: `data.json` for tasks, settings, drinks, health and games, and `screen.json` for screen time, `clips.json` and the `clips` folder for the clipboard history. **Settings → Your data** opens that folder or wipes it. There are no accounts and nothing goes online: only **Send** and the **Phone deck** talk to the network, and only to devices on your Wi-Fi (Send while a link is open, the Phone deck while it's turned on).
 
 ## How it stays light
 
@@ -367,6 +406,11 @@ src/
   clip.rs            clipboard watcher, reading and writing text, pictures and files
   keys.rs            hotkeys, typed text and media keys for the Deck (SendInput)
   wall.rs            desktop wallpaper (IDesktopWallpaper) and shell thumbnails
+  share.rs           Shelf > Send: the local web server and QR link
+  deck_remote.rs     Deck > Phone: the server the Android PC deck talks to
+android/             the Android app (Kotlin + Compose): IslandService (the overlay bubble),
+                     Island / Pages / Water (the panel), Eyes, Store, Reminders,
+                     DeckActivity + PcDeck (the PC deck)
 docs/screenshots/    the pictures in this README
 ```
 
