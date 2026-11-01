@@ -493,6 +493,15 @@ fn open_windows_tool(target: &str, args: &str) -> Option<bool> {
     })
 }
 
+/// Opens a link, file or folder that came from outside (a copied text, a shelf item) in its
+/// app. Unlike `open` it never starts a program: an executable file goes to xdg-open too,
+/// which opens it as a document.
+pub fn open_document(target: &str) -> bool {
+    let t = target.trim();
+    let scheme = t.split_once(':').is_some_and(|(s, _)| !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric() || "+.-".contains(c)));
+    (scheme || std::path::Path::new(t).exists()) && !t.starts_with('-') && spawn("xdg-open", &[t])
+}
+
 fn is_program(p: &std::path::Path) -> bool {
     use std::os::unix::fs::PermissionsExt;
     p.is_file() && std::fs::metadata(p).is_ok_and(|m| m.permissions().mode() & 0o111 != 0)
@@ -575,12 +584,15 @@ pub fn set_autostart(on: bool) {
     let _ = std::fs::write(&file, text);
 }
 
-/// Returns false if another Winklet is already running (an abstract socket only one
-/// process can hold; it goes away with the process, even after a crash).
+/// Returns false if another Winklet of this user is already running (an abstract socket only
+/// one process can hold; it goes away with the process, even after a crash). The name holds
+/// the user id, since abstract sockets are shared by every user of the machine.
 pub fn single_instance() -> bool {
     use std::os::linux::net::SocketAddrExt;
+    use std::os::unix::fs::MetadataExt;
     use std::os::unix::net::{SocketAddr, UnixListener};
-    let Ok(addr) = SocketAddr::from_abstract_name(b"winklet.single-instance") else { return true };
+    let uid = std::fs::metadata("/proc/self").map(|m| m.uid()).unwrap_or(0);
+    let Ok(addr) = SocketAddr::from_abstract_name(format!("winklet.single-instance.{uid}").as_bytes()) else { return true };
     match UnixListener::bind_addr(&addr) {
         Ok(l) => {
             // held for the life of the process

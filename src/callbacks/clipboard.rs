@@ -20,6 +20,6 @@ pub fn wire(b: &Bridge, app: &Shared) {
     on!(b, app, on_clip_open, |a, path| {
         let target = if path.is_empty() { a.clip_selected_text() } else { path.to_string() };
         let target = if target.starts_with("www.") { format!("https://{target}") } else { target };
-        sys::open(target.trim(), "");
+        sys::open_document(target.trim());
     });
 }

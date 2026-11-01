@@ -311,6 +311,11 @@ pub fn open(target: &str, args: &str) -> bool {
     unsafe { ShellExecuteW(None, w!("open"), &t, &a, PCWSTR::null(), SW_SHOWNORMAL).0 as isize > 32 }
 }
 
+/// Opens a link, file or folder that came from outside (a copied text, a shelf item).
+pub fn open_document(target: &str) -> bool {
+    open(target, "")
+}
+
 /// Whether an app handles links like `spotify:…` (HKEY_CLASSES_ROOT\<scheme>).
 pub fn protocol_registered(scheme: &str) -> bool {
     use windows::Win32::System::Registry::{HKEY, HKEY_CLASSES_ROOT, KEY_READ, RegCloseKey, RegOpenKeyExW};

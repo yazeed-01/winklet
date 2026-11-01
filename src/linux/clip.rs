@@ -73,10 +73,13 @@ pub fn watch(paused: Arc<AtomicBool>, on_copy: impl Fn(Got) + Send + 'static) {
             }
             // the app that copied may still be getting ready
             std::thread::sleep(Duration::from_millis(60));
+            let owner = || conn.get_selection_owner(clipboard).ok().and_then(|c| c.reply().ok()).map(|r| r.owner);
+            let owner_before = owner();
             // the formats on offer: a private copy is never read
             let _ = conn.convert_selection(win, clipboard, targets, into, x11rb::CURRENT_TIME);
             let _ = conn.flush();
-            let mut offered: Vec<u32> = Vec::new();
+            // None until the owner answers: a copy whose formats can't be read is skipped
+            let mut offered: Option<Vec<u32>> = None;
             let deadline = std::time::Instant::now() + Duration::from_millis(500);
             while std::time::Instant::now() < deadline {
                 match conn.poll_for_event() {
@@ -86,8 +89,7 @@ pub fn watch(paused: Arc<AtomicBool>, on_copy: impl Fn(Got) + Send + 'static) {
                                 .get_property(true, win, into, AtomEnum::ANY, 0, 4096)
                                 .ok()
                                 .and_then(|c| c.reply().ok())
-                                .and_then(|r| r.value32().map(|v| v.collect()))
-                                .unwrap_or_default();
+                                .and_then(|r| r.value32().map(|v| v.collect()));
                         }
                         break;
                     }
@@ -98,10 +100,21 @@ pub fn watch(paused: Arc<AtomicBool>, on_copy: impl Fn(Got) + Send + 'static) {
                     Err(_) => return,
                 }
             }
+            let Some(offered) = offered else { continue };
             if offered.contains(&private) {
                 continue;
             }
-            if let Some(got) = read() {
+            let got = read();
+            // another app copied while we looked: what was read may not be what was checked
+            // (its own notification is still queued and gets checked next)
+            if owner() != owner_before {
+                if let Some(Got::Image { id, .. }) = &got {
+                    let _ = std::fs::remove_file(image_path(id));
+                    let _ = std::fs::remove_file(thumb_path(id));
+                }
+                continue;
+            }
+            if let Some(got) = got {
                 on_copy(got);
             }
         }

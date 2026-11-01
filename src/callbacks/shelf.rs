@@ -28,7 +28,7 @@ pub fn wire(b: &Bridge, app: &Shared) {
             if !std::path::Path::new(&p).exists() {
                 a.toast("That file was moved or deleted");
             } else {
-                sys::open(&p, "");
+                sys::open_document(&p);
             }
         }
     });
