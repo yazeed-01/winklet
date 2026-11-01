@@ -43,6 +43,12 @@ Short peeks drop down from the pill: charger plugged in or out, track change, wa
 
 A media card with previous, play/pause and next for **any** player (Spotify, browsers, Apple Music and more, through Windows media controls), a big clock, your next task, today's water and your next alarm.
 
+**Tools.** A card beside the clock with four one-click tools:
+* **Screenshot** of the whole screen (right-click it to snip an area).
+* **Copy text:** pick an area and the text in it lands on the clipboard as plain text, no picture saved. It uses the OCR built into Windows, so it works offline.
+* **Search image:** pick an area and it opens in Google Lens in your browser.
+* **Mic** on or off, red while muted.
+
 **Playlists.** The list button on the media card flips it to your saved playlists: colourful covers per service (Spotify, YouTube Music, YouTube, Apple Music, Anghami, SoundCloud, Deezer, TIDAL, Amazon Music) in a scrolling grid. Paste a link to add one (`Gym https://open.spotify.com/playlist/…` names it), click a cover to play it (Spotify links open straight in the Spotify app), drag a cover onto another spot to reorder them, and remove one with two clicks on its ×. When nothing is playing, your latest playlists sit right on the card, one click away. Nothing is fetched from the internet; the service is read from the link.
 
 <img src="docs/screenshots/playlists.png" width="560" alt="Saved playlists on the media card">
@@ -160,7 +166,7 @@ Volume for **each app** (one slider per app even when it has many audio sessions
 * **Ports:** every listening TCP port with the app that owns it, well-known dev ports (8081 Metro, 19000 Expo, 3000, 5173 Vite, 4200, 5432 Postgres…) first. **Kill** needs two clicks within 3 s. Windows services are hidden behind **Show system**.
 * **Dash:** a racing instrument cluster: a CPU tachometer, a big GPU dial (load plus VRAM), download and upload dials, RAM as a temperature gauge, battery as a fuel gauge and today's screen time as the odometer. On Lenovo laptops it follows **Fn+Q** (Quiet blue, Auto gray, Performance red) without admin rights.
 * **Workspaces:** named sets of apps, files, folders and links that open together with one ▶ (for example *Coding*: VS Code, Terminal, the repo folder and localhost). Add apps that are open right now with one click, browse for programs or files, or paste a link or folder path.
-* **Capture:** the camera button or **Ctrl+Alt+S** takes a full-screen screenshot, saves it to `Pictures\Screenshots` and copies it; the island hides itself first. Right-click the camera to snip an area.
+* **Capture:** the Screenshot tool on Home or **Ctrl+Alt+S** takes a full-screen screenshot, saves it to `Pictures\Screenshots` and copies it; the island hides itself first. Right-click it to snip an area.
 
 <img src="docs/screenshots/dev.png" width="440" alt="Developer tools"> <img src="docs/screenshots/workspaces.png" width="440" alt="Workspaces">
 <img src="docs/screenshots/ports.png" width="440" alt="Port killer"> <img src="docs/screenshots/dash.png" width="440" alt="Dash">
