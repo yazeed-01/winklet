@@ -7,7 +7,7 @@ use crate::{Bridge, sys};
 use slint::{ComponentHandle, Timer, TimerMode};
 use std::rc::Rc;
 use std::time::Duration;
-use windows::Win32::Foundation::HWND;
+use crate::sys::HWND;
 
 impl App {
     pub fn start_drag(shared: &Shared) {

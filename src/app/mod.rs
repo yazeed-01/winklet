@@ -49,7 +49,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
-use windows::Win32::Foundation::HWND;
+use crate::sys::HWND;
 
 /// Window sizes in logical px. The window hugs the pill when collapsed so the
 /// transparent area around it never steals clicks from apps underneath.

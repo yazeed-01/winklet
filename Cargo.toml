@@ -2,7 +2,7 @@
 name = "winklet"
 version = "0.5.0"
 edition = "2024"
-description = "Winklet: a tiny winking Dynamic Island for Windows"
+description = "Winklet: a tiny winking Dynamic Island for Windows and Linux"
 license = "MIT"
 repository = "https://github.com/yazeed-01/winklet"
 
@@ -29,10 +29,19 @@ png = "0.18"
 # Shelf > Send: QR code and the small local web server the phone talks to
 qrcode = { version = "0.14", default-features = false }
 tiny_http = "0.12"
+
+# Linux: the island's window, pointer and idle time through X11 (Wayland sessions run it on
+# XWayland), the clipboard, and picture thumbnails for the Wallpaper tab
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = { version = "0.13", features = ["screensaver", "randr", "xfixes"] }
+arboard = { version = "3.6", default-features = false, features = ["image-data"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "bmp"] }
+
+[target.'cfg(windows)'.dependencies]
 # the interface macro for the undocumented default-device COM interface (same version windows uses)
 windows-core = "0.62.2"
 
-[dependencies.windows]
+[target.'cfg(windows)'.dependencies.windows]
 version = "0.62.2"
 features = [
     "Foundation",

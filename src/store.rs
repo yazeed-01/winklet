@@ -138,7 +138,7 @@ impl Default for Settings {
             focus_min: 25,
             break_min: 5,
             // your home folder until you pick another (right-click "4 Terminals")
-            workspace_dir: std::env::var("USERPROFILE").unwrap_or_default(),
+            workspace_dir: std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).unwrap_or_default(),
             car_show: true,
             car_model: 0,
             eyes_lively: true,
@@ -441,7 +441,14 @@ fn write_atomic(p: &std::path::Path, bytes: &[u8]) {
 }
 
 fn path() -> PathBuf {
+    #[cfg(windows)]
     let base = std::env::var_os("APPDATA").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("."));
+    // ~/.config/Winklet
+    #[cfg(not(windows))]
+    let base = std::env::var_os("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))
+        .unwrap_or_else(|| PathBuf::from("."));
     let new = base.join("Winklet").join("data.json");
     // first run after the rename: bring the old DyIs data along (the old file stays as a backup)
     let old = base.join("DyIs").join("data.json");

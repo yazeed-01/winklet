@@ -1,4 +1,4 @@
-# Winklet: a tiny winking Dynamic Island for Windows
+# Winklet: a tiny winking Dynamic Island for Windows and Linux
 
 A small notch at the top of your screen. It shows the clock, battery, live activities (music, focus timer, game stats) and notifications. Hover over it to open a dashboard with productivity, health, developer and gaming tools.
 
@@ -273,7 +273,26 @@ Hover any icon button for a short label explaining what it does; it shows just a
 
 ## Download
 
-Grab `winklet.exe` from the [latest release](https://github.com/yazeed-01/winklet/releases/latest) and run it: it's a single file with nothing to install (Windows 10/11, x64). Turn on **Launch at startup** in Settings to keep it around. The exe isn't code-signed yet, so SmartScreen may ask once: choose **More info → Run anyway**.
+**Windows:** grab `winklet.exe` from the [latest release](https://github.com/yazeed-01/winklet/releases/latest) and run it: it's a single file with nothing to install (Windows 10/11, x64). Turn on **Launch at startup** in Settings to keep it around. The exe isn't code-signed yet, so SmartScreen may ask once: choose **More info → Run anyway**.
+
+### Linux (AppImage)
+
+Grab `Winklet-<version>-x86_64.AppImage` from the same release, then `chmod +x Winklet-*.AppImage` and run it. One file, nothing to install. It runs on any x86-64 distro from Ubuntu 22.04 / Debian 12 / Fedora 36 on, on X11 or Wayland. On Wayland it runs through XWayland, because only X11 lets a window place itself at the top of the screen and stay above other windows (set `WINKLET_WAYLAND=1` to run on Wayland directly). **Launch at startup** writes `~/.config/autostart/winklet.desktop`, and your data lives in `~/.config/Winklet`.
+
+Most of it works the same as on Windows. A few features call desktop tools, and each one simply does nothing when its tool isn't installed:
+
+| Feature | Uses |
+| --- | --- |
+| Now playing | `playerctl` (MPRIS: Spotify, browsers, VLC, …) |
+| Volume, mic, per-app volume | `pactl` / `parec` (PulseAudio or PipeWire) |
+| Copy text from a snip | `tesseract` |
+| Deck hotkeys and typed text | `xdotool` |
+| Wallpaper | GNOME (`gsettings`) or KDE Plasma |
+| File pickers | `zenity` or `kdialog` |
+| Power modes | `powerprofilesctl` |
+| GPU load | amdgpu driver or `nvidia-smi` |
+
+Not on Linux yet: FPS in game mode, app icons in screen time, Lenovo Fn+Q and the Snipping Tool area picker. Icons come from [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons) (MIT), because Segoe Fluent Icons is Windows-only.
 
 ## Build it yourself
 
@@ -283,6 +302,15 @@ cargo run --profile fast                               # try it (quick optimised
 cargo build --release                                  # the exe you ship
 powershell -ExecutionPolicy Bypass -File install.ps1   # install to %LOCALAPPDATA%\Winklet + start with Windows
 ```
+
+The Linux AppImage builds in Docker from any OS (or run the script directly on Linux):
+
+```sh
+docker build -t winklet-linux packaging/linux
+docker run --rm -v "$PWD:/src" -v winklet-target:/target -e CARGO_TARGET_DIR=/target winklet-linux sh packaging/linux/build-appimage.sh
+```
+
+Publishing a GitHub release also builds the AppImage and attaches it (`.github/workflows/linux-appimage.yml`).
 
 You can also turn on **Launch at startup** in Settings. It writes `HKCU\...\CurrentVersion\Run\Winklet`, the same mechanism other tray apps use, so no admin rights are needed.
 

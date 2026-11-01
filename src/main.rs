@@ -1,25 +1,41 @@
 #![windows_subsystem = "windows"]
 
 mod app;
+#[cfg_attr(not(windows), path = "linux/audio.rs")]
 mod audio;
 mod callbacks;
+#[cfg_attr(not(windows), path = "linux/capture.rs")]
 mod capture;
+#[cfg_attr(not(windows), path = "linux/clip.rs")]
 mod clip;
+#[cfg_attr(not(windows), path = "linux/fg.rs")]
 mod fg;
+#[cfg_attr(not(windows), path = "linux/fps.rs")]
 mod fps;
+#[cfg_attr(not(windows), path = "linux/games_scan.rs")]
 mod games_scan;
+#[cfg_attr(not(windows), path = "linux/gpu.rs")]
 mod gpu;
+#[cfg_attr(not(windows), path = "linux/gpu_info.rs")]
 mod gpu_info;
+#[cfg_attr(not(windows), path = "linux/keys.rs")]
 mod keys;
+#[cfg_attr(not(windows), path = "linux/lenovo.rs")]
 mod lenovo;
+#[cfg_attr(not(windows), path = "linux/media.rs")]
 mod media;
+#[cfg_attr(not(windows), path = "linux/pad.rs")]
 mod pad;
+#[cfg_attr(not(windows), path = "linux/ports.rs")]
 mod ports;
 mod share;
 mod snip;
 mod store;
+#[cfg_attr(not(windows), path = "linux/sys.rs")]
 mod sys;
+#[cfg_attr(not(windows), path = "linux/uptime.rs")]
 mod uptime;
+#[cfg_attr(not(windows), path = "linux/wall.rs")]
 mod wall;
 
 use app::{APP, App, CAR_PUFFS, CAR_SKIDS, Focus, SMALL, Shared, Wellbeing, s, schedule_collapse, schedule_shrink, take_screenshot, with_app};
@@ -32,7 +48,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use store::Data;
-use windows::Win32::Foundation::HWND;
+use sys::HWND;
 
 slint::include_modules!();
 
@@ -47,6 +63,7 @@ fn main() {
     }
     sys::boost_priority();
     // STA: required for file dialogs and OLE drag & drop (winit registers the drop target).
+    #[cfg(windows)]
     unsafe {
         let _ = windows::Win32::System::Com::CoInitializeEx(None, windows::Win32::System::Com::COINIT_APARTMENTTHREADED);
     }
@@ -57,6 +74,11 @@ fn main() {
         let _ = slint::BackendSelector::new().backend_name("winit".into()).renderer_name("skia-software".into()).select();
     }
     let ui = AppWindow::new().expect("create window");
+    #[cfg(not(windows))]
+    {
+        sys::set_ui(ui.as_weak());
+        ui.global::<Bridge>().set_icon_font("Winklet Icons".into());
+    }
     let mut data = Data::load();
     if data.settings.island_home_on_start {
         data.settings.island_pos = None;

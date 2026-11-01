@@ -79,13 +79,23 @@ impl Server {
                     continue;
                 }
                 let name = file_name(p);
+                #[cfg(windows)]
                 let dir = std::env::temp_dir().join("Winklet").join("share");
+                // Linux's /tmp is shared by every user: zip into the user's own runtime folder
+                #[cfg(not(windows))]
+                let dir = std::env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from).unwrap_or_else(crate::store::data_dir).join("winklet-share");
                 let _ = std::fs::create_dir_all(&dir);
                 let zip = unique(dir.join(format!("{name}.zip")));
-                let status = std::process::Command::new("tar.exe")
-                    .arg("-a")
-                    .arg("-cf")
-                    .arg(&zip)
+                #[cfg(windows)]
+                let mut tar = std::process::Command::new("tar.exe");
+                #[cfg(windows)]
+                tar.arg("-a").arg("-cf").arg(&zip);
+                // GNU tar can't write a zip; bsdtar (libarchive) can, and picks it from the name
+                #[cfg(not(windows))]
+                let mut tar = std::process::Command::new("bsdtar");
+                #[cfg(not(windows))]
+                tar.arg("-a").arg("-cf").arg(&zip);
+                let status = tar
                     .arg("-C")
                     .arg(p.parent().unwrap_or(Path::new(".")))
                     .arg(format!("./{name}")) // never read as an option, even if it starts with "-"
@@ -120,9 +130,14 @@ trait NoWindow {
 }
 
 impl NoWindow for std::process::Command {
+    #[cfg(windows)]
     fn creation_flags_no_window(&mut self) -> &mut Self {
         use std::os::windows::process::CommandExt;
         self.creation_flags(0x0800_0000) // CREATE_NO_WINDOW
+    }
+    #[cfg(not(windows))]
+    fn creation_flags_no_window(&mut self) -> &mut Self {
+        self
     }
 }
 

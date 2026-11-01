@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Winklet
+Comment=A tiny winking Dynamic Island
+Exec=winklet
+Icon=winklet
+Terminal=false
+Categories=Utility;
+StartupWMClass=winklet

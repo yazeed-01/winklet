@@ -122,7 +122,7 @@ pub fn folder_for(app: &super::App, kind: &str) -> String {
     if kind == "downloads" {
         return sys::downloads_dir();
     }
-    let home = std::env::var("USERPROFILE").unwrap_or_default();
+    let home = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).unwrap_or_default();
     ["source\\repos", "Projects", "Documents\\GitHub", "Documents\\Projects", "repos", "dev", "code", "src"]
         .iter()
         .map(|d| format!("{home}\\{d}"))

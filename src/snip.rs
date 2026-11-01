@@ -1,11 +1,40 @@
 //! What a snip is for besides the picture itself: the text in it (Windows' own offline
 //! OCR, copied as plain text) or a Google Lens search for it.
 
+#[cfg(windows)]
 use windows::Graphics::Imaging::{BitmapPixelFormat, SoftwareBitmap};
+#[cfg(windows)]
 use windows::Media::Ocr::OcrEngine;
+#[cfg(windows)]
 use windows::Storage::Streams::DataWriter;
 
+/// The text in an RGBA picture, through Tesseract (the `tesseract` command, when installed).
+/// Blocks: run it off the UI thread.
+#[cfg(not(windows))]
+pub fn ocr(w: u32, h: u32, rgba: &[u8]) -> Result<String, String> {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+    let png = encode_png(w, h, rgba).ok_or("encode")?;
+    // the picture goes in through stdin: the snip never touches the disk
+    let mut child = Command::new("tesseract")
+        .args(["stdin", "stdout"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    let mut stdin = child.stdin.take().ok_or("stdin")?;
+    let writer = std::thread::spawn(move || stdin.write_all(&png));
+    let out = child.wait_with_output().map_err(|e| e.to_string())?;
+    let _ = writer.join();
+    if !out.status.success() {
+        return Err(String::from_utf8_lossy(&out.stderr).into_owned());
+    }
+    Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+}
+
 /// The text in an RGBA picture, one line per line of text. Blocks: run it off the UI thread.
+#[cfg(windows)]
 pub fn ocr(w: u32, h: u32, rgba: &[u8]) -> windows::core::Result<String> {
     let engine = OcrEngine::TryCreateFromUserProfileLanguages()?;
     let max = OcrEngine::MaxImageDimension()?;
@@ -62,6 +91,10 @@ f.submit();
 </script></body></html>"#,
         base64(&png)
     );
+    // Linux's /tmp is shared by every user: keep the page in the user's own runtime folder
+    #[cfg(not(windows))]
+    let path = std::env::var_os("XDG_RUNTIME_DIR").map(std::path::PathBuf::from).unwrap_or_else(crate::store::data_dir).join("winklet-lens.html");
+    #[cfg(windows)]
     let path = std::env::temp_dir().join("winklet-lens.html");
     std::fs::write(&path, page).is_ok() && crate::sys::open(&path.to_string_lossy(), "")
 }

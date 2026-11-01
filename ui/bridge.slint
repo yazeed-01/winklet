@@ -193,6 +193,8 @@ export struct PortItem {
 }
 
 export global Bridge {
+    // the icon font: Windows' own, or the bundled stand-in drawn from Fluent UI System Icons
+    in property <string> icon-font: "Segoe Fluent Icons";
     // ---- screen time per app + day summary ----
     in property <string> screen-day-label: "Today";
     // day picker under ◀ Today ▶ (Summary and Apps)

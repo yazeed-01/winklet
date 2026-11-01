@@ -1,4 +1,6 @@
 import { Bridge } from "bridge.slint";
+// Segoe Fluent Icons' code points drawn with Fluent UI System Icons (MIT), for Linux
+import "fonts/winklet-icons.ttf";
 
 // One colour theme. The island stays dark in every theme (it's a notch); a theme sets its
 // base, the text tint and the accent colours. Light mode lightens only the open panel.
@@ -82,7 +84,7 @@ export global Theme {
     }
     out property <string> font: "Segoe UI Variable Text";
     out property <string> font-display: "Segoe UI Variable Display";
-    out property <string> icons: "Segoe Fluent Icons";
+    out property <string> icons: Bridge.icon-font;
     out property <duration> spring: 460ms;
     out property <easing> spring-ease: cubic-bezier(0.32, 1.28, 0.5, 1);
     out property <easing> smooth: cubic-bezier(0.2, 0.8, 0.2, 1);

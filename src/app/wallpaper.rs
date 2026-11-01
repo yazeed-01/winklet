@@ -57,6 +57,7 @@ fn every_text(m: i32) -> String {
 /// Runs `f` on a thread of its own with COM ready (the shell APIs need it).
 fn with_com(f: impl FnOnce() + Send + 'static) {
     std::thread::spawn(move || {
+        #[cfg(windows)]
         unsafe {
             let _ = windows::Win32::System::Com::CoInitializeEx(None, windows::Win32::System::Com::COINIT_APARTMENTTHREADED);
         }

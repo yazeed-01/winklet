@@ -1,0 +1,8 @@
+#!/bin/sh
+HERE="$(dirname "$(readlink -f "$0")")"
+# The island places itself on the screen and stays above other windows, which only X11 lets a
+# window do. On a Wayland desktop it runs through XWayland (set WINKLET_WAYLAND=1 to opt out).
+if [ -z "${WINKLET_WAYLAND:-}" ] && [ -n "${DISPLAY:-}" ]; then
+    unset WAYLAND_DISPLAY
+fi
+exec "$HERE/usr/bin/winklet" "$@"

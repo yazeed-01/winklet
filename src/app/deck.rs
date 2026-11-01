@@ -58,7 +58,38 @@ fn default_title(kind: &str, target: &str) -> String {
     }
 }
 
+/// Runs a command line through sh: hidden, or in a terminal that stays open to show the output.
+#[cfg(not(windows))]
+fn run_command(cmd: &str, show: bool) -> bool {
+    let mut c = if show {
+        let mut c = std::process::Command::new("x-terminal-emulator");
+        c.args(["-e", "sh", "-c", &format!("{cmd}; exec \"${{SHELL:-sh}}\"")]);
+        c
+    } else {
+        let mut c = std::process::Command::new("sh");
+        c.args(["-c", cmd]);
+        c
+    };
+    if let Some(home) = std::env::var_os("HOME") {
+        c.current_dir(home);
+    }
+    c.spawn().is_ok()
+}
+
+/// Saves a script key's lines to the data folder's scripts and runs it with sh (both
+/// languages: there is no PowerShell or cmd here).
+#[cfg(not(windows))]
+fn run_script(id: &str, body: &str, _lang: &str, show: bool) -> bool {
+    let dir = store::data_dir().join("scripts");
+    let file = dir.join(format!("deck-{id}.sh"));
+    if std::fs::create_dir_all(&dir).and_then(|_| std::fs::write(&file, body.replace("\r\n", "\n"))).is_err() {
+        return false;
+    }
+    run_command(&format!("sh '{}'", file.display().to_string().replace('\'', r"'\''")), show)
+}
+
 /// Runs a command line: hidden, or in a console window that stays open to show the output.
+#[cfg(windows)]
 fn run_command(cmd: &str, show: bool) -> bool {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
@@ -77,6 +108,7 @@ fn run_command(cmd: &str, show: bool) -> bool {
 
 /// Saves a script key's lines to %APPDATA%\Winklet\scripts and runs the file: hidden, or in a
 /// console window that stays open to show the output.
+#[cfg(windows)]
 fn run_script(id: &str, body: &str, lang: &str, show: bool) -> bool {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;

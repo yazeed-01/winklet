@@ -2,7 +2,8 @@
 //! enough to call from a 1 s timer.
 
 use std::cell::Cell;
-use windows::Win32::Foundation::{ERROR_ALREADY_EXISTS, FILETIME, GetLastError, HANDLE, HWND, POINT, RECT};
+pub use windows::Win32::Foundation::HWND;
+use windows::Win32::Foundation::{ERROR_ALREADY_EXISTS, FILETIME, GetLastError, HANDLE, POINT, RECT};
 use windows::Win32::Graphics::Gdi::{
     GetMonitorInfoW, MONITOR_DEFAULTTONEAREST, MONITOR_DEFAULTTOPRIMARY, MONITORINFO, MonitorFromPoint,
 };
