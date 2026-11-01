@@ -16,6 +16,7 @@ mod media;
 mod pad;
 mod ports;
 mod share;
+mod snip;
 mod store;
 mod sys;
 mod uptime;

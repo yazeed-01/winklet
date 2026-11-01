@@ -264,6 +264,126 @@ component PlaylistGrid inherits VerticalLayout {
     }
 }
 
+// One action on the Home tools card: a tinted icon bubble, a name and a hint.
+component ToolRow inherits Rectangle {
+    in property <string> icon;
+    in property <color> tint;
+    in property <string> title;
+    in property <string> sub;
+    in property <string> tip;
+    callback clicked();
+    callback right-clicked();
+    border-radius: 12px;
+    background: ta.pressed ? Theme.wash(0.1) : ta.has-hover ? Theme.wash(0.06) : transparent;
+    animate background { duration: 120ms; }
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 6px;
+        spacing: 9px;
+        Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 30px;
+            height: 30px;
+            border-radius: 10px;
+            background: root.tint.with-alpha(ta.has-hover ? 0.26 : 0.16);
+            animate background { duration: 140ms; }
+            Glyph {
+                text: root.icon;
+                font-size: 13px;
+                color: root.tint;
+                transform-scale: ta.pressed ? 0.88 : ta.has-hover ? 1.08 : 1;
+                animate transform-scale { duration: 220ms; easing: Theme.spring-ease; }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 1px;
+            Label { text: root.title; font-size: 12px; font-weight: 600; }
+            Label { text: root.sub; font-size: 10px; color: Theme.text-faint; }
+        }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { Tip.shown = false; root.clicked(); }
+        pointer-event(e) => {
+            if e.button == PointerEventButton.right && e.kind == PointerEventKind.up {
+                Tip.shown = false;
+                root.right-clicked();
+            }
+        }
+        changed has-hover => {
+            if self.has-hover && root.tip != "" {
+                Tip.text = root.tip;
+                Tip.ax = root.absolute-position.x;
+                Tip.ay = root.absolute-position.y;
+                Tip.aw = root.width;
+                Tip.ah = root.height;
+                Tip.shown = true;
+            } else if !self.has-hover && Tip.text == root.tip {
+                Tip.shown = false;
+            }
+        }
+    }
+}
+
+// Screen and mic tools, beside the clock and today.
+component ToolsCard inherits Card {
+    property <int> rows: Bridge.has-mic ? 4 : 3;
+    // share the height between the rows (10 + 8 padding, 14 header, 2 between each)
+    property <length> row-h: (root.height - 32px - root.rows * 2px) / root.rows;
+    VerticalLayout {
+        padding: 8px;
+        padding-top: 10px;
+        spacing: 2px;
+        Label {
+            height: 14px;
+            x: 8px;
+            text: "TOOLS";
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: Theme.text-faint;
+        }
+        ToolRow {
+            height: root.row-h;
+            icon: Icon.camera;
+            tint: Theme.accent;
+            title: "Screenshot";
+            sub: "Whole screen";
+            tip: "Screenshot (Ctrl+Alt+S) · right-click: snip an area";
+            clicked => { Bridge.screenshot(); }
+            right-clicked => { Bridge.snip(); }
+        }
+        ToolRow {
+            height: root.row-h;
+            icon: "\u{E8D2}";
+            tint: Theme.accent-2;
+            title: "Copy text";
+            sub: "Snip, copy its text";
+            tip: "Pick an area: its text is copied, no picture saved";
+            clicked => { Bridge.snip-text(); }
+        }
+        ToolRow {
+            height: root.row-h;
+            icon: Icon.search;
+            tint: Theme.orange;
+            title: "Search image";
+            sub: "Google Lens";
+            tip: "Pick an area and search it with Google Lens";
+            clicked => { Bridge.snip-lens(); }
+        }
+        if Bridge.has-mic: ToolRow {
+            height: root.row-h;
+            icon: Bridge.mic-muted ? Icon.mic-off : Icon.mic;
+            tint: Bridge.mic-muted ? Theme.red : Theme.green;
+            title: Bridge.mic-muted ? "Mic muted" : "Mic on";
+            sub: Bridge.mic-muted ? "Click to unmute" : "Click to mute";
+            tip: Bridge.mic-muted ? "Unmute mic  (Ctrl+Alt+M)" : "Mute mic  (Ctrl+Alt+M)";
+            clicked => { Bridge.mic-toggle(); }
+        }
+    }
+}
+
 export component HomePage inherits Rectangle {
     HorizontalLayout {
         spacing: 12px;
@@ -415,6 +535,7 @@ export component HomePage inherits Rectangle {
         // Glance column
         VerticalLayout {
             horizontal-stretch: 1;
+            min-width: 0;
             spacing: 10px;
             Card {
                 VerticalLayout {
@@ -480,5 +601,6 @@ export component HomePage inherits Rectangle {
                 }
             }
         }
+        ToolsCard { width: 150px; }
     }
 }

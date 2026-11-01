@@ -364,3 +364,23 @@ mod tests {
         }
     }
 }
+
+/// Bumps on every clipboard change, from any app.
+pub fn seq() -> u32 {
+    unsafe { GetClipboardSequenceNumber() }
+}
+
+/// The picture on the clipboard, as RGBA (None when there is no picture).
+pub fn read_image() -> Option<(u32, u32, Vec<u8>)> {
+    if !open() {
+        return None;
+    }
+    let got = unsafe {
+        if IsClipboardFormatAvailable(CF_DIB.0 as u32).is_ok() { read_dib() } else { None }
+    };
+    let _ = unsafe { CloseClipboard() };
+    match got {
+        Some(Raw::Image(w, h, rgba)) => Some((w, h, rgba)),
+        _ => None,
+    }
+}

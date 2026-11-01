@@ -1,6 +1,6 @@
 //! Developer tools, screenshots and the port killer.
 
-use crate::app::{Shared, defer, open_folder, pick_folder, pick_workspace, take_screenshot, with_app};
+use crate::app::{Shared, defer, open_folder, pick_folder, pick_workspace, snip_for, take_screenshot, with_app};
 use crate::{Bridge, ports, sys};
 use slint::Timer;
 use std::time::Duration;
@@ -63,6 +63,8 @@ pub fn wire(b: &Bridge, app: &Shared) {
     b.on_snip(|| {
         sys::open("ms-screenclip:", "");
     });
+    b.on_snip_text(|| defer(|s| snip_for(s, false)));
+    b.on_snip_lens(|| defer(|s| snip_for(s, true)));
     on!(b, app, on_open_last_shot, |a| {
         if let Some(p) = &a.last_shot {
             sys::open(&p.to_string_lossy(), "");

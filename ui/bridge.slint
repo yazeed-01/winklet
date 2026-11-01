@@ -416,6 +416,8 @@ export global Bridge {
     // ---- capture / dev ----
     callback screenshot();
     callback snip();
+    callback snip-text();               // snip an area, copy the text in it
+    callback snip-lens();               // snip an area, search it with Google Lens
     callback open-last-shot();
     in property <string> workspace;
     callback pick-workspace();

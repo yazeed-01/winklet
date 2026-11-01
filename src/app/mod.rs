@@ -36,7 +36,7 @@ pub use game::{Play, TAB_GAME, games_pick};
 pub use send::send_pick;
 pub use screen::ScreenTrack;
 pub use wallpaper::wall_add_folder;
-pub use tools::{folder_for, open_folder, pick_folder, pick_workspace, take_screenshot};
+pub use tools::{folder_for, open_folder, pick_folder, pick_workspace, snip_for, take_screenshot};
 pub use wellbeing::Wellbeing;
 pub use workspaces::ws_browse;
 

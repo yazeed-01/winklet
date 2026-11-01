@@ -690,42 +690,6 @@ component MoreMenu inherits Rectangle {
     }
 }
 
-component HeaderButton inherits Rectangle {
-    in property <string> icon;
-    in property <color> tint: Theme.text-dim;
-    in property <string> tip;
-    callback clicked();
-    callback right-clicked();
-    width: 26px;
-    height: 26px;
-    y: 2px;
-    border-radius: 14px;
-    background: ta.has-hover ? Theme.surface-hover : transparent;
-    animate background { duration: 120ms; }
-    Glyph { width: 100%; height: 100%; text: icon; font-size: 12px; color: tint; }
-    ta := TouchArea {
-        mouse-cursor: pointer;
-        changed has-hover => {
-            if self.has-hover && root.tip != "" {
-                Tip.text = root.tip;
-                Tip.ax = root.absolute-position.x;
-                Tip.ay = root.absolute-position.y;
-                Tip.aw = root.width;
-                Tip.ah = root.height;
-                Tip.shown = true;
-            } else if !self.has-hover && Tip.text == root.tip {
-                Tip.shown = false;
-            }
-        }
-        clicked => { Tip.shown = false; root.clicked(); }
-        pointer-event(e) => {
-            if e.button == PointerEventButton.right && e.kind == PointerEventKind.up && !Bridge.dragging {
-                root.right-clicked();
-            }
-        }
-    }
-}
-
 // Current drive gear, shown in the panel header next to the clock.
 component GearBadge inherits Rectangle {
     width: 18px;
@@ -802,18 +766,6 @@ component Expanded inherits Rectangle {
         y: 34px;
         height: 30px;
         spacing: 4px;
-        if Bridge.has-mic: HeaderButton {
-            icon: Bridge.mic-muted ? Icon.mic-off : Icon.mic;
-            tint: Bridge.mic-muted ? Theme.red : Theme.text-dim;
-            tip: Bridge.mic-muted ? "Unmute mic  (Ctrl+Alt+M)" : "Mute mic  (Ctrl+Alt+M)";
-            clicked => { Bridge.mic-toggle(); }
-        }
-        HeaderButton {
-            icon: Icon.camera;
-            tip: "Screenshot (Ctrl+Alt+S) · right-click: snip area";
-            clicked => { Bridge.screenshot(); }
-            right-clicked => { Bridge.snip(); }
-        }
         GearBadge { y: (parent.height - self.height) / 2; }
         if Bridge.charging: Glyph { text: Icon.bolt; font-size: 11px; color: Theme.green; }
         Label { text: Bridge.time-text; font-weight: 700; font-size: 13px; font-family: Theme.font-display; }

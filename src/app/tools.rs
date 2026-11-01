@@ -1,9 +1,10 @@
 //! Actions that pause the app borrow: screenshots and the workspace folder picker.
 
 use super::{Shared, schedule_collapse, with_app};
-use crate::{Bridge, capture, sys};
+use crate::{Bridge, capture, clip, snip, sys};
 use slint::{ComponentHandle, SharedString, Timer};
-use std::time::Duration;
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::time::{Duration, Instant};
 
 /// Hide the island, grab all screens, show it again; encode + save off the UI thread.
 pub fn take_screenshot(shared: &Shared) {
@@ -45,6 +46,67 @@ pub fn take_screenshot(shared: &Shared) {
                     }
                 });
             });
+        });
+    });
+}
+
+/// Bumped by every new snip so an older one still waiting gives up.
+static SNIP_GEN: AtomicU32 = AtomicU32::new(0);
+
+/// Opens the Snipping Tool's area picker, then uses the snip it puts on the clipboard:
+/// `lens` searches it with Google Lens, otherwise its text replaces it on the clipboard.
+pub fn snip_for(shared: &Shared, lens: bool) {
+    let before = clip::seq();
+    {
+        let mut a = shared.borrow_mut();
+        a.hover_timer.stop();
+        a.collapse_timer.stop();
+        if a.ui().global::<Bridge>().get_expanded() {
+            a.collapse();
+        }
+        if !sys::open("ms-screenclip:", "") {
+            a.toast("Snipping Tool isn't installed");
+            return;
+        }
+    }
+    let gen_now = SNIP_GEN.fetch_add(1, Ordering::Relaxed) + 1;
+    std::thread::spawn(move || {
+        // up to a minute to pick the area; Esc in the picker leaves the clipboard alone
+        let deadline = Instant::now() + Duration::from_secs(60);
+        let picture = loop {
+            std::thread::sleep(Duration::from_millis(200));
+            if SNIP_GEN.load(Ordering::Relaxed) != gen_now || Instant::now() > deadline {
+                return;
+            }
+            if clip::seq() != before {
+                // the Snipping Tool may still be writing the picture
+                std::thread::sleep(Duration::from_millis(150));
+                match clip::read_image() {
+                    Some(p) => break p,
+                    None => return,
+                }
+            }
+        };
+        let (w, h, rgba) = picture;
+        let (title, sub) = if lens {
+            if snip::lens(w, h, &rgba) {
+                ("Searching with Google Lens".to_string(), "Opening your browser".to_string())
+            } else {
+                ("Couldn't open Google Lens".to_string(), String::new())
+            }
+        } else {
+            match snip::ocr(w, h, &rgba) {
+                Ok(t) if !t.is_empty() && sys::set_clipboard(&t) => {
+                    let first = t.lines().next().unwrap_or_default();
+                    let sub = if first.chars().count() > 40 { format!("{}…", first.chars().take(40).collect::<String>()) } else { first.to_string() };
+                    ("Text copied".to_string(), sub)
+                }
+                Ok(_) => ("No text found".to_string(), "Try a bigger or sharper area".to_string()),
+                Err(_) => ("Couldn't read text".to_string(), "Add an OCR language in Windows Settings".to_string()),
+            }
+        };
+        let _ = slint::invoke_from_event_loop(move || {
+            with_app(|s| s.borrow_mut().peek(8, &title, &sub, 4));
         });
     });
 }
