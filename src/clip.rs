@@ -376,7 +376,8 @@ pub fn read_image() -> Option<(u32, u32, Vec<u8>)> {
         return None;
     }
     let got = unsafe {
-        if IsClipboardFormatAvailable(CF_DIB.0 as u32).is_ok() { read_dib() } else { None }
+        // a picture an app marked private (password managers…) is never read
+        if !private_copy() && IsClipboardFormatAvailable(CF_DIB.0 as u32).is_ok() { read_dib() } else { None }
     };
     let _ = unsafe { CloseClipboard() };
     match got {
