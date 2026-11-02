@@ -358,6 +358,15 @@ export global Bridge {
     in property <bool> car-enabled: true;
     in property <int> car-model;          // 0 JDM, 1 Muscle, 2 German, 3 F1
     in property <bool> eyes-lively: true;
+    in property <bool> greetings: true;
+    // the speech peek (kind 21): the whole line, how much is typed so far, and its look
+    in property <string> say-text;
+    in property <string> say-shown;
+    in property <string> say-sub;
+    in property <bool> say-done;          // typing finished: the second line slides in
+    in property <string> say-glyph;
+    in property <int> say-tone;           // 0 morning, 1 day, 2 evening, 3 night, 4 cheer, 5 water
+    callback say-hi();
     in property <bool> car-active;        // stage under the island is in use
     in property <bool> car-visible;
     in property <float> car-x;
@@ -436,7 +445,7 @@ export global Bridge {
     // ---- island state ----
     in-out property <bool> expanded;
     in-out property <bool> peeking;
-    in property <int> peek-kind;          // 0 info, 1 charging, 2 unplugged, 3 water, 4 focus, 5 alarm, 6 reminder, 7 music, 8 shot, 9 mic, 11 stand, 12 guide, 13 eyes, 14 cheer, 15 gear, 16 game, 17 day summary, 18 power
+    in property <int> peek-kind;          // 0 info, 1 charging, 2 unplugged, 3 water, 4 focus, 5 alarm, 6 reminder, 7 music, 8 shot, 9 mic, 11 stand, 12 guide, 13 eyes, 14 cheer, 15 gear, 16 game, 17 day summary, 18 power, 19 phone, 20 phone sign-in code, 21 the island says something
     in property <string> peek-title;
     in property <string> peek-sub;
     in-out property <int> tab;
@@ -558,6 +567,8 @@ export global Bridge {
     callback deck-phone-toggle();
     callback deck-phone-reset();
     callback deck-phone-refresh();
+    in property <string> phone-battery;   // "Phone battery 82% · charging", "" until the phone says
+    callback phone-copy-code();
 
     // ---- Clipboard history ----
     in property <[ClipItem]> clips;

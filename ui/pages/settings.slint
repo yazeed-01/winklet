@@ -425,6 +425,7 @@ export component SettingsPage inherits Rectangle {
             width: 262px;
             spacing: 6px;
             SettingRow { title: "Lively eyes"; sub: "Look around, wink, music, zzz…"; key: "eyes"; value: Bridge.eyes-lively; }
+            SettingRow { title: "Little messages"; sub: "Good morning, welcome back, cheers"; key: "greet"; value: Bridge.greetings; }
             SettingRow { title: "Car show on open"; sub: "Drives in and drifts under the island"; key: "car"; value: Bridge.car-enabled; }
             HorizontalLayout {
                 spacing: 6px;
@@ -433,7 +434,11 @@ export component SettingsPage inherits Rectangle {
                 CarPick { model: 2; art: Cars.german; name: "German"; }
                 CarPick { model: 3; art: Cars.f1; name: "F1"; }
             }
-            Button { icon: Icon.play; text: "Test drive"; clicked => { Bridge.car-preview(); } }
+            HorizontalLayout {
+                spacing: 6px;
+                Button { icon: Icon.play; text: "Test drive"; horizontal-stretch: 1; clicked => { Bridge.car-preview(); } }
+                Button { icon: Icon.heart; text: "Say hi"; horizontal-stretch: 1; tip: "Hear a little message now"; clicked => { Bridge.say-hi(); } }
+            }
             Rectangle { }
         }
     }

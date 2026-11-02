@@ -167,6 +167,7 @@ fn main() {
         phone: Default::default(),
         power: None,
         wall: Default::default(),
+        greet: Default::default(),
         clips: app::Clips::load(data.settings.clip_paused),
         data,
     };

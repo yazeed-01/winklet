@@ -59,6 +59,7 @@ class MainActivity : ComponentActivity() {
     private var canOverlay by mutableStateOf(false)
     private var canSteps by mutableStateOf(false)
     private var canExact by mutableStateOf(true)
+    private var canNotifs by mutableStateOf(false)
 
     private val askPermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -82,7 +83,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 SettingsScreen(
-                    canOverlay, canSteps, canExact,
+                    canOverlay, canSteps, canExact, canNotifs,
                     onGrantOverlay = ::openOverlaySettings,
                     onStart = ::requestStart,
                     onStop = {
@@ -100,6 +101,11 @@ class MainActivity : ComponentActivity() {
                         Reminders.scheduleWater(this)
                     },
                     onScanDeck = ::scanDeck,
+                    onSendNotifs = { on ->
+                        Prefs.sendNotifs.set(on)
+                        // the switch stays off until access is given (it's turned on when they come back)
+                        if (on && !canNotifs) startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    },
                     onOpenDeck = { DeckActivity.open(this) },
                     onDay = { start, end ->
                         // keep at least 4 waking hours
@@ -132,6 +138,8 @@ class MainActivity : ComponentActivity() {
         canSteps = Build.VERSION.SDK_INT < 29 ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
         canExact = Build.VERSION.SDK_INT < 31 || getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
+        canNotifs = PhoneLink.allowed(this)
+        if (canNotifs && Prefs.sendNotifs.value) PhoneLink.rebind(this)
     }
 
     private fun openOverlaySettings() {
@@ -185,6 +193,7 @@ private fun SettingsScreen(
     canOverlay: Boolean,
     canSteps: Boolean,
     canExact: Boolean,
+    canNotifs: Boolean,
     onGrantOverlay: () -> Unit,
     onStart: () -> Unit,
     onStop: () -> Unit,
@@ -194,6 +203,7 @@ private fun SettingsScreen(
     onDay: (Int, Int) -> Unit,
     onScanDeck: () -> Unit,
     onOpenDeck: () -> Unit,
+    onSendNotifs: (Boolean) -> Unit,
 ) {
     val t = LocalTokens.current
     val running by IslandService.running.collectAsState()
@@ -209,6 +219,7 @@ private fun SettingsScreen(
     val deckLink by PcDeck.link.collectAsState()
     val stepGoal by Prefs.stepGoal.state.collectAsState()
     val eyeRest by Prefs.eyeRest.state.collectAsState()
+    val sendNotifs by Prefs.sendNotifs.state.collectAsState()
 
     Column(
         Modifier
@@ -259,6 +270,19 @@ private fun SettingsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Pill("Scan again", modifier = Modifier.weight(1f), onClick = onScanDeck)
                     Pill("Forget", modifier = Modifier.weight(1f)) { PcDeck.forget() }
+                }
+                Toggle(
+                    "Phone notifications on PC",
+                    "Your notifications and battery show on the PC island, with a Copy button for sign-in codes",
+                    sendNotifs && canNotifs,
+                    onSendNotifs,
+                )
+                if (sendNotifs && !canNotifs) {
+                    Label(
+                        "Turn on Winklet in the list Android opened. If it says the setting is restricted: " +
+                            "App info › ⋮ › Allow restricted settings, then try again.",
+                        size = 12.sp,
+                    )
                 }
             }
         }

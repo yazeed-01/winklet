@@ -54,6 +54,8 @@ pub struct Settings {
     pub car_model: i32,
     /// random eye events (look around, wink, music, ...) instead of blink-only
     pub eyes_lively: bool,
+    /// good morning / evening, welcome back and little lines through the day
+    pub greetings: bool,
     /// where the island's centre sits (physical px) after it was moved; None = top centre
     pub island_pos: Option<(i32, i32)>,
     /// every launch puts the island back at the top centre
@@ -148,6 +150,7 @@ impl Default for Settings {
             car_show: true,
             car_model: 0,
             eyes_lively: true,
+            greetings: true,
             island_pos: None,
             island_home_on_start: true,
             theme: 0,

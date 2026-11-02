@@ -42,6 +42,7 @@ pub fn wire(b: &Bridge, app: &Shared) {
                 a.data.settings.gear_power = value;
                 a.refresh_gear();
             }
+            "greet" => a.data.settings.greetings = value,
             "eyes" => {
                 a.data.settings.eyes_lively = value;
                 if !value {
@@ -68,6 +69,7 @@ pub fn wire(b: &Bridge, app: &Shared) {
         a.refresh_settings();
     });
     on!(b, app, on_island_home, |a| { a.island_home(); });
+    on!(b, app, on_say_hi, |a| { a.say_hi(); });
     b.on_data_open(|| {
         let dir = crate::store::data_dir();
         let _ = std::fs::create_dir_all(&dir);

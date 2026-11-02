@@ -23,6 +23,7 @@ impl App {
             self.check_summary();
             self.wall_tick();
             self.refresh_alarms();
+            self.greet_tick();
         }
 
         if self.focus.running {
@@ -102,6 +103,7 @@ impl App {
                 self.eye_event(9, 4.0);
             }
             b.set_user_idle(idle);
+            self.greet_idle(idle);
         }
 
         let (pct, plugged) = sys::battery();

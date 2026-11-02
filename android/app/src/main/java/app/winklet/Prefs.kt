@@ -47,8 +47,10 @@ object Prefs {
     val stepGoal = int("step_goal", 8000)
     /** 20-20-20: after 20 minutes of screen time, look 20 feet away for 20 seconds. */
     val eyeRest = bool("eye_rest", false)
+    /** Send this phone's notifications and battery to the paired PC. */
+    val sendNotifs = bool("send_notifs", false)
 
-    private val all = listOf(eyeColor, lively, theme, lightMode, waterGoal, waterEvery, dayStart, dayEnd, bubbleHidden, stepGoal, eyeRest)
+    private val all = listOf(eyeColor, lively, theme, lightMode, waterGoal, waterEvery, dayStart, dayEnd, bubbleHidden, stepGoal, eyeRest, sendNotifs)
 
     val style: IslandStyle get() = IslandStyle.Bubble
 

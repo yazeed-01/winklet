@@ -12,6 +12,7 @@ mod eyes;
 mod focus;
 mod game;
 mod gear;
+mod greet;
 mod heartbeat;
 mod history;
 mod now_playing;
@@ -160,6 +161,8 @@ pub struct App {
     pub wall: wallpaper::Walls,
     /// The Power tab: the action waiting to happen
     pub power: Option<power::PowerPlan>,
+    /// good morning, welcome back and the little lines through the day
+    pub greet: greet::Greet,
 }
 
 pub type Shared = Rc<RefCell<App>>;

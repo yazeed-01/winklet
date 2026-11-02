@@ -8,7 +8,7 @@ Built in **Rust + Slint**, with no browser engine: about 11 MB of memory at rest
 
 ## Contents
 
-[The pill](#the-pill) · [Notifications](#notifications) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water and drinks](#water-and-drinks) · [Alarms](#alarms) · [Shelf](#shelf) · [Send](#send-to-phone-or-pc) · [Clipboard](#clipboard) · [Audio](#audio) · [Developer](#developer) · [Deck](#deck) · [Wallpaper](#wallpaper) · [Game mode](#game-mode) · [Power](#power) · [Settings](#settings) · [Android](#android) · [PC deck](#pc-deck) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
+[The pill](#the-pill) · [Notifications](#notifications) · [Little messages](#little-messages) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water and drinks](#water-and-drinks) · [Alarms](#alarms) · [Shelf](#shelf) · [Send](#send-to-phone-or-pc) · [Clipboard](#clipboard) · [Audio](#audio) · [Developer](#developer) · [Deck](#deck) · [Wallpaper](#wallpaper) · [Game mode](#game-mode) · [Power](#power) · [Settings](#settings) · [Android](#android) · [PC deck](#pc-deck) · [Phone notifications](#phone-notifications-on-the-pc) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
 
 ## Features
 
@@ -38,6 +38,16 @@ The resting island: clock, the current focus timer, two glowing eyes and the bat
 Short peeks drop down from the pill: charger plugged in or out, track change, water reminder (with a one-click **+cup**), alarm, task reminder, focus or break finished, stand-up reminder (with **Done**, **Snooze** and a 60-second **Guide me** stretch), game started or closed, and the evening day summary.
 
 <img src="docs/screenshots/peek-water.png" width="440" alt="Water reminder peek"> <img src="docs/screenshots/peek-stand.png" width="440" alt="Stand-up reminder peek">
+
+### Little messages
+
+The island talks to you through the day. The eyes pop up in a glowing bubble, the line types itself out, the eyes turn happy and a second line slides in, with a few sparkles around them.
+
+* **Greetings**: good morning, good afternoon, good evening, and "it's getting late" at night, once each. The second line fits your day: tasks waiting today, focus sessions done, water goal reached, Monday, Friday or the weekend.
+* **Welcome back** after a break of 10 minutes or more.
+* **Little lines** every hour or so: a posture check, a stretch, blink, a deep breath, "proud of you", and lines for the time of day, the day of the week, and how your water and focus are going. Recent ones don't repeat.
+
+They wait while you focus, play, are on a call, have the island open or a fullscreen app up, and drive modes 4 and up keep them quiet. Turn them off or try one with **Say hi** in **Settings → Look**.
 
 ### Home
 
@@ -303,6 +313,14 @@ Use the phone as a wireless Stream Deck for the PC. On the PC open **Deck → Ph
 <p align="center"><img src="docs/screenshots/android-deck.png" width="720" alt="The PC deck on a phone in landscape"></p>
 
 It only works on the same Wi-Fi, behind a long random secret, and the phone can only press keys that are on your Deck. The connection is plain http on your network, like **Send**.
+
+### Phone notifications on the PC
+
+Once paired, turn on **Phone notifications on PC** under the PC deck in the phone's settings and give Winklet notification access when Android asks. If Android says the setting is restricted (it does for apps installed from an APK), open **App info › ⋮ › Allow restricted settings** and try again.
+
+New notifications from the phone then drop down from the PC island as peeks: who it's from, the app and the message. A text with a sign-in code (like "Your verification code is 482913") shows the code with a **Copy** button, so you never pick up the phone to type it. The phone's battery shows in **Deck → Phone**, and a peek tells you when it drops to 15%.
+
+Ongoing notifications (music, downloads, navigation), silent ones and repeats are skipped. Drive modes 4 and 5 hold back phone notifications but still let sign-in codes through. Nothing leaves the phone while the switch is off. Like the deck, it only reaches the PC on the same Wi-Fi, over plain http behind the pairing secret, so keep it to networks you trust.
 
 ### Install
 

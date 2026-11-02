@@ -77,6 +77,7 @@ impl App {
         b.set_data_dir(s(crate::store::data_dir().to_string_lossy().to_string()));
         b.set_car_model(st.car_model);
         b.set_eyes_lively(st.eyes_lively);
+        b.set_greetings(st.greetings);
         b.set_stand_enabled(st.stand_reminders);
         b.set_stand_interval(st.stand_interval_min);
         b.set_eye_rest(st.eye_rest);

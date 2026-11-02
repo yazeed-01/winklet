@@ -95,6 +95,22 @@ object PcDeck {
         }.getOrDefault(false)
     }
 
+    /** Sends a phone event (a notification, the battery) to the PC; false if it couldn't be reached. */
+    suspend fun send(json: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val c = open("phone")
+            try {
+                c.requestMethod = "POST"
+                c.doOutput = true
+                c.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                c.outputStream.use { it.write(json.toByteArray()) }
+                c.responseCode == 200
+            } finally {
+                c.disconnect()
+            }
+        }.getOrDefault(false)
+    }
+
     private fun open(path: String): HttpURLConnection {
         val base = _link.value ?: error("not paired")
         return (URL("$base/$path").openConnection() as HttpURLConnection).apply {

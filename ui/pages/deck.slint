@@ -554,12 +554,13 @@ component DeckPhone inherits Rectangle {
                 color: Theme.text;
             }
             Label {
-                text: "In the Winklet app on your phone, tap Connect PC deck and scan this code. The phone shows these keys and presses them over the Wi-Fi, and keeps its screen on while the Deck is open.";
+                text: "In the Winklet app on your phone, tap Connect PC deck and scan this code. The phone shows these keys and presses them over the Wi-Fi. Turn on Phone notifications on PC there and its notifications and battery show up here too, with a Copy button for sign-in codes.";
                 font-size: 11.5px;
                 color: Theme.text-dim;
                 wrap: word-wrap;
             }
             Label { text: Bridge.deck-phone-status; font-size: 12px; font-weight: 600; color: Bridge.deck-phone-status == "Phone connected" ? Theme.green : Theme.text; wrap: word-wrap; }
+            if Bridge.phone-battery != "": Label { text: Bridge.phone-battery; font-size: 11.5px; color: Theme.text-dim; }
             HorizontalLayout {
                 spacing: 8px;
                 alignment: start;

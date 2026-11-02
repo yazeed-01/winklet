@@ -18,4 +18,5 @@ pub fn wire(b: &Bridge, app: &Shared) {
     on!(b, app, on_deck_phone_toggle, |a| { a.phone_deck_toggle(); });
     on!(b, app, on_deck_phone_reset, |a| { a.phone_deck_reset(); });
     on!(b, app, on_deck_phone_refresh, |a| { a.refresh_phone_deck(); });
+    on!(b, app, on_phone_copy_code, |a| { a.phone_copy_code(); });
 }

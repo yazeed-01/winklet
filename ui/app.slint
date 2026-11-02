@@ -433,6 +433,136 @@ component Collapsed inherits Rectangle {
     }
 }
 
+// What the island says (peek kind 21): the eyes pop up in a glowing bubble, the line types
+// itself out behind a caret, then the second line slides in. It only exists while it shows,
+// so its animation clock stops with it.
+component SayPeek inherits Rectangle {
+    property <color> tint: Bridge.say-tone == 0 ? Theme.orange
+        : Bridge.say-tone == 1 ? Theme.blue
+        : Bridge.say-tone == 2 ? Theme.pink
+        : Bridge.say-tone == 3 ? #a78bfa
+        : Bridge.say-tone == 4 ? Theme.green
+        : Theme.blue;
+    // ms since this line started: drives the pop, the sweep, the bob and the sparkles
+    property <duration> t0;
+    property <float> age: (animation-tick() - t0) / 1ms;
+    property <string> line: Bridge.say-text;
+    changed line => { root.t0 = animation-tick(); }
+    init => { root.t0 = animation-tick(); }
+    // ease-out-back over 450 ms: a little overshoot, then settle
+    property <float> u: min(1, age / 450) - 1;
+    property <float> pop: 1 + 2.70158 * u * u * u + 1.70158 * u * u;
+    property <float> wave: sin(age * 0.18deg);   // one slow breath every 2 s
+    property <length> top: 8px;                   // the peek sits under the screen edge
+
+    // a soft wash of the tone from the left
+    Rectangle {
+        background: @linear-gradient(90deg, root.tint.with-alpha(0.18) 0%, root.tint.with-alpha(0) 60%);
+    }
+    // one light sweep across as the line arrives
+    if root.age < 1700: Rectangle {
+        width: 80px;
+        x: -80px + (root.width + 80px) * max(0, min(1, (root.age - 300) / 1100));
+        background: @linear-gradient(90deg, #ffffff00 0%, #ffffff16 50%, #ffffff00 100%);
+    }
+
+    avatar := Rectangle {
+        x: 16px;
+        y: root.top + (root.height - root.top - self.height) / 2 + 1.5px * root.wave;
+        width: 44px;
+        height: 44px;
+        border-radius: 22px;
+        background: #000000;
+        border-width: 1.5px;
+        border-color: root.tint.with-alpha(0.75);
+        drop-shadow-blur: 12px + 5px * root.wave;
+        drop-shadow-color: root.tint.with-alpha(0.45);
+        transform-scale: 0.5 + 0.5 * root.pop;
+        // happy ^ ^ once it has said its line
+        Eyes {
+            width: 44px;
+            y: 5px;
+            compact: true;
+            mood: Bridge.say-done ? 4 : 0;
+        }
+    }
+    // what the line is about, tucked on the bubble's corner
+    Rectangle {
+        x: avatar.x + 29px;
+        y: avatar.y + 28px;
+        width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        background: root.tint;
+        border-width: 2px;
+        border-color: Theme.island;
+        transform-scale: max(0, min(1.0, (root.age - 280) / 260));
+        Glyph { width: 100%; height: 100%; text: Bridge.say-glyph; font-size: 9px; color: #0b0b12; }
+    }
+    // sparkles that twinkle around the bubble
+    for p in [{ x: 62px, y: 12px, d: 0 }, { x: 6px, y: 16px, d: 650 }, { x: 64px, y: 46px, d: 1250 }]: Path {
+        x: p.x;
+        y: p.y;
+        width: 8px;
+        height: 8px;
+        viewbox-width: 10;
+        viewbox-height: 10;
+        commands: "M5 0 L6.2 3.8 L10 5 L6.2 6.2 L5 10 L3.8 6.2 L0 5 L3.8 3.8 Z";
+        fill: root.tint;
+        opacity: max(0, sin((root.age - p.d) * 0.22deg)) * min(1, root.age / 500);
+    }
+
+    VerticalLayout {
+        x: 80px;
+        y: root.top;
+        width: root.width - 80px - 46px;
+        height: root.height - root.top;
+        alignment: center;
+        spacing: 2px;
+        HorizontalLayout {
+            alignment: start;
+            spacing: 2px;
+            Text {
+                text: Bridge.say-shown;
+                font-family: Theme.font-display;
+                font-size: 16.5px;
+                font-weight: 700;
+                color: Theme.text;
+            }
+            // the caret blinks while typing, then fades out
+            Rectangle {
+                width: 2px;
+                height: 17px;
+                y: (parent.height - self.height) / 2;
+                border-radius: 1px;
+                background: root.tint;
+                opacity: Bridge.say-done ? 0 : sin(root.age * 0.65deg) > 0 ? 1 : 0.15;
+            }
+        }
+        Text {
+            text: Bridge.say-sub;
+            font-family: Theme.font;
+            font-size: 12px;
+            color: Theme.text-dim;
+            overflow: elide;
+            opacity: Bridge.say-done ? 1 : 0;
+            x: Bridge.say-done ? 0 : 10px;
+            animate opacity { duration: 420ms; easing: Theme.smooth; }
+            animate x { duration: 520ms; easing: Theme.spring-ease; }
+        }
+    }
+    IconButton {
+        x: root.width - 42px;
+        y: root.top + (root.height - root.top - self.height) / 2;
+        icon: Icon.close;
+        size: 30px;
+        icon-size: 10px;
+        tint: Theme.text-faint;
+        tip: "Dismiss";
+        clicked => { Bridge.dismiss-peek(); }
+    }
+}
+
 component Peek inherits Rectangle {
     property <color> tint: Bridge.peek-kind == 1 ? Theme.green
         : Bridge.peek-kind == 2 ? Theme.orange
@@ -452,6 +582,8 @@ component Peek inherits Rectangle {
         : Bridge.peek-kind == 16 ? Theme.pink
         : Bridge.peek-kind == 17 ? Theme.accent
         : Bridge.peek-kind == 18 ? Theme.red
+        : Bridge.peek-kind == 19 ? Theme.accent
+        : Bridge.peek-kind == 20 ? Theme.green
         : Theme.accent;
     property <string> glyph: Bridge.peek-kind == 1 || Bridge.peek-kind == 2 ? Icon.bolt
         : Bridge.peek-kind == 4 ? Icon.timer
@@ -467,8 +599,11 @@ component Peek inherits Rectangle {
         : Bridge.peek-kind == 16 ? Icon.game
         : Bridge.peek-kind == 17 ? Icon.chart
         : Bridge.peek-kind == 18 ? Icon.power
+        : Bridge.peek-kind == 19 ? Icon.phone
+        : Bridge.peek-kind == 20 ? Icon.key
         : Icon.bell;
-    HorizontalLayout {
+    if Bridge.peek-kind == 21 && Bridge.peeking: SayPeek { }
+    if Bridge.peek-kind != 21: HorizontalLayout {
         padding-left: 16px;
         padding-right: 12px;
         padding-top: 8px;
@@ -521,6 +656,16 @@ component Peek inherits Rectangle {
             text: "Cancel";
             tip: "Keep working: cancel it";
             clicked => { Bridge.power-cancel(); }
+        }
+        if Bridge.peek-kind == 20: Button {
+            y: (parent.height - self.height) / 2;
+            height: 32px;
+            primary: true;
+            tint: Theme.green;
+            icon: Icon.copy;
+            text: "Copy";
+            tip: "Copy the code";
+            clicked => { Bridge.phone-copy-code(); Bridge.dismiss-peek(); }
         }
         if Bridge.peek-kind == 8: IconButton {
             y: (parent.height - self.height) / 2;
@@ -869,7 +1014,7 @@ export component AppWindow inherits Window {
     preferred-height: 44px;
 
     property <length> pill-w: Bridge.game-mode ? 404px : Bridge.live-kind != 0 ? 320px : Bridge.media-playing ? 300px : 226px;
-    property <length> peek-w: Bridge.peek-kind == 11 || Bridge.peek-kind == 17 ? 460px : 400px;
+    property <length> peek-w: Bridge.peek-kind == 11 || Bridge.peek-kind == 17 ? 460px : Bridge.peek-kind == 21 ? 430px : 400px;
     // Bubble style: at rest the island is a floating ball with just the eyes
     property <bool> ball: Bridge.bubble && !Bridge.expanded && !Bridge.peeking;
     // the ball floats a little off the screen edge (the notch sits flush against it)

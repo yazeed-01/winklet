@@ -2,6 +2,7 @@
 //! A small web server on the LAN address behind a long secret that stays the same (so the
 //! phone reconnects by itself) until "New link". Like Shelf > Send, a device that keeps
 //! guessing wrong links gets blocked. Only the keys on the Deck can be pressed.
+//! The same link carries the phone's notifications and battery the other way (`POST phone`).
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -10,6 +11,9 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 /// Wrong-link requests allowed per device before it is blocked.
 const MAX_BAD_REQUESTS: u32 = 20;
+
+/// Largest phone event accepted (a notification's title and text fit easily).
+const MAX_EVENT: u64 = 16 * 1024;
 
 /// What the phone sees: the keys as JSON, and the program icons as PNGs by key id.
 #[derive(Default)]
@@ -50,9 +54,17 @@ fn now() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
 }
 
+type Handler = dyn Fn(String) + Send + Sync;
+
 /// Starts serving on `port` if it's free (so a paired phone finds the PC again), else on
-/// another. `press` runs on a server thread with the id of the key pressed.
-pub fn start(token: &str, port: u16, press: impl Fn(String) + Send + Sync + 'static) -> Result<Arc<Remote>, String> {
+/// another. `press` runs on a server thread with the id of the key pressed, `phone` with the
+/// JSON of an event the phone sent (a notification, or its battery).
+pub fn start(
+    token: &str,
+    port: u16,
+    press: impl Fn(String) + Send + Sync + 'static,
+    phone: impl Fn(String) + Send + Sync + 'static,
+) -> Result<Arc<Remote>, String> {
     let ip = crate::share::lan_ip().ok_or("Not connected to a network. Connect to Wi-Fi and try again.")?;
     // only on the Wi-Fi / LAN adapter, not every network this PC is on
     let http = std::iter::once(port)
@@ -70,15 +82,16 @@ pub fn start(token: &str, port: u16, press: impl Fn(String) + Send + Sync + 'sta
         bad: Mutex::new(HashMap::new()),
         seen: AtomicU64::new(0),
     });
-    let press = Arc::new(press);
+    let press: Arc<Handler> = Arc::new(press);
+    let phone: Arc<Handler> = Arc::new(phone);
     let (r, tok) = (remote.clone(), token.to_string());
     std::thread::Builder::new()
         .name("phone-deck".into())
         .spawn(move || {
             while !r.stop.load(Ordering::Relaxed) {
                 let Ok(Some(req)) = http.recv_timeout(Duration::from_millis(400)) else { continue };
-                let (r, tok, press) = (r.clone(), tok.clone(), press.clone());
-                std::thread::spawn(move || handle(req, &tok, &r, &*press));
+                let (r, tok, press, phone) = (r.clone(), tok.clone(), press.clone(), phone.clone());
+                std::thread::spawn(move || handle(req, &tok, &r, &*press, &*phone));
             }
         })
         .map_err(|e| e.to_string())?;
@@ -89,7 +102,7 @@ fn header(k: &str, v: &str) -> tiny_http::Header {
     tiny_http::Header::from_bytes(k.as_bytes(), v.as_bytes()).unwrap()
 }
 
-fn handle(req: tiny_http::Request, tok: &str, r: &Remote, press: &(dyn Fn(String) + Send + Sync)) {
+fn handle(mut req: tiny_http::Request, tok: &str, r: &Remote, press: &Handler, phone: &Handler) {
     let url = req.url().split('?').next().unwrap_or("").to_string();
     let base = format!("/{tok}");
     let client = req.remote_addr().map(|a| a.ip().to_string()).unwrap_or_default();
@@ -131,6 +144,20 @@ fn handle(req: tiny_http::Request, tok: &str, r: &Remote, press: &(dyn Fn(String
                 let _ = req.respond(tiny_http::Response::from_string("ok"));
             } else {
                 let _ = req.respond(tiny_http::Response::from_string("No such key").with_status_code(404));
+            }
+        }
+        // the phone pushes its notifications and battery
+        (tiny_http::Method::Post, "phone") => {
+            use std::io::Read;
+            let mut body = String::new();
+            let ok = req.as_reader().take(MAX_EVENT).read_to_string(&mut body).is_ok()
+                && serde_json::from_str::<serde_json::Value>(&body).is_ok_and(|v| v.is_object());
+            if ok {
+                r.seen.store(now(), Ordering::Relaxed);
+                phone(body);
+                let _ = req.respond(tiny_http::Response::from_string("ok"));
+            } else {
+                let _ = req.respond(tiny_http::Response::from_string("Bad event").with_status_code(400));
             }
         }
         _ => {

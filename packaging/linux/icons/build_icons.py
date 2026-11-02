@@ -16,6 +16,7 @@ from fontTools.ttLib import TTFont
 
 # Segoe Fluent Icons code point -> Fluent UI System Icons name (ic_fluent_<name>_<size>_regular)
 MAP = {
+    0xE706: "weather_sunny",
     0xE708: "weather_moon",
     0xE70D: "chevron_down",
     0xE70E: "chevron_up",
@@ -48,6 +49,7 @@ MAP = {
     0xE769: "pause",
     0xE76B: "chevron_left",
     0xE76C: "chevron_right",
+    0xE76E: "emoji",
     0xE771: "paint_brush",
     0xE774: "globe",
     0xE777: "arrow_counterclockwise",
@@ -60,6 +62,7 @@ MAP = {
     0xE7B3: "eye",
     0xE7B5: "rocket",
     0xE7B8: "box",
+    0xE7C1: "flag",
     0xE7C2: "arrow_move",
     0xE7E8: "power",
     0xE7F4: "desktop",
@@ -81,6 +84,7 @@ MAP = {
     0xE8D2: "text_font",
     0xE8D6: "music_note_2",
     0xE8D7: "key",
+    0xE8EA: "phone",
     0xE916: "timer",
     0xE917: "clock",
     0xE943: "code",

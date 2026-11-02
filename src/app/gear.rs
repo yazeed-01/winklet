@@ -34,10 +34,10 @@ pub fn allows(gear: i32, kind: i32) -> bool {
     }
     match gear {
         1..=3 => true,
-        // music, charger, eye rest
-        4 => !matches!(kind, 1 | 2 | 7 | 13),
+        // music, charger, eye rest, phone notifications (sign-in codes still come through), little lines
+        4 => !matches!(kind, 1 | 2 | 7 | 13 | 19 | 21),
         // + water and stand-up
-        5 => !matches!(kind, 1 | 2 | 3 | 7 | 11 | 13),
+        5 => !matches!(kind, 1 | 2 | 3 | 7 | 11 | 13 | 19 | 21),
         _ => false,
     }
 }
