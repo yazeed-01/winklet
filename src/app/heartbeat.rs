@@ -33,6 +33,17 @@ impl App {
                 self.refresh_focus();
             }
         }
+        if self.focus.timer.running {
+            self.focus.timer.left -= 1;
+            if self.focus.timer.left <= 0 {
+                self.timer_finish();
+            } else {
+                self.refresh_focus();
+            }
+        }
+        if self.focus.watch.since.is_some() {
+            self.refresh_watch(); // the pill's mm:ss; the open page has its own fast timer
+        }
 
         if self.ticks % 2 == 0 {
             self.check_system();

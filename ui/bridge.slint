@@ -15,6 +15,13 @@ export struct AlarmItem {
     enabled: bool,
 }
 
+export struct LapItem {
+    num: int,
+    split: string,
+    total: string,
+    tag: int,        // 0 plain, 1 fastest, 2 slowest
+}
+
 export struct DayCell {
     day: int,
     date: string,    // yyyy-mm-dd
@@ -631,6 +638,28 @@ export global Bridge {
     in property <int> focus-minutes: 25;
     in property <int> break-minutes: 5;
     in property <int> focus-sessions;
+    in-out property <int> focus-mode;     // 0 pomodoro, 1 timer, 2 stopwatch
+
+    // ---- countdown timer ----
+    in property <bool> timer-running;
+    in property <bool> timer-active;      // running or paused mid-countdown
+    in property <string> timer-left: "05:00";
+    in property <float> timer-progress;
+    in property <int> timer-minutes: 5;
+
+    // ---- stopwatch ----
+    in property <bool> sw-running;
+    in property <bool> sw-active;         // running, or stopped above zero
+    in property <string> sw-main: "00:00";
+    in property <string> sw-frac: ".00";
+    in property <float> sw-progress;      // sweeps once a minute
+    in property <[LapItem]> sw-laps;
+
+    // what the resting pill shows: 0 nothing, 1 focus, 2 timer, 3 stopwatch
+    out property <int> live-kind: focus-active ? 1 : timer-active ? 2 : sw-running ? 3 : 0;
+    out property <string> live-text: live-kind == 1 ? focus-left : live-kind == 2 ? timer-left : sw-main;
+    out property <float> live-progress: live-kind == 1 ? focus-progress : live-kind == 2 ? timer-progress : sw-progress;
+    out property <bool> live-running: live-kind == 1 ? focus-running : live-kind == 2 ? timer-running : true;
 
     // ---- water ----
     in property <int> water-ml;
@@ -677,6 +706,13 @@ export global Bridge {
     callback focus-skip();
     callback focus-adjust(int);
     callback break-adjust(int);
+    callback timer-toggle();
+    callback timer-reset();
+    callback timer-set(int);              // minutes
+    callback timer-adjust(int);           // ± minutes
+    callback sw-toggle();
+    callback sw-lap();
+    callback sw-reset();
 
     callback water-add(int);
     in property <[DrinkItem]> drinks;

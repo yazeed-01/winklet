@@ -1,6 +1,6 @@
 # Winklet: a tiny winking Dynamic Island for Windows, Linux and Android
 
-A small notch at the top of your screen. It shows the clock, battery, live activities (music, focus timer, game stats) and notifications. Hover over it to open a dashboard with productivity, health, developer and gaming tools.
+A small notch at the top of your screen. It shows the clock, battery, live activities (music, focus timer, countdown, stopwatch, game stats) and notifications. Hover over it to open a dashboard with productivity, health, developer and gaming tools.
 
 Built in **Rust + Slint**, with no browser engine: about 11 MB of memory at rest and no GPU use. On **Android** it's a floating bubble with the same eyes, written in Kotlin, and your phone can be a wireless Stream Deck for the PC ([Android](#android)).
 
@@ -18,7 +18,7 @@ The resting island: clock, the current focus timer, two glowing eyes and the bat
 
 <img src="docs/screenshots/pill.png" width="425" alt="Resting pill: clock, eyes, gear and battery">  <img src="docs/screenshots/pill-music.png" width="425" alt="Pill with the eyes wearing headphones">
 
-* **Live activities.** The pill widens for the track that's playing or a running focus timer.
+* **Live activities.** The pill widens for the track that's playing or a running focus timer, countdown or stopwatch.
 * **Lively eyes.** Short random moments: they look around, wink, look happy or surprised, show hearts, sip a coffee (always first thing in the morning) or watch a tiny car drive past. They wear headphones and bob along to music and show zzz when you step away. Charging makes them happy, hitting your water goal shows hearts, toggling the mic surprises them. Turn this off with **Lively eyes** to keep blinking only.
 
   <img src="docs/screenshots/eyes.png" width="760" alt="Every eye mood: look left and right, wink, happy, surprised, love, music, coffee, watching a car, tired, away and game mode">
@@ -62,6 +62,14 @@ Add tasks in plain text: `Call mom @18:30` sets a reminder, and `Deploy @2026-11
 ### Focus
 
 A Pomodoro timer with adjustable focus and break lengths. The break starts on its own, and dots count today's sessions.
+
+A switch at the top flips between three clocks, and each keeps running while you use the others:
+
+* **Focus**: the Pomodoro timer above.
+* **Timer**: a countdown from 1 to 180 minutes, with one-tap 1, 3, 5, 10, 15 and 30 minute presets. While it runs, − and + take off or add a minute. When it ends, a peek and the alarm sound tell you.
+* **Stopwatch**: hundredths of a second, with a ring that sweeps once a minute. **Lap** splits times into a list (newest first); with three or more laps the fastest shows green and the slowest red.
+
+A running timer or stopwatch shows next to the clock in the pill (and around the bubble), like the focus timer.
 
 <img src="docs/screenshots/focus.png" width="560" alt="Focus timer">
 

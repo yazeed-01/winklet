@@ -1,38 +1,120 @@
-// Focus (pomodoro) timer.
+// Focus (pomodoro) timer, a plain countdown timer and a stopwatch.
 
 import { Theme, Icon } from "../theme.slint";
-import { Bridge } from "../bridge.slint";
-import { Label, Button, Ring, Stepper } from "../widgets.slint";
+import { Bridge, LapItem } from "../bridge.slint";
+import { Label, Button, Ring, Stepper, Segmented } from "../widgets.slint";
+
+// A one-tap countdown length.
+component Preset inherits Rectangle {
+    in property <int> minutes;
+    in property <bool> on;
+    in property <color> tint;
+    callback clicked();
+    height: 26px;
+    horizontal-stretch: 1;
+    border-radius: 9px;
+    background: on ? tint.with-alpha(0.18) : ta.has-hover ? Theme.surface-hover : Theme.surface;
+    border-width: 1px;
+    border-color: on ? tint.with-alpha(0.5) : transparent;
+    animate background, border-color { duration: 140ms; }
+    Label {
+        text: root.minutes < 60 ? root.minutes + "m" : root.minutes / 60 + "h";
+        font-size: 11.5px;
+        font-weight: 600;
+        color: root.on ? root.tint : Theme.text-dim;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+component LapRow inherits Rectangle {
+    in property <LapItem> item;
+    height: 22px;
+    property <color> tone: item.tag == 1 ? Theme.green : item.tag == 2 ? Theme.red : Theme.text;
+    HorizontalLayout {
+        padding-left: 4px;
+        padding-right: 4px;
+        Label { text: "Lap " + root.item.num; font-size: 12px; color: Theme.text-dim; width: 60px; }
+        Label {
+            text: root.item.split;
+            font-size: 12.5px;
+            font-weight: 600;
+            font-family: Theme.font-display;
+            color: root.tone;
+            horizontal-stretch: 1;
+        }
+        Label { text: root.item.total; font-size: 12px; font-family: Theme.font-display; color: Theme.text-faint; }
+    }
+    Rectangle { y: parent.height - 1px; height: 1px; background: Theme.wash(0.06); }
+}
 
 export component FocusPage inherits Rectangle {
+    property <int> mode: Bridge.focus-mode;
+    property <color> tint: mode == 1 ? Theme.blue : mode == 2 ? Theme.pink
+        : Bridge.focus-break ? Theme.green : Theme.orange;
+
     HorizontalLayout {
         spacing: 22px;
         padding-left: 16px;
         alignment: start;
         Rectangle {
             width: 200px;
-            Ring {
+            // focus and timer tick once a second, so the ring glides between ticks
+            if mode != 2: Ring {
                 width: 188px;
                 height: 188px;
-                progress: Bridge.focus-progress;
+                progress: mode == 1 ? Bridge.timer-progress : Bridge.focus-progress;
                 thickness: 9px;
-                tint: Bridge.focus-break ? Theme.green : Theme.orange;
+                tint: root.tint;
                 animate progress { duration: 900ms; easing: linear; }
+            }
+            // the stopwatch ring is a seconds hand: one lap a minute
+            if mode == 2: Ring {
+                width: 188px;
+                height: 188px;
+                progress: Bridge.sw-progress;
+                thickness: 9px;
+                tint: root.tint;
+                track: Theme.wash(Bridge.sw-active ? 0.08 : 0.05);
             }
             VerticalLayout {
                 alignment: center;
-                Text {
-                    text: Bridge.focus-left;
+                if mode != 2: Text {
+                    text: mode == 1 ? Bridge.timer-left : Bridge.focus-left;
                     font-family: Theme.font-display;
                     font-size: 40px;
                     font-weight: 300;
                     color: Theme.text;
                     horizontal-alignment: center;
                 }
+                if mode == 2: HorizontalLayout {
+                    alignment: center;
+                    Text {
+                        text: Bridge.sw-main;
+                        font-family: Theme.font-display;
+                        font-size: 40px;
+                        font-weight: 300;
+                        color: Theme.text;
+                    }
+                    Text {
+                        text: Bridge.sw-frac;
+                        font-family: Theme.font-display;
+                        font-size: 20px;
+                        font-weight: 300;
+                        color: Theme.text-dim;
+                        vertical-alignment: bottom;
+                        // sit on the big digits' baseline
+                        y: parent.height - self.height - 6px;
+                    }
+                }
                 Label {
-                    text: Bridge.focus-break ? "Break" : "Focus";
+                    text: mode == 0 ? (Bridge.focus-break ? "Break" : "Focus")
+                        : mode == 1 ? (Bridge.timer-running ? "Timer" : Bridge.timer-active ? "Paused" : "Timer")
+                        : Bridge.sw-laps.length > 0 ? "Lap " + (Bridge.sw-laps.length + 1)
+                        : Bridge.sw-active && !Bridge.sw-running ? "Stopped" : "Stopwatch";
                     horizontal-alignment: center;
-                    color: Bridge.focus-break ? Theme.green : Theme.orange;
+                    color: root.tint;
                     font-weight: 600;
                 }
             }
@@ -41,36 +123,125 @@ export component FocusPage inherits Rectangle {
             alignment: center;
             spacing: 12px;
             width: 260px;
-            HorizontalLayout {
-                spacing: 8px;
-                Button {
-                    primary: true;
-                    tint: Bridge.focus-break ? Theme.green : Theme.orange;
-                    icon: Bridge.focus-running ? Icon.pause : Icon.play;
-                    text: Bridge.focus-running ? "Pause" : Bridge.focus-active ? "Resume" : "Start";
-                    horizontal-stretch: 1;
-                    clicked => { Bridge.focus-toggle(); }
+            Segmented {
+                items: ["Focus", "Timer", "Stopwatch"];
+                value: root.mode;
+                height: 26px;
+                picked(i) => { Bridge.focus-mode = i; }
+            }
+
+            // ---- pomodoro ----
+            if mode == 0: VerticalLayout {
+                spacing: 12px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    Button {
+                        primary: true;
+                        tint: root.tint;
+                        icon: Bridge.focus-running ? Icon.pause : Icon.play;
+                        text: Bridge.focus-running ? "Pause" : Bridge.focus-active ? "Resume" : "Start";
+                        horizontal-stretch: 1;
+                        clicked => { Bridge.focus-toggle(); }
+                    }
+                    Button { icon: Icon.reset; tip: "Reset timer"; clicked => { Bridge.focus-reset(); } }
+                    Button { icon: Icon.skip; tip: "Skip to next phase"; clicked => { Bridge.focus-skip(); } }
                 }
-                Button { icon: Icon.reset; tip: "Reset timer"; clicked => { Bridge.focus-reset(); } }
-                Button { icon: Icon.skip; tip: "Skip to next phase"; clicked => { Bridge.focus-skip(); } }
+                HorizontalLayout {
+                    Label { text: "Focus length"; color: Theme.text-dim; font-size: 12px; }
+                    Stepper { value: Bridge.focus-minutes + " min"; step(d) => { Bridge.focus-adjust(d); } }
+                }
+                HorizontalLayout {
+                    Label { text: "Break length"; color: Theme.text-dim; font-size: 12px; }
+                    Stepper { value: Bridge.break-minutes + " min"; step(d) => { Bridge.break-adjust(d); } }
+                }
+                HorizontalLayout {
+                    spacing: 5px;
+                    Label { text: "Sessions today"; color: Theme.text-dim; font-size: 12px; horizontal-stretch: 1; }
+                    for i in 8: Rectangle {
+                        width: 9px;
+                        height: 9px;
+                        y: (parent.height - self.height) / 2;
+                        border-radius: 4.5px;
+                        background: i < Bridge.focus-sessions ? Theme.orange : Theme.wash(0.1);
+                    }
+                }
             }
-            HorizontalLayout {
-                Label { text: "Focus length"; color: Theme.text-dim; font-size: 12px; }
-                Stepper { value: Bridge.focus-minutes + " min"; step(d) => { Bridge.focus-adjust(d); } }
+
+            // ---- countdown timer ----
+            if mode == 1: VerticalLayout {
+                spacing: 12px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    Button {
+                        primary: true;
+                        tint: root.tint;
+                        icon: Bridge.timer-running ? Icon.pause : Icon.play;
+                        text: Bridge.timer-running ? "Pause" : Bridge.timer-active ? "Resume" : "Start";
+                        horizontal-stretch: 1;
+                        clicked => { Bridge.timer-toggle(); }
+                    }
+                    Button { icon: Icon.reset; tip: "Reset timer"; clicked => { Bridge.timer-reset(); } }
+                }
+                HorizontalLayout {
+                    Label {
+                        text: Bridge.timer-active ? "Add or remove time" : "Length";
+                        color: Theme.text-dim;
+                        font-size: 12px;
+                    }
+                    Stepper {
+                        value: Bridge.timer-active ? "1 min" : Bridge.timer-minutes + " min";
+                        step(d) => { Bridge.timer-adjust(d); }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 6px;
+                    for m in [1, 3, 5, 10, 15, 30]: Preset {
+                        minutes: m;
+                        tint: root.tint;
+                        on: Bridge.timer-minutes == m;
+                        clicked => { Bridge.timer-set(m); }
+                    }
+                }
             }
-            HorizontalLayout {
-                Label { text: "Break length"; color: Theme.text-dim; font-size: 12px; }
-                Stepper { value: Bridge.break-minutes + " min"; step(d) => { Bridge.break-adjust(d); } }
-            }
-            HorizontalLayout {
-                spacing: 5px;
-                Label { text: "Sessions today"; color: Theme.text-dim; font-size: 12px; horizontal-stretch: 1; }
-                for i in 8: Rectangle {
-                    width: 9px;
-                    height: 9px;
-                    y: (parent.height - self.height) / 2;
-                    border-radius: 4.5px;
-                    background: i < Bridge.focus-sessions ? Theme.orange : Theme.wash(0.1);
+
+            // ---- stopwatch ----
+            if mode == 2: VerticalLayout {
+                spacing: 10px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    Button {
+                        primary: true;
+                        tint: root.tint;
+                        icon: Bridge.sw-running ? Icon.pause : Icon.play;
+                        text: Bridge.sw-running ? "Stop" : Bridge.sw-active ? "Resume" : "Start";
+                        horizontal-stretch: 1;
+                        clicked => { Bridge.sw-toggle(); }
+                    }
+                    Button {
+                        icon: Bridge.sw-running ? Icon.flag : Icon.reset;
+                        text: Bridge.sw-running ? "Lap" : "Reset";
+                        width: 86px;
+                        opacity: Bridge.sw-active ? 1 : 0.4;
+                        clicked => {
+                            if Bridge.sw-running { Bridge.sw-lap(); } else if Bridge.sw-active { Bridge.sw-reset(); }
+                        }
+                    }
+                }
+                Rectangle {
+                    height: 92px;
+                    if Bridge.sw-laps.length == 0: Label {
+                        text: Bridge.sw-running ? "Tap Lap to split times" : "Laps show up here";
+                        color: Theme.text-faint;
+                        font-size: 12px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                    Flickable {
+                        content-height: laps.preferred-height;
+                        laps := VerticalLayout {
+                            for lap in Bridge.sw-laps: LapRow { item: lap; }
+                        }
+                    }
                 }
             }
         }
