@@ -22,6 +22,25 @@ export struct LapItem {
     tag: int,        // 0 plain, 1 fastest, 2 slowest
 }
 
+// a phone notification in the Phone tab
+export struct PhoneNote {
+    app: string,
+    letter: string,  // the app's initial, on its round avatar
+    tint: color,
+    title: string,
+    text: string,
+    time: string,    // "now", "5m", "14:03", "Yesterday"
+    code: string,    // a sign-in code in it, "" if none
+}
+
+// a call in the Phone tab
+export struct PhoneCall {
+    who: string,
+    letter: string,
+    kind: int,       // 0 ringing, 1 answered, 2 missed
+    time: string,
+}
+
 export struct DayCell {
     day: int,
     date: string,    // yyyy-mm-dd
@@ -445,7 +464,7 @@ export global Bridge {
     // ---- island state ----
     in-out property <bool> expanded;
     in-out property <bool> peeking;
-    in property <int> peek-kind;          // 0 info, 1 charging, 2 unplugged, 3 water, 4 focus, 5 alarm, 6 reminder, 7 music, 8 shot, 9 mic, 11 stand, 12 guide, 13 eyes, 14 cheer, 15 gear, 16 game, 17 day summary, 18 power, 19 phone, 20 phone sign-in code, 21 the island says something
+    in property <int> peek-kind;          // 0 info, 1 charging, 2 unplugged, 3 water, 4 focus, 5 alarm, 6 reminder, 7 music, 8 shot, 9 mic, 11 stand, 12 guide, 13 eyes, 14 cheer, 15 gear, 16 game, 17 day summary, 18 power, 19 phone, 20 phone sign-in code, 21 the island says something, 22 incoming call
     in property <string> peek-title;
     in property <string> peek-sub;
     in-out property <int> tab;
@@ -486,7 +505,7 @@ export global Bridge {
     in property <bool> more-on;
     in property <[bool]> tab-hidden;         // by tab index: behind More
     in property <[int]> tab-slot;            // by tab index: place in the bar (-1 = behind More)
-    in property <int> tab-count: 17;         // buttons in the bar, More included
+    in property <int> tab-count: 18;         // buttons in the bar, More included
     in property <int> more-slot: -1;         // the More button's place in the bar (-1 = none)
     in property <[int]> more-tabs;           // the tabs behind More, in bar order
     in property <[bool]> more-picked;        // by tab index: picked for More (even while it's off)
@@ -569,6 +588,22 @@ export global Bridge {
     callback deck-phone-refresh();
     in property <string> phone-battery;   // "Phone battery 82% · charging", "" until the phone says
     callback phone-copy-code();
+    // ---- Phone tab ----
+    in property <bool> phone-live;        // checked in within the last 90 s
+    in property <string> phone-seen;      // "Connected", "Seen 5 min ago", ...
+    in property <string> phone-model;     // "" until the phone has said
+    in property <string> phone-android;
+    in property <int> phone-pct: -1;
+    in property <bool> phone-charging;
+    in property <int> phone-ringer: -1;   // 0 silent, 1 vibrate, 2 sound
+    in property <string> phone-steps;
+    in property <string> phone-screen;
+    in property <int> phone-missed;
+    in property <[PhoneNote]> phone-notes;
+    in property <[PhoneCall]> phone-calls;
+    in-out property <int> phone-view;     // 0 notifications, 1 calls
+    callback phone-clear();
+    callback phone-copy(string);
 
     // ---- Clipboard history ----
     in property <[ClipItem]> clips;

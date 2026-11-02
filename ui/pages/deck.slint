@@ -511,7 +511,7 @@ component DeckEditor inherits Rectangle {
 
 // Deck > Phone: a QR code for the Winklet phone app, which then shows this Deck and presses
 // its keys over the Wi-Fi. The link stays the same until "New link".
-component DeckPhone inherits Rectangle {
+export component DeckPhone inherits Rectangle {
     // the status follows the phone checking in
     Timer {
         interval: 3s;

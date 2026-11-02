@@ -2,15 +2,45 @@
 //! The link (and the port, when it's free) stays the same, so a paired phone reconnects by
 //! itself; "New link" makes a new secret and the old phone has to scan again.
 //! The other way, a paired phone sends its notifications (peeks here, with a Copy button for
-//! sign-in codes) and its battery.
+//! sign-in codes), its calls and its battery; the Phone tab shows them all.
 
-use super::{App, deck, s, send::qr_image, with_app};
-use crate::sys;
+use super::{App, deck, defer, s, send::qr_image, with_app};
 use crate::deck_remote::{self, Remote, Snapshot};
-use crate::{Bridge, fg};
-use slint::{ComponentHandle, Image};
-use std::collections::HashMap;
+use crate::{Bridge, PhoneCall, PhoneNote, fg, sys};
+use chrono::{DateTime, Local};
+use slint::{ComponentHandle, Image, ModelRc, VecModel};
+use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
+
+/// the Phone tab
+pub const TAB_PHONE: i32 = 17;
+/// How many notifications and calls the Phone tab keeps (in memory only).
+const KEEP: usize = 50;
+
+pub struct Note {
+    app: String,
+    title: String,
+    text: String,
+    code: String,
+    at: DateTime<Local>,
+}
+
+pub struct Call {
+    who: String,
+    /// 0 ringing, 1 answered, 2 missed
+    kind: i32,
+    at: DateTime<Local>,
+}
+
+/// What the phone said about itself in its last check-in.
+#[derive(Default)]
+pub struct Info {
+    model: String,
+    android: String,
+    ringer: i64,
+    steps: i64,
+    screen_min: i64,
+}
 
 #[derive(Default)]
 pub struct PhoneDeck {
@@ -25,6 +55,9 @@ pub struct PhoneDeck {
     low_warned: bool,
     /// the sign-in code on the peek, for its Copy button
     code: String,
+    info: Option<Info>,
+    notes: VecDeque<Note>,
+    calls: VecDeque<Call>,
 }
 
 impl App {
@@ -151,6 +184,74 @@ impl App {
             Some((pct, false)) => format!("Phone battery {pct}%"),
             None => String::new(),
         }));
+        self.refresh_phone_page();
+    }
+
+    /// The Phone tab: the phone's state, its notifications and its calls.
+    fn refresh_phone_page(&self) {
+        let ui = self.ui();
+        let b = ui.global::<Bridge>();
+        let seen = self.phone.server.as_ref().and_then(|r| r.seen_ago());
+        b.set_phone_live(seen.is_some_and(|t| t < 90));
+        b.set_phone_seen(s(match seen {
+            _ if !self.data.settings.phone_deck => "Phone link is off".to_string(),
+            Some(t) if t < 90 => "Connected".into(),
+            Some(t) if t < 3600 => format!("Seen {} min ago", t / 60 + 1),
+            Some(t) if t < 86_400 => format!("Seen {} h ago", t / 3600),
+            Some(_) => "Seen over a day ago".into(),
+            None => "Not connected yet".into(),
+        }));
+        let (pct, charging) = self.phone.battery.unwrap_or((-1, false));
+        b.set_phone_pct(pct as i32);
+        b.set_phone_charging(charging);
+        let info = self.phone.info.as_ref();
+        b.set_phone_model(s(info.map(|i| i.model.clone()).unwrap_or_default()));
+        b.set_phone_android(s(info.filter(|i| !i.android.is_empty()).map(|i| format!("Android {}", i.android)).unwrap_or_default()));
+        b.set_phone_ringer(info.map(|i| i.ringer as i32).unwrap_or(-1));
+        b.set_phone_steps(s(info.map(|i| thousands(i.steps)).unwrap_or_default()));
+        b.set_phone_screen(s(info.map(|i| format!("{}h {:02}m", i.screen_min / 60, i.screen_min % 60)).unwrap_or_default()));
+
+        let h24 = self.data.settings.clock_24h;
+        let notes: Vec<PhoneNote> = self
+            .phone
+            .notes
+            .iter()
+            .map(|n| PhoneNote {
+                app: s(n.app.clone()),
+                letter: s(initial(&n.app)),
+                tint: deck::hex_color(deck::PALETTE[1 + (hash(&n.app) % (deck::PALETTE.len() - 1))]),
+                title: s(n.title.clone()),
+                text: s(n.text.clone()),
+                time: s(when(n.at, h24)),
+                code: s(n.code.clone()),
+            })
+            .collect();
+        let calls: Vec<PhoneCall> = self
+            .phone
+            .calls
+            .iter()
+            .map(|c| PhoneCall { who: s(c.who.clone()), letter: s(initial(&c.who)), kind: c.kind, time: s(when(c.at, h24)) })
+            .collect();
+        b.set_phone_missed(self.phone.calls.iter().filter(|c| c.kind == 2).count() as i32);
+        b.set_phone_notes(ModelRc::new(VecModel::from(notes)));
+        b.set_phone_calls(ModelRc::new(VecModel::from(calls)));
+    }
+
+    /// The Phone tab's Clear: empties the list on show (notifications or calls).
+    pub fn phone_clear(&mut self) {
+        if self.ui().global::<Bridge>().get_phone_view() == 1 {
+            self.phone.calls.clear();
+        } else {
+            self.phone.notes.clear();
+        }
+        self.refresh_phone_page();
+    }
+
+    /// Copy on a notification with a sign-in code in the Phone tab.
+    pub fn phone_copy(&mut self, code: &str) {
+        if !code.is_empty() && sys::set_clipboard(code) {
+            self.toast("Code copied");
+        }
     }
 
     /// Something the phone sent: `{"type":"notif","app":..,"title":..,"text":..}` or
@@ -172,6 +273,16 @@ impl App {
                     self.peek(19, "Phone battery low", &format!("{pct}% left · plug it in"), 6);
                 }
                 self.phone.battery = Some((pct, charging));
+                let num = |k: &str| v.get(k).and_then(|x| x.as_i64()).unwrap_or(-1);
+                if v.get("model").is_some() {
+                    self.phone.info = Some(Info {
+                        model: clip(&text("model"), 40),
+                        android: clip(&text("android"), 12),
+                        ringer: num("ringer"),
+                        steps: num("steps").max(0),
+                        screen_min: num("screen").max(0),
+                    });
+                }
                 self.refresh_phone_deck();
             }
             Some("notif") => {
@@ -179,7 +290,17 @@ impl App {
                 if title.is_empty() && body.is_empty() {
                     return;
                 }
-                if let Some(code) = find_code(&format!("{title} {body}")) {
+                let code = find_code(&format!("{title} {body}")).unwrap_or_default();
+                self.phone.notes.push_front(Note {
+                    app: clip(&app, 40),
+                    title: clip(&title, 80),
+                    text: clip(&body, 160),
+                    code: code.clone(),
+                    at: Local::now(),
+                });
+                self.phone.notes.truncate(KEEP);
+                self.refresh_phone_deck();
+                if !code.is_empty() {
                     self.phone.code = code.clone();
                     self.peek(20, &format!("Code {code}"), &clip(&format!("{app} · {body}"), 80), 20);
                     return;
@@ -188,8 +309,57 @@ impl App {
                 let sub = if body.is_empty() { app } else { format!("{app} · {body}") };
                 self.peek(19, &clip(&head, 48), &clip(&sub, 80), 6);
             }
+            Some("call") => {
+                let who = clip(&text("who"), 60);
+                let who = if who.is_empty() { "Unknown caller".to_string() } else { who };
+                // the call on top, if it's still the same caller from the last few minutes
+                let same = self.phone.calls.front().is_some_and(|c| c.who == who && (Local::now() - c.at).num_minutes() < 5);
+                let top = self.phone.calls.front().map(|c| c.kind);
+                match v.get("state").and_then(|x| x.as_str()) {
+                    Some("ringing") => {
+                        if !(same && top == Some(0)) {
+                            self.phone.calls.push_front(Call { who: who.clone(), kind: 0, at: Local::now() });
+                        }
+                        self.peek(22, &who, "Incoming call on your phone", 30);
+                        self.eye_event(6, 2.0);
+                    }
+                    Some("active") => {
+                        if same {
+                            self.phone.calls[0].kind = 1;
+                        } else {
+                            self.phone.calls.push_front(Call { who, kind: 1, at: Local::now() });
+                        }
+                        self.dismiss_call_peek();
+                    }
+                    Some("missed") => {
+                        if same && top == Some(0) {
+                            self.phone.calls[0].kind = 2;
+                        } else if !(same && top == Some(2)) {
+                            self.phone.calls.push_front(Call { who: who.clone(), kind: 2, at: Local::now() });
+                        }
+                        self.dismiss_call_peek();
+                        self.peek(19, "Missed call", &who, 8);
+                    }
+                    Some("ended") => self.dismiss_call_peek(),
+                    _ => return,
+                }
+                self.phone.calls.truncate(KEEP);
+                self.refresh_phone_deck();
+            }
             _ => {}
         }
+    }
+
+    /// The call stopped ringing: take its peek away (after this borrow of the app ends, since
+    /// dismissing borrows it again).
+    fn dismiss_call_peek(&mut self) {
+        defer(|s| {
+            let ui = s.borrow().ui();
+            let b = ui.global::<Bridge>();
+            if b.get_peeking() && b.get_peek_kind() == 22 {
+                b.invoke_dismiss_peek();
+            }
+        });
     }
 
     /// The Copy button on a sign-in code peek.
@@ -197,6 +367,36 @@ impl App {
         if !self.phone.code.is_empty() && sys::set_clipboard(&self.phone.code) {
             self.toast("Code copied");
         }
+    }
+}
+
+/// The first letter of a name, for its round avatar.
+fn initial(name: &str) -> String {
+    name.chars().find(|c| c.is_alphanumeric()).map(|c| c.to_uppercase().collect()).unwrap_or_else(|| "?".into())
+}
+
+fn hash(text: &str) -> usize {
+    text.bytes().fold(5381usize, |h, b| h.wrapping_mul(33) ^ b as usize)
+}
+
+fn thousands(n: i64) -> String {
+    if n >= 1000 { format!("{},{:03}", n / 1000, n % 1000) } else { n.to_string() }
+}
+
+/// "now", "5m", "14:03" today, "Yesterday", or "Nov 2".
+fn when(at: DateTime<Local>, h24: bool) -> String {
+    let now = Local::now();
+    let mins = (now - at).num_minutes();
+    if mins < 1 {
+        "now".into()
+    } else if mins < 60 {
+        format!("{mins}m")
+    } else if at.date_naive() == now.date_naive() {
+        at.format(if h24 { "%H:%M" } else { "%-I:%M %p" }).to_string()
+    } else if Some(at.date_naive()) == now.date_naive().pred_opt() {
+        "Yesterday".into()
+    } else {
+        at.format("%b %-d").to_string()
     }
 }
 

@@ -1,0 +1,310 @@
+// Phone: the paired Android phone at a glance. Its battery and status on the left, its
+// notifications and calls on the right. Until a phone has checked in it shows the pairing code.
+
+import { Theme, Icon } from "../theme.slint";
+import { Bridge, PhoneNote, PhoneCall } from "../bridge.slint";
+import { Glyph, Label, Button, Card, Segmented } from "../widgets.slint";
+import { DeckPhone } from "deck.slint";
+
+// A little phone drawn in outline, filled up to its battery level.
+component PhoneArt inherits Rectangle {
+    property <color> level: Bridge.phone-charging ? Theme.green
+        : Bridge.phone-pct <= 15 ? Theme.red
+        : Bridge.phone-pct <= 30 ? Theme.orange
+        : Theme.green;
+    property <float> pct: max(0, Bridge.phone-pct) / 100;
+    width: 46px;
+    height: 80px;
+    border-radius: 11px;
+    border-width: 2px;
+    border-color: Theme.text-dim;
+    clip: true;
+    // the charge, rising from the bottom
+    Rectangle {
+        x: 4px;
+        width: parent.width - 8px;
+        height: (parent.height - 8px) * root.pct;
+        y: parent.height - 4px - self.height;
+        border-radius: 7px;
+        background: @linear-gradient(180deg, root.level.with-alpha(0.55) 0%, root.level.with-alpha(0.25) 100%);
+        animate height { duration: 700ms; easing: Theme.spring-ease; }
+    }
+    // the camera notch
+    Rectangle { x: (parent.width - 12px) / 2; y: 5px; width: 12px; height: 3px; border-radius: 1.5px; background: Theme.text-dim; }
+    if Bridge.phone-charging: Glyph { width: 100%; height: 100%; text: Icon.bolt; font-size: 16px; color: Theme.text; }
+}
+
+component Stat inherits HorizontalLayout {
+    in property <string> icon;
+    in property <string> text;
+    in property <color> tint: Theme.text-dim;
+    spacing: 8px;
+    height: 20px;
+    Glyph { width: 16px; text: root.icon; font-size: 11.5px; color: root.tint; }
+    Label { text: root.text; font-size: 12px; color: Theme.text; vertical-alignment: center; overflow: elide; }
+}
+
+// a round initial, coloured per app
+component Avatar inherits Rectangle {
+    in property <string> letter;
+    in property <color> tint;
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    background: tint;
+    Text {
+        width: 100%;
+        height: 100%;
+        text: root.letter;
+        color: white;
+        font-family: Theme.font-display;
+        font-size: 14px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+component NoteRow inherits Rectangle {
+    in property <PhoneNote> item;
+    height: 54px;
+    border-radius: 12px;
+    background: ta.has-hover ? Theme.surface-hover : Theme.surface;
+    animate background { duration: 120ms; }
+    ta := TouchArea { }
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        spacing: 10px;
+        Avatar { y: (parent.height - self.height) / 2; letter: root.item.letter; tint: root.item.tint; }
+        VerticalLayout {
+            alignment: center;
+            spacing: 1px;
+            horizontal-stretch: 1;
+            HorizontalLayout {
+                spacing: 6px;
+                Label {
+                    text: root.item.title != "" ? root.item.title : root.item.app;
+                    font-size: 12.5px;
+                    font-weight: 600;
+                    overflow: elide;
+                    horizontal-stretch: 1;
+                }
+                Label { text: root.item.app + " · " + root.item.time; font-size: 10.5px; color: Theme.text-faint; }
+            }
+            Label { text: root.item.text; font-size: 11.5px; color: Theme.text-dim; overflow: elide; }
+        }
+        if root.item.code != "": Button {
+            y: (parent.height - self.height) / 2;
+            height: 28px;
+            primary: true;
+            tint: Theme.green;
+            icon: Icon.copy;
+            text: root.item.code;
+            tip: "Copy the code";
+            clicked => { Bridge.phone-copy(root.item.code); }
+        }
+    }
+}
+
+component CallRow inherits Rectangle {
+    in property <PhoneCall> item;
+    property <color> tint: item.kind == 2 ? Theme.red : item.kind == 0 ? Theme.green : Theme.blue;
+    height: 46px;
+    border-radius: 12px;
+    background: ta.has-hover ? Theme.surface-hover : Theme.surface;
+    animate background { duration: 120ms; }
+    ta := TouchArea { }
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 12px;
+        spacing: 10px;
+        Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 30px;
+            height: 30px;
+            border-radius: 15px;
+            background: root.tint.with-alpha(0.18);
+            Glyph { width: 100%; height: 100%; text: Icon.phone; font-size: 12px; color: root.tint; }
+        }
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 1;
+            Label { text: root.item.who; font-size: 12.5px; font-weight: 600; overflow: elide; color: root.item.kind == 2 ? Theme.red : Theme.text; }
+            Label {
+                text: root.item.kind == 2 ? "Missed call" : root.item.kind == 0 ? "Incoming call" : "Answered";
+                font-size: 11px;
+                color: Theme.text-dim;
+            }
+        }
+        Label { text: root.item.time; font-size: 11px; color: Theme.text-faint; vertical-alignment: center; }
+    }
+}
+
+component Empty inherits VerticalLayout {
+    in property <string> icon;
+    in property <string> title;
+    in property <string> sub;
+    alignment: center;
+    spacing: 6px;
+    Rectangle {
+        height: 46px;
+        Rectangle {
+            x: (parent.width - 46px) / 2;
+            width: 46px;
+            height: 46px;
+            border-radius: 23px;
+            background: Theme.surface;
+            Glyph { width: 100%; height: 100%; text: root.icon; font-size: 18px; color: Theme.text-faint; }
+        }
+    }
+    Label { text: root.title; font-size: 13px; font-weight: 600; horizontal-alignment: center; }
+    Label { text: root.sub; font-size: 11.5px; color: Theme.text-faint; horizontal-alignment: center; wrap: word-wrap; }
+}
+
+export component PhonePage inherits Rectangle {
+    // never heard from a phone yet: show how to pair
+    property <bool> paired: Bridge.phone-model != "" || Bridge.phone-pct >= 0 || Bridge.phone-notes.length > 0 || Bridge.phone-calls.length > 0;
+    property <bool> show-qr;
+    property <bool> pulse;
+    // "seen 5 min ago" ticks along, and the live dot breathes
+    Timer {
+        interval: 5s;
+        running: true;
+        triggered => { Bridge.deck-phone-refresh(); }
+    }
+    Timer {
+        interval: 1.1s;
+        running: Bridge.phone-live;
+        triggered => { root.pulse = !root.pulse; }
+    }
+
+    if !root.paired || root.show-qr: Rectangle {
+        DeckPhone { }
+        if root.paired: Button {
+            x: 0;
+            y: 0;
+            height: 28px;
+            icon: Icon.left;
+            text: "Back";
+            clicked => { root.show-qr = false; }
+        }
+    }
+
+    if root.paired && !root.show-qr: HorizontalLayout {
+        spacing: 14px;
+        // ---- the phone ----
+        Card {
+            width: 214px;
+            VerticalLayout {
+                padding: 14px;
+                spacing: 10px;
+                HorizontalLayout {
+                    spacing: 12px;
+                    PhoneArt { }
+                    VerticalLayout {
+                        alignment: center;
+                        spacing: 2px;
+                        Text {
+                            text: Bridge.phone-pct >= 0 ? Bridge.phone-pct + "%" : "–";
+                            font-family: Theme.font-display;
+                            font-size: 30px;
+                            font-weight: 300;
+                            color: Theme.text;
+                        }
+                        Label {
+                            text: Bridge.phone-pct < 0 ? "Battery" : Bridge.phone-charging ? "Charging" : "On battery";
+                            font-size: 11.5px;
+                            color: Bridge.phone-charging ? Theme.green : Theme.text-dim;
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            Rectangle {
+                                width: 8px;
+                                height: 8px;
+                                y: (parent.height - self.height) / 2;
+                                border-radius: 4px;
+                                background: Bridge.phone-live ? Theme.green : Theme.text-faint;
+                                opacity: Bridge.phone-live && root.pulse ? 0.35 : 1;
+                                animate opacity { duration: 1000ms; easing: ease-in-out; }
+                            }
+                            Label { text: Bridge.phone-seen; font-size: 11px; color: Bridge.phone-live ? Theme.green : Theme.text-faint; }
+                        }
+                    }
+                }
+                VerticalLayout {
+                    spacing: 1px;
+                    Label { text: Bridge.phone-model != "" ? Bridge.phone-model : "Your phone"; font-size: 13px; font-weight: 700; overflow: elide; }
+                    if Bridge.phone-android != "": Label { text: Bridge.phone-android; font-size: 11px; color: Theme.text-faint; }
+                }
+                if Bridge.phone-ringer >= 0: Stat {
+                    icon: Bridge.phone-ringer == 2 ? Icon.volume : Icon.mute;
+                    text: Bridge.phone-ringer == 2 ? "Sound on" : Bridge.phone-ringer == 1 ? "Vibrate" : "Silent";
+                    tint: Bridge.phone-ringer == 2 ? Theme.text-dim : Theme.orange;
+                }
+                if Bridge.phone-steps != "": Stat { icon: Icon.walk; text: Bridge.phone-steps + " steps today"; }
+                if Bridge.phone-screen != "": Stat { icon: Icon.phone; text: Bridge.phone-screen + " screen time"; }
+                Rectangle { }
+            }
+        }
+        // ---- notifications and calls ----
+        VerticalLayout {
+            spacing: 10px;
+            horizontal-stretch: 1;
+            HorizontalLayout {
+                spacing: 8px;
+                height: 28px;
+                Segmented {
+                    width: 240px;
+                    height: 28px;
+                    items: [
+                        Bridge.phone-notes.length > 0 ? "Notifications · " + Bridge.phone-notes.length : "Notifications",
+                        Bridge.phone-missed > 0 ? "Calls · " + Bridge.phone-missed + " missed" : "Calls",
+                    ];
+                    value: Bridge.phone-view;
+                    picked(i) => { Bridge.phone-view = i; }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                Button {
+                    height: 28px;
+                    icon: Icon.qr;
+                    tip: "Pairing code: pair a phone";
+                    clicked => { root.show-qr = true; }
+                }
+                if (Bridge.phone-view == 0 ? Bridge.phone-notes.length : Bridge.phone-calls.length) > 0: Button {
+                    height: 28px;
+                    icon: Icon.delete;
+                    text: "Clear";
+                    clicked => { Bridge.phone-clear(); }
+                }
+            }
+            Rectangle {
+                vertical-stretch: 1;
+                if Bridge.phone-view == 0 && Bridge.phone-notes.length == 0: Empty {
+                    icon: Icon.bell;
+                    title: "No notifications yet";
+                    sub: "New ones from your phone land here, with Copy for sign-in codes.";
+                }
+                if Bridge.phone-view == 1 && Bridge.phone-calls.length == 0: Empty {
+                    icon: Icon.phone;
+                    title: "No calls yet";
+                    sub: "Incoming and missed calls show up here and on the island.";
+                }
+                if Bridge.phone-view == 0: Flickable {
+                    content-height: notes.preferred-height;
+                    notes := VerticalLayout {
+                        spacing: 6px;
+                        for n in Bridge.phone-notes: NoteRow { item: n; }
+                    }
+                }
+                if Bridge.phone-view == 1: Flickable {
+                    content-height: calls.preferred-height;
+                    calls := VerticalLayout {
+                        spacing: 6px;
+                        for c in Bridge.phone-calls: CallRow { item: c; }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -8,7 +8,7 @@ Built in **Rust + Slint**, with no browser engine: about 11 MB of memory at rest
 
 ## Contents
 
-[The pill](#the-pill) · [Notifications](#notifications) · [Little messages](#little-messages) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water and drinks](#water-and-drinks) · [Alarms](#alarms) · [Shelf](#shelf) · [Send](#send-to-phone-or-pc) · [Clipboard](#clipboard) · [Audio](#audio) · [Developer](#developer) · [Deck](#deck) · [Wallpaper](#wallpaper) · [Game mode](#game-mode) · [Power](#power) · [Settings](#settings) · [Android](#android) · [PC deck](#pc-deck) · [Phone notifications](#phone-notifications-on-the-pc) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
+[The pill](#the-pill) · [Notifications](#notifications) · [Little messages](#little-messages) · [Home](#home) · [To-do and calendar](#to-do-and-calendar) · [Focus](#focus) · [Drive modes](#drive-modes) · [Health](#health) · [Screen time](#screen-time) · [Day summary](#day-summary) · [Water and drinks](#water-and-drinks) · [Alarms](#alarms) · [Shelf](#shelf) · [Send](#send-to-phone-or-pc) · [Clipboard](#clipboard) · [Audio](#audio) · [Developer](#developer) · [Deck](#deck) · [Wallpaper](#wallpaper) · [Game mode](#game-mode) · [Power](#power) · [Settings](#settings) · [Android](#android) · [PC deck](#pc-deck) · [Phone notifications](#phone-notifications-on-the-pc) · [Phone tab](#phone-tab) · [Download](#download) · [Build it](#build-it-yourself) · [How it stays light](#how-it-stays-light) · [Project layout](#project-layout)
 
 ## Features
 
@@ -321,6 +321,12 @@ Once paired, turn on **Phone notifications on PC** under the PC deck in the phon
 New notifications from the phone then drop down from the PC island as peeks: who it's from, the app and the message. A text with a sign-in code (like "Your verification code is 482913") shows the code with a **Copy** button, so you never pick up the phone to type it. The phone's battery shows in **Deck → Phone**, and a peek tells you when it drops to 15%.
 
 Ongoing notifications (music, downloads, navigation), silent ones and repeats are skipped. Drive modes 4 and 5 hold back phone notifications but still let sign-in codes through. Nothing leaves the phone while the switch is off. Like the deck, it only reaches the PC on the same Wi-Fi, over plain http behind the pairing secret, so keep it to networks you trust.
+
+### Phone tab
+
+The **Phone** tab on the PC shows the paired phone at a glance. On the left, a little phone fills up to its battery level (with a bolt while charging), next to a live "Connected" dot, the model and Android version, the ringer (sound, vibrate or silent), steps today and screen time. On the right, **Notifications** lists the latest ones with a coloured initial per app and a Copy button on sign-in codes, and **Calls** lists incoming, answered and missed calls.
+
+An incoming call drops down from the island and goes away when it's answered or ends; a missed call leaves a peek, and the Phone tab's icon turns red until you clear it. Calls come from the phone's call notifications, so the app needs no phone or call log permission. The lists live in memory only and are gone when Winklet closes. Before a phone has paired, the tab shows the pairing code; the QR button brings it back later.
 
 ### Install
 

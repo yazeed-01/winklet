@@ -1,7 +1,7 @@
 import { Theme, Icon, Cars, EyeTint, TabList, TabDef } from "theme.slint";
 import { Bridge, TodoItem, AlarmItem, DayCell, Bar, ShelfItem, AppVolume } from "bridge.slint";
 import { Glyph, Label, IconButton, Button, Ring, WaterDrop, PageHost, Tip } from "widgets.slint";
-import { HomePage, TodoPage, CalendarPage, FocusPage, WaterPage, AlarmPage, DevPage, SettingsPage, ShelfPage, AudioPage, HealthPage, GearPage, GamePage, PowerPage, DeckPage, WallpaperPage, ClipboardPage } from "pages.slint";
+import { HomePage, TodoPage, CalendarPage, FocusPage, WaterPage, AlarmPage, DevPage, SettingsPage, ShelfPage, AudioPage, HealthPage, GearPage, GamePage, PowerPage, DeckPage, WallpaperPage, ClipboardPage, PhonePage } from "pages.slint";
 
 export { Bridge, TodoItem, AlarmItem, DayCell, Bar, ShelfItem, AppVolume, Tip }
 
@@ -584,6 +584,7 @@ component Peek inherits Rectangle {
         : Bridge.peek-kind == 18 ? Theme.red
         : Bridge.peek-kind == 19 ? Theme.accent
         : Bridge.peek-kind == 20 ? Theme.green
+        : Bridge.peek-kind == 22 ? Theme.green
         : Theme.accent;
     property <string> glyph: Bridge.peek-kind == 1 || Bridge.peek-kind == 2 ? Icon.bolt
         : Bridge.peek-kind == 4 ? Icon.timer
@@ -599,7 +600,7 @@ component Peek inherits Rectangle {
         : Bridge.peek-kind == 16 ? Icon.game
         : Bridge.peek-kind == 17 ? Icon.chart
         : Bridge.peek-kind == 18 ? Icon.power
-        : Bridge.peek-kind == 19 ? Icon.phone
+        : Bridge.peek-kind == 19 || Bridge.peek-kind == 22 ? Icon.phone
         : Bridge.peek-kind == 20 ? Icon.key
         : Icon.bell;
     if Bridge.peek-kind == 21 && Bridge.peeking: SayPeek { }
@@ -689,11 +690,11 @@ component Peek inherits Rectangle {
 }
 
 // Where a tab sits in the bar, by tab index. New tabs get the next index so older ones keep
-// theirs: Drive (11) sits after Focus, Clipboard (16) after Shelf, Deck (14) and Wallpaper (15)
-// after Developer, Power (13) before Settings.
+// theirs: Drive (11) sits after Focus, Clipboard (16) after Shelf, Deck (14), Phone (17) and
+// Wallpaper (15) after Developer, Power (13) before Settings.
 global TabOrder {
     public pure function pos(i: int) -> int {
-        return [0, 1, 2, 3, 5, 6, 7, 8, 10, 11, 16, 4, 14, 15, 12, 13, 9][max(0, min(16, i))];
+        return [0, 1, 2, 3, 5, 6, 7, 8, 10, 11, 17, 4, 15, 16, 12, 14, 9, 13][max(0, min(17, i))];
     }
 }
 
@@ -898,6 +899,7 @@ component Expanded inherits Rectangle {
             TabButton { index: 8; tip: "Audio & mic"; icon: Icon.volume; }
             TabButton { index: 9; tip: "Developer tools"; icon: Icon.code; }
             TabButton { index: 14; tip: "Deck: your keys for apps, commands and shortcuts"; icon: Icon.deck; }
+            TabButton { index: 17; tip: Bridge.phone-missed > 0 ? "Phone: " + Bridge.phone-missed + " missed" : "Phone: notifications, calls, battery"; icon: Icon.phone; lit: Bridge.phone-missed > 0; lit-tint: Theme.red; }
             TabButton { index: 15; tip: "Wallpaper"; icon: Icon.wallpaper; }
             TabButton { index: 12; tip: "Game mode (Ctrl+Alt+G)"; icon: Icon.game; lit: Bridge.game-mode; }
             TabButton { index: 13; tip: Bridge.power-pending >= 0 ? "Power: planned for " + Bridge.power-at : "Power: lock, sleep, restart, shut down"; icon: Icon.power; lit: Bridge.power-pending >= 0; lit-tint: Theme.orange; }
@@ -937,6 +939,7 @@ component Expanded inherits Rectangle {
         if Bridge.tab == 14: PageHost { dir: Bridge.tab-dir; DeckPage { } }
         if Bridge.tab == 15: PageHost { dir: Bridge.tab-dir; WallpaperPage { } }
         if Bridge.tab == 16: PageHost { dir: Bridge.tab-dir; ClipboardPage { } }
+        if Bridge.tab == 17: PageHost { dir: Bridge.tab-dir; PhonePage { } }
     }
     if Bridge.more-open: TouchArea {
         clicked => { Bridge.more-open = false; }

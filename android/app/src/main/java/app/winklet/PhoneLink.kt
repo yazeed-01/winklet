@@ -7,7 +7,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.media.AudioManager
 import android.os.BatteryManager
+import android.os.Build
 import android.os.SystemClock
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -37,6 +39,7 @@ class PhoneLink : NotificationListenerService() {
 
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
+            if (i.action == AudioManager.RINGER_MODE_CHANGED_ACTION) return sendStatus()
             val level = i.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
             val scale = i.getIntExtra(BatteryManager.EXTRA_SCALE, 100)
             val status = i.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
@@ -54,10 +57,12 @@ class PhoneLink : NotificationListenerService() {
         super.onCreate()
         Prefs.init(this)
         PcDeck.init(this)
+        Store.init(this)
     }
 
     override fun onListenerConnected() {
-        ContextCompat.registerReceiver(this, batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED), ContextCompat.RECEIVER_NOT_EXPORTED)
+        val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED).apply { addAction(AudioManager.RINGER_MODE_CHANGED_ACTION) }
+        ContextCompat.registerReceiver(this, batteryReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
         loop?.cancel()
         loop = scope.launch {
             // right away when turned on or paired, then a check-in every minute
@@ -84,13 +89,59 @@ class PhoneLink : NotificationListenerService() {
     private fun sendStatus() {
         val (pct, charging) = battery ?: return
         if (!active()) return
-        val json = JSONObject().put("type", "status").put("battery", pct).put("charging", charging).toString()
+        val ringer = when (getSystemService(AudioManager::class.java).ringerMode) {
+            AudioManager.RINGER_MODE_SILENT -> 0
+            AudioManager.RINGER_MODE_VIBRATE -> 1
+            else -> 2
+        }
+        val day = Store.data.value.today()
+        val json = JSONObject()
+            .put("type", "status")
+            .put("battery", pct)
+            .put("charging", charging)
+            .put("model", "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}")
+            .put("android", Build.VERSION.RELEASE)
+            .put("ringer", ringer)
+            .put("steps", day.steps)
+            .put("screen", day.screenSec / 60)
+            .toString()
         scope.launch { PcDeck.send(json) }
+    }
+
+    /** Calls come as the dialer's notifications: ringing, in a call, or missed. */
+    private fun callEvent(sbn: StatusBarNotification, state: String) {
+        val e = sbn.notification.extras
+        val title = e.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty().trim()
+        val text = e.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty().trim()
+        // "Missed call" / "Incoming call" titles name the caller in the text
+        val namesCall = title.contains("call", ignoreCase = true) || title.contains("incoming", ignoreCase = true)
+        val who = if (namesCall && text.isNotEmpty()) {
+            text.ifEmpty { title }
+        } else {
+            title.ifEmpty { text }
+        }
+        val sig = "call|$state|$who"
+        val now = SystemClock.elapsedRealtime()
+        if (state != "ended" && recent[sig]?.let { now - it < 30_000 } == true) return
+        recent[sig] = now
+        val json = JSONObject().put("type", "call").put("state", state).put("who", who.take(80)).toString()
+        scope.launch { PcDeck.send(json) }
+    }
+
+    override fun onNotificationRemoved(sbn: StatusBarNotification) {
+        if (active() && sbn.notification.category == Notification.CATEGORY_CALL) callEvent(sbn, "ended")
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (!active() || sbn.packageName == packageName) return
         val n = sbn.notification
+        if (n.category == Notification.CATEGORY_CALL) {
+            // ringing shows full screen; the one that stays up during the call doesn't
+            return callEvent(sbn, if (n.fullScreenIntent != null) "ringing" else "active")
+        }
+        if (n.category == "missed_call" || (n.category == null && "missed call" in (n.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.lowercase() ?: ""))) {
+            return callEvent(sbn, "missed")
+        }
         // music players, downloads, navigation and the like keep a notification up: skip them
         if (sbn.isOngoing || n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
         if (n.category in SKIP) return

@@ -79,7 +79,7 @@ pub const TAB_DECK: i32 = 14;
 pub const TAB_WALL: i32 = 15;
 pub const TAB_SETTINGS: i32 = 10;
 /// the tabs in the order of the bar (matches TabOrder and TabList in the UI)
-pub const TAB_BAR: [i32; 17] = [0, 1, 2, 3, 11, 4, 5, 6, 7, 16, 8, 9, 14, 15, 12, 13, 10];
+pub const TAB_BAR: [i32; 18] = [0, 1, 2, 3, 11, 4, 5, 6, 7, 16, 8, 9, 14, 17, 15, 12, 13, 10];
 
 pub struct App {
     pub ui: slint::Weak<AppWindow>,
@@ -376,6 +376,7 @@ impl App {
             TAB_GEAR => self.refresh_gear_time(),
             TAB_POWER => self.refresh_power(),
             TAB_DECK => self.refresh_deck(),
+            phone_deck::TAB_PHONE => self.refresh_phone_deck(),
             TAB_WALL => self.refresh_wallpaper(),
             TAB_CLIP => self.refresh_clips(),
             TAB_GAME => {
