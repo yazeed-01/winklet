@@ -312,7 +312,7 @@ Use the phone as a wireless Stream Deck for the PC. On the PC open **Deck → Ph
 
 <p align="center"><img src="docs/screenshots/android-deck.png" width="720" alt="The PC deck on a phone in landscape"></p>
 
-It only works on the same Wi-Fi, behind a long random secret, and the phone can only press keys that are on your Deck. The connection is plain http on your network, like **Send**.
+It only works on the same Wi-Fi, and the phone can only press keys that are on your Deck. Everything between the phone and the PC (the Deck, key presses, notifications, calls and battery) is encrypted with AES-256-GCM under a key that exists only in the QR code: it sits after the `#` of the link, which is never sent over the network. Someone else on the Wi-Fi can't read it, press your keys, or replay a message they recorded, and the phone only pairs with a PC on a home or office network address. **New link** makes a new key.
 
 ### Phone notifications on the PC
 
@@ -320,7 +320,7 @@ Once paired, turn on **Phone notifications on PC** under the PC deck in the phon
 
 New notifications from the phone then drop down from the PC island as peeks: who it's from, the app and the message. A text with a sign-in code (like "Your verification code is 482913") shows the code with a **Copy** button, so you never pick up the phone to type it. The phone's battery shows in **Deck → Phone**, and a peek tells you when it drops to 15%.
 
-Ongoing notifications (music, downloads, navigation), silent ones and repeats are skipped. Drive modes 4 and 5 hold back phone notifications but still let sign-in codes through. Nothing leaves the phone while the switch is off. Like the deck, it only reaches the PC on the same Wi-Fi, over plain http behind the pairing secret, so keep it to networks you trust.
+Ongoing notifications (music, downloads, navigation), silent ones and repeats are skipped. Drive modes 4 and 5 hold back phone notifications but still let sign-in codes through. Nothing leaves the phone while the switch is off. Like the deck, it only reaches the PC on the same Wi-Fi, encrypted with the key from the QR code.
 
 ### Phone tab
 

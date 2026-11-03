@@ -1,6 +1,6 @@
 [package]
 name = "winklet"
-version = "0.10.0"
+version = "0.10.1"
 edition = "2024"
 description = "Winklet: a tiny winking Dynamic Island for Windows and Linux"
 license = "MIT"
@@ -29,6 +29,8 @@ png = "0.18"
 # Shelf > Send: QR code and the small local web server the phone talks to
 qrcode = { version = "0.14", default-features = false }
 tiny_http = "0.12"
+# the phone link: every message sealed with the key from the pairing QR code
+aes-gcm = "0.10"
 
 # Linux: the island's window, pointer and idle time through X11 (Wayland sessions run it on
 # XWayland), the clipboard, and picture thumbnails for the Wallpaper tab

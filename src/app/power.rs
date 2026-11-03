@@ -1,6 +1,6 @@
 //! The Power tab: lock, sleep, restart, sign out or shut down, now or after a while.
 
-use super::{App, s};
+use super::{App, defer, s};
 use crate::{Bridge, sys};
 use chrono::{DateTime, Local};
 use slint::ComponentHandle;
@@ -40,12 +40,14 @@ impl App {
         if self.power.take().is_none() {
             return;
         }
-        let ui = self.ui();
-        let b = ui.global::<Bridge>();
-        if b.get_peeking() && b.get_peek_kind() == PEEK_POWER {
-            b.set_peeking(false);
-            b.invoke_dismiss_peek();
-        }
+        // dismissing borrows the app again, so after this borrow ends
+        defer(|s| {
+            let ui = s.borrow().ui();
+            let b = ui.global::<Bridge>();
+            if b.get_peeking() && b.get_peek_kind() == PEEK_POWER {
+                b.invoke_dismiss_peek();
+            }
+        });
         self.refresh_power();
         self.toast("Cancelled");
     }

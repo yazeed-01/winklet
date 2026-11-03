@@ -169,7 +169,7 @@ class MainActivity : ComponentActivity() {
                 if (PcDeck.pair(code.rawValue ?: "")) {
                     DeckActivity.open(this)
                 } else {
-                    Toast.makeText(this, "That isn't a Winklet Deck code. On the PC: Deck › Phone.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "That isn't a Winklet code from your home network. Update Winklet on the PC, then scan Deck › Phone.", Toast.LENGTH_LONG).show()
                 }
             }
             .addOnFailureListener {

@@ -126,6 +126,8 @@ pub struct Settings {
     pub phone_deck: bool,
     /// the phone deck's secret (kept so a paired phone reconnects; "New link" replaces it)
     pub phone_deck_token: String,
+    /// the key every phone-link message is sealed with; only ever shown in the QR code
+    pub phone_deck_key: String,
     /// the port it last used, tried first so the phone finds it again
     pub phone_deck_port: u16,
     /// bumped when defaults change; 0 = file from before versioning
@@ -188,6 +190,7 @@ impl Default for Settings {
             summary_h: 18,
             phone_deck: false,
             phone_deck_token: String::new(),
+            phone_deck_key: String::new(),
             phone_deck_port: 0,
             version: SETTINGS_VERSION,
         }

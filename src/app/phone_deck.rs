@@ -66,13 +66,17 @@ impl App {
         if !self.data.settings.phone_deck || self.phone.server.is_some() {
             return;
         }
-        if self.data.settings.phone_deck_token.is_empty() {
-            self.data.settings.phone_deck_token = uuid::Uuid::new_v4().simple().to_string();
+        let st = &mut self.data.settings;
+        if st.phone_deck_token.is_empty() || st.phone_deck_key.is_empty() {
+            // a link from before the key (0.10 and older) gets a new one: the phone scans again
+            st.phone_deck_token = uuid::Uuid::new_v4().simple().to_string();
+            st.phone_deck_key = deck_remote::new_key();
             self.data.save();
         }
-        let token = self.data.settings.phone_deck_token.clone();
+        let (token, key) = (self.data.settings.phone_deck_token.clone(), self.data.settings.phone_deck_key.clone());
         let res = deck_remote::start(
             &token,
+            &key,
             self.data.settings.phone_deck_port,
             |id| {
                 // pressing runs on the UI thread, like a click on the key
@@ -113,6 +117,7 @@ impl App {
     /// A new secret: phones paired with the old link stop working until they scan again.
     pub fn phone_deck_reset(&mut self) {
         self.data.settings.phone_deck_token.clear();
+        self.data.settings.phone_deck_key.clear();
         self.data.save();
         self.phone_deck_stop();
         self.phone_deck_start();
